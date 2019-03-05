@@ -12,26 +12,26 @@ class Layout extends React.Component {
     if (location.pathname === rootPath) {
       header = (
         <>
-        <h1
-          style={{
-            ...scale(1.5),
-            marginBottom: rhythm(1.5),
-            marginTop: 0,
-            marginBottom: "15px"
-          }}
-        >
-          <Link
+          <h1
             style={{
-              boxShadow: `none`,
-              textDecoration: `none`,
-              color: `inherit`,
+              ...scale(1.5),
+              marginBottom: rhythm(1.5),
+              marginTop: 0,
+              marginBottom: "15px",
             }}
-            to={`/`}
           >
-            {title}
-          </Link>
-        </h1>
-        <h2 style={{marginTop: 0}}>{subtitle}</h2>
+            <Link
+              style={{
+                boxShadow: `none`,
+                textDecoration: `none`,
+                color: `inherit`,
+              }}
+              to={`/`}
+            >
+              {title}
+            </Link>
+          </h1>
+          <h2 style={{ marginTop: 0 }}>{subtitle}</h2>
         </>
       )
     } else {
@@ -69,7 +69,9 @@ class Layout extends React.Component {
         <footer>
           © {new Date().getFullYear()}, Built with
           {` `}
-          <a href="https://www.gatsbyjs.org">Gatsby</a>
+          <a style={{ color: "#" }} href="https://www.gatsbyjs.org">
+            Gatsby
+          </a>
         </footer>
       </div>
     )

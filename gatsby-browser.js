@@ -1,6 +1,4 @@
 // custom typefaces
-import "typeface-montserrat"
-import "typeface-merriweather"
 
 require("./main.css")
 require("prismjs/themes/prism-okaidia.css")
