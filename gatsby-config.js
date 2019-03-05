@@ -3,7 +3,7 @@ module.exports = {
     title: `Adam Reacts`,
     subtitle: "(badly)",
     author: `Adam Rackis`,
-    description: `A starter blog demonstrating what Gatsby can do.`,
+    description: `A blog by Adam Rackis`,
     siteUrl: `https://gatsby-starter-blog-demo.netlify.com/`,
     social: {
       twitter: `kylemathews`,
