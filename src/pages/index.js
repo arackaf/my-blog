@@ -9,11 +9,15 @@ import { rhythm } from "../utils/typography"
 class BlogIndex extends React.Component {
   render() {
     const { data } = this.props
-    const {title: siteTitle, subtitle} = data.site.siteMetadata
+    const { title: siteTitle, subtitle } = data.site.siteMetadata
     const posts = data.allMarkdownRemark.edges
 
     return (
-      <Layout location={this.props.location} title={siteTitle} subtitle={subtitle}>
+      <Layout
+        location={this.props.location}
+        title={siteTitle}
+        subtitle={subtitle}
+      >
         <SEO
           title="All posts"
           keywords={[`blog`, `gatsby`, `javascript`, `react`]}
