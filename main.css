@@ -13,6 +13,11 @@ a {
   border-left: 0.25em solid #f99;
 }
 
+code.language-text {
+  background: rgba(0, 0, 0, 0.5) !important;
+  font-family: Menlo,Monaco,"Courier New",Courier,monospace !important;
+}
+
 /**
  * Remove the default PrismJS theme background-color, border-radius, margin,
  * padding and overflow.
