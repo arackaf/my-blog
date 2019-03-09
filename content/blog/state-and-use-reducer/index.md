@@ -122,4 +122,26 @@ While slightly more lines, we no longer have multiple update functions, and we n
 
 Lastly, you may have noticed me sending my actions to the reducer as an array, with the type in the 0th slot, rather than as an object with a `type` key. Either are allowed with useReducer; this is just a trick Dan Abramov showed me to reduce the boilerplate a bit :)
 
+## Linting against errors like this
+
+The wonderful folks on the React team have created a lint rule to help catch, and draw attention to the sorts of errors from the original code above. It's [located here](https://github.com/facebook/react/issues/14920), and seems to work wonderfully.
+
+## What about functional setState()
+
+Lastly, some of you may be wondering why, in the original code, I didn't just do this
+
+```javascript
+setPending(pending => pending - 1 || 0);
+```
+
+rather than
+
+```javascript
+setPending(pending - 1 || 0);
+```
+
+This would have indeed removed the closure problem, and worked fine for this particularly use case; however, the minute updates to `booksJustSaved` needed access to the value of `pending`, or vice versa, this solution would have broken down, leaving us right where we started. Moreover, I find the reucer version to be a bit cleaner, with the state management nicely separated in its own reducer function.
+
+All in all, I think `useReducer()` is incredibly under-utilized at present. It's nowhere near as scary as you might think. Give it a try!
+
 Happy coding!
