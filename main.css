@@ -13,8 +13,6 @@ a {
   border-left: 0.25em solid #f99;
 }
 
-
-
 /**
  * Remove the default PrismJS theme background-color, border-radius, margin,
  * padding and overflow.
@@ -24,16 +22,24 @@ a {
  */
 .gatsby-highlight pre[class*="language-"] {
   padding-right: 0;
-  padding-top: 0;
+  padding-top: 10px;
   width: 100%;
   float: left; /* 1 */
   min-width: 100%; /* 2 */
+  border-radius: 0.3em
 }
 
 pre.language-javascript span.line-numbers-rows {
+  padding-top: 10px;
   padding-left: 0.5em;
 }
 
 pre.language-graphql span.line-numbers-rows {
+  padding-top: 10px;
   padding-left: 0.5em;
+}
+
+.gatsby-highlight[data-language] {
+  display: inline-block;
+  width: 100%;
 }
