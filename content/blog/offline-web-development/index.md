@@ -51,7 +51,9 @@ workbox.routing.registerRoute(
       let { query, variables } = parseQueryString(url.search);
 
       if (query == allSubjects) {
-        return readTable("subjects", "name").then(gqlResponse("allSubjects", "Subjects"));
+        return readTable("subjects", "name").then(
+          gqlResponse("allSubjects", "Subjects")
+        );
       }
     });
   },
@@ -131,7 +133,11 @@ workbox.routing.registerRoute(
 We’re running our GraphQL mutations as usual, since we expect them to only run while online. The `response.clone()` is by necessity, since fetch responses can only be consumed once, and calls to `response.json()`, or passing to `event.responseWith` or `cache.put` count as consumption. Beyond that, the code calls `syncResultsFor` to sync the various types that may have been modified by our GraphQL mutation. Let’s turn there, next.
 
 ```javascript{numberLines: true}
-async function syncResultsFor({ request, response }, name, transform = item => item) {
+async function syncResultsFor(
+  { request, response },
+  name,
+  transform = item => item
+) {
   let createNameSingle = `create${name}`;
   let data = response.data;
   if (data[createNameSingle] && data[createNameSingle][name]) {
@@ -168,7 +174,9 @@ function syncItem(item, table, transform = item => item) {
       let db = open.result;
       let tran = db.transaction(table, "readwrite");
       let objStore = tran.objectStore(table);
-      objStore.get(item._id).onsuccess = ({ target: { result: itemToUpdate } }) => {
+      objStore.get(item._id).onsuccess = ({
+        target: { result: itemToUpdate },
+      }) => {
         if (!itemToUpdate) {
           objStore.add(transform(item)).onsuccess = res;
         } else {
@@ -231,8 +239,7 @@ Here’s how we’ll implement this. The sort fields in the GraphQL request will
 
 Let’s implement this by adding some new, optional arguments to the `readTable` function from before, along with a new function that grabs the books’ arguments before calling `readTable` with them
 
-<!-- prettier: { printWidth: 100 } -->
-
+<!-- prettier-ignore -->
 ```javascript{numberLines: true}
 function readBooks(variableString) {
   let variables = JSON.parse(variableString);
