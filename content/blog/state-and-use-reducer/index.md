@@ -58,7 +58,7 @@ This code fails horribly. We're accessing state inside the `useEffect` closure, 
 
 To be clear, using the Hooks linting rule, discussed below, would have caught this easily. More fundamentally, it's essential to break with old habits from the class component days. Do _not_ approach these depenedency lists from a `componentDidMount` / `componentDidUpdate` / `componentWillUnmount` frame of mind. Just because the class component version of this would have set up the web socket once, in `componentDidMount`, does _not_ mean you can do a direct translation into a `useEffect` call with an empty dependency list.
 
-Don't overthink, and don't be clever: start with an empty dependency list, and add every piece of state that you use within the effect callback to your dependency list. That said—
+Don't overthink, and don't be clever: any value from your render function's scope that's used in the effect callback needs to be added to your dependency list: this includes props, state, etc. That said—
 
 ## The solution
 
@@ -120,7 +120,7 @@ const BookEntryList = props => {
 };
 ```
 
-While slightly more lines, we no longer have multiple update functions, and we no longer have to worry about stale state being trapped in a closure. All of our updates happen via dispatches against our single reducer.
+While slightly more lines, we no longer have multiple update functions, our `useEffect` body is much more simple and readable, and we no longer have to worry about stale state being trapped in a closure: all of our updates happen via dispatches against our single reducer. This also aids in testability, since our reducer is incredibly easy to test; it's just a vanilla JavaScript function. As Sunil Pai from the React team puts it, using a reducer helps separate reads, from writes. Our `useEffect` body now only worries about dispatching actions, which produce new state; before it was concerned with both reading existing state, and also writing new state.
 
 Lastly, you may have noticed actions being to the reducer as an array, with the type in the 0th slot, rather than as an object with a `type` key. Either are allowed with useReducer; this is just a trick Dan Abramov showed me to reduce the boilerplate a bit :)
 
