@@ -6,7 +6,7 @@ description: A brief look at how useReducer can simplify your code, particularly
 
 For those of us coming from a Redux background, `useReducer` can seem deceptively complex and unnecessary. Between `useState` and context, it's easy to fall into the trap of thinking that a reducer adds unnecessary complexity for the majority of simpler use cases; however, it turns out `useReducer` can greatly simplify state management. Let's look at an example.
 
-As with my other posts, this code is from my [booklist project](https://github.com/arackaf/booklist). The use case is that a screen allows users to scan in books. The ISBNs are recorded, and then sent to a rate-limited service that looks up the book info. Since the lookup service is rate limited, there's no way to guarentee your books will get looked up anytime soon, so a web socket is set up; as updates come in, messages are sent down the ws, and handled in the ui. The ws's api is dirt simple: the data packet has a `_messageType` property on it, with the rest of the object serving as the payload; obviously a more serious project would design something sturdier.
+As with my other posts, this code is from my [booklist project](https://github.com/arackaf/booklist). The use case is that a screen allows users to scan in books. The ISBNs are recorded, and then sent to a rate-limited service that looks up the book info. Since the lookup service is rate limited, there's no way to guarentee your books will get looked up anytime soon, so a web socket is set up; as updates come in, messages are sent down the ws, and handled in the ui. The ws's api is dirt simple: the data packet has a `_messageType` property on it, with the rest of the object serving as the payload. Obviously a more serious project would design something sturdier.
 
 With component classes, the code to set up the ws was straightforward: in `componentDidMount` the ws subscription was created, and in `componentWillUnmount` it was torn down. With this in mind, it's easy to fall into the trap of attempting the following with hooks
 
@@ -50,7 +50,7 @@ const BookEntryList = props => {
 };
 ```
 
-We put the ws creation in a `useEffect` call with an empty dependency list, which means that it'll never re-fire, and we return a function to do the teardown. When the component first mounts, our ws is set up, and when the component unmounts, it's torn down, just like we would with a class component.
+We put the ws creation in a `useEffect` call with an empty dependency list, which means it'll never re-fire, and we return a function to do the teardown. When the component first mounts, our ws is set up, and when the component unmounts, it's torn down, just like we would with a class component.
 
 ## The problem
 
@@ -62,7 +62,7 @@ Don't overthink, and don't be clever: any value from your render function's scop
 
 ## The solution
 
-While we _could_ add every piece of needed state to our `useEffect` dependency list, this would cause the web socket to be torn down, and re-created on every update. This would hardly be efficient, and might actually cause some problems if the ws sends down a packet of initial state on creation, that might already have been accounted for, and updated in our ui.
+While we _could_ add every piece of needed state to our `useEffect` dependency list, this would cause the web socket to be torn down, and re-created on every update. This would hardly be efficient, and might actually cause problems if the ws sends down a packet of initial state on creation, that might already have been accounted for, and updated in our ui.
 
 If we look closer, however, we might notice something interesting. Every operation we're performaing is always in terms of prior state. We're always saying something like "incremenet the number of pending books," "add this book to the list of completed," etc. This is precisely where a reducer shines; in fact, **sending commands that project prior state to a new state is the whole purpose of a reducer**.
 
