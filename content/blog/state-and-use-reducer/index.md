@@ -15,10 +15,8 @@ const BookEntryList = props => {
   const [pending, setPending] = useState(0);
   const [booksJustSaved, setBooksJustSaved] = useState([]);
 
-  let ws = null;
-
   useEffect(() => {
-    ws = new WebSocket(webSocketAddress("/bookEntryWS"));
+    const ws = new WebSocket(webSocketAddress("/bookEntryWS"));
 
     ws.onmessage = ({ data }) => {
       let packet = JSON.parse(data);
@@ -26,17 +24,19 @@ const BookEntryList = props => {
         setPending(packet.pending);
       } else if (packet._messageType == "bookAdded") {
         setPending(pending - 1 || 0);
-        setBooksJustSaved([packet].concat(booksJustSaved));
+        setBooksJustSaved([packet, ...booksJustSaved]);
       } else if (packet._messageType == "pendingBookAdded") {
         setPending(+pending + 1 || 0);
       } else if (packet._messageType == "bookLookupFailed") {
         setPending(pending - 1 || 0);
-        let entry = {
-          _id: "" + new Date(),
-          title: `Failed lookup for ${packet.isbn}`,
-          success: false,
-        };
-        setBooksJustSaved([entry].concat(booksJustSaved));
+        setBooksJustSaved([
+          {
+            _id: "" + new Date(),
+            title: `Failed lookup for ${packet.isbn}`,
+            success: false,
+          },
+          ...booksJustSaved,
+        ]);
       }
     };
     return () => {
@@ -54,11 +54,15 @@ We put the ws creation in a `useEffect` call with an empty dependency list, whic
 
 ## The problem
 
-This code fails horribly, of course. We're accessing state inside the `useEffect` closure, but not including that state in the dependnecy list. For example, inside of `useEffect` the value of `pending` will absolutely always be `0`. Sure, we might call `setPending` inside the `ws.onmessage` handler, which _will_ cause that state to update, and the component to re-render, but when it re-renders our `useEffect` will **not** re-fire (again, because of the empty dependency list)—as a result that closure will go on closing over the now-stale value for `pending`
+This code fails horribly. We're accessing state inside the `useEffect` closure, but not including that state in the dependnecy list. For example, inside of `useEffect` the value of `pending` will absolutely always be zero. Sure, we might call `setPending` inside the `ws.onmessage` handler, which _will_ cause that state to update, and the component to re-render, but when it re-renders our `useEffect` will **not** re-fire (again, because of the empty dependency list)—as a result that closure will go on closing over the now-stale value for `pending`.
+
+To be clear, using the Hooks linting rule, discussed below, would have caught this easily. More fundamentally, it's essential to break with old habits from the class component days. Do _not_ approach these depenedency lists from a `componentDidMount` / `componentDidUpdate` / `componentWillUnmount` frame of mind. Just because the class component version of this would have set up the web socket once, in `componentDidMount`, does _not_ mean you can do a direct translation into a `useEffect` call with an empty dependency list.
+
+Don't overthink, and don't be clever: start with an empty dependency list, and add every piece of state that you use within the effect callback to your dependency list. That said—
 
 ## The solution
 
-While we _could_ add every piece of needed state to our `useEffect` dependency list, this would cause the web socket to be torn down, and re-created on every update. This would hardly be efficient, and might actually cause some problems if the ws sends down a packet of initial state on creation, that might already have been accounted for, and updated.
+While we _could_ add every piece of needed state to our `useEffect` dependency list, this would cause the web socket to be torn down, and re-created on every update. This would hardly be efficient, and might actually cause some problems if the ws sends down a packet of initial state on creation, that might already have been accounted for, and updated in our ui.
 
 If we look closer, however, we might notice something interesting. Every operation we're performaing is always in terms of prior state. We're always saying something like "incremenet the number of pending books," "add this book to the list of completed," etc. This is precisely where a reducer shines; in fact, **sending commands that project prior state to a new state is the whole purpose of a reducer**.
 
@@ -75,33 +79,31 @@ function scanReducer(state, [type, payload]) {
       return {
         ...state,
         pending: state.pending - 1,
-        booksSaved: [payload].concat(state.booksSaved),
+        booksSaved: [payload, ...state.booksSaved],
       };
     case "bookLookupFailed":
-      let failure = {
-        _id: "" + new Date(),
-        title: `Failed lookup for ${payload.isbn}`,
-        success: false,
-      };
       return {
         ...state,
         pending: state.pending - 1,
-        booksSaved: [failure].concat(state.booksSaved),
+        booksSaved: [
+          {
+            _id: "" + new Date(),
+            title: `Failed lookup for ${payload.isbn}`,
+            success: false,
+          },
+          ...state.booksSaved,
+        ],
       };
   }
   return state;
 }
+const initialState = { pending: 0, booksSaved: [] };
 
 const BookEntryList = props => {
-  const [{ pending, booksSaved }, dispatch] = useReducer(scanReducer, {
-    pending: 0,
-    booksSaved: [],
-  });
-
-  let ws = null;
+  const [state, dispatch] = useReducer(scanReducer, initialState);
 
   useEffect(() => {
-    ws = new WebSocket(webSocketAddress("/bookEntryWS"));
+    const ws = new WebSocket(webSocketAddress("/bookEntryWS"));
 
     ws.onmessage = ({ data }) => {
       let packet = JSON.parse(data);
@@ -120,11 +122,11 @@ const BookEntryList = props => {
 
 While slightly more lines, we no longer have multiple update functions, and we no longer have to worry about stale state being trapped in a closure. All of our updates happen via dispatches against our single reducer.
 
-Lastly, you may have noticed me sending my actions to the reducer as an array, with the type in the 0th slot, rather than as an object with a `type` key. Either are allowed with useReducer; this is just a trick Dan Abramov showed me to reduce the boilerplate a bit :)
+Lastly, you may have noticed actions being to the reducer as an array, with the type in the 0th slot, rather than as an object with a `type` key. Either are allowed with useReducer; this is just a trick Dan Abramov showed me to reduce the boilerplate a bit :)
 
 ## Linting against errors like this
 
-The wonderful folks on the React team have created a lint rule to help catch, and draw attention to the sorts of errors from the original code above. It's [located here](https://github.com/facebook/react/issues/14920), and seems to work wonderfully.
+As I mentioned above, the wonderful folks on the React team have created a lint rule to help catch, and draw attention to the sorts of errors from the original code above. It's [located here](https://github.com/facebook/react/issues/14920), and works wonderfully—it very clearly caught the error above.
 
 ## What about functional setState()
 
