@@ -20,12 +20,12 @@ This post will paint with very broad strokes. The specific code for this will di
 
 Let's jump right in, and have a look at our Workbox configuration.
 
-```javascript{numberLines: true}
+```javascript
 new GenerateSW({
   ignoreUrlParametersMatching: [/./],
   exclude: [/\.(ttf|eot|svg|woff)$/],
   navigateFallback: "react-redux/dist/index.html",
-  importScripts: ["react-redux/sw-manual/sw-index-bundle.js"],
+  importScripts: ["react-redux/sw-manual/sw-index-bundle.js"]
 });
 ```
 
@@ -41,7 +41,7 @@ To fix this, let’s set up a Workbox route that looks at what’s being request
 
 Let’s see some code
 
-```javascript{numberLines: true}
+```javascript
 import allSubjects from "../graphQL/subjects/allSubjects.graphql";
 
 workbox.routing.registerRoute(
@@ -65,7 +65,7 @@ Let’s break this down. We import the subjects query, and use the `parseQuerySt
 
 Let’s take these pieces one by one. First, the `readTable` method
 
-```javascript{numberLines: true}
+```javascript
 function readTable(table, idxName) {
   let open = indexedDB.open("books", 1);
 
@@ -111,7 +111,7 @@ What we have so far will respond to offline queries with data that's already in 
 
 To keep our data sync'd, we'll set up another route against the same `/graphql` path, but this time we'll listen to POSTs instead of GETs, since that's where our mutations will be happening. The predictable nature of our GraphQL responses make it straightforward to see what was modified, so we can look up the related entry in IndexedDB and sync the changes. Let's walk through it step by step. Here's the code to process the actual GraphQL mutation request.
 
-```javascript{numberLines: true}
+```javascript
 workbox.routing.registerRoute(
   /graphql$/,
   ({ url, event }) => {
@@ -132,7 +132,7 @@ workbox.routing.registerRoute(
 
 We’re running our GraphQL mutations as usual, since we expect them to only run while online. The `response.clone()` is by necessity, since fetch responses can only be consumed once, and calls to `response.json()`, or passing to `event.responseWith` or `cache.put` count as consumption. Beyond that, the code calls `syncResultsFor` to sync the various types that may have been modified by our GraphQL mutation. Let’s turn there, next.
 
-```javascript{numberLines: true}
+```javascript
 async function syncResultsFor(
   { request, response },
   name,
@@ -165,7 +165,7 @@ This function runs through the various forms our GraphQL results might be in, gr
 
 New or modified objects are sync’d with the `syncItem` function, while deleted objects are removed via the `deleteItem` function, which we’ll look at, in turn.
 
-```javascript{numberLines: true}
+```javascript
 function syncItem(item, table, transform = item => item) {
   let open = indexedDB.open("books", 1);
 
@@ -175,7 +175,7 @@ function syncItem(item, table, transform = item => item) {
       let tran = db.transaction(table, "readwrite");
       let objStore = tran.objectStore(table);
       objStore.get(item._id).onsuccess = ({
-        target: { result: itemToUpdate },
+        target: { result: itemToUpdate }
       }) => {
         if (!itemToUpdate) {
           objStore.add(transform(item)).onsuccess = res;
@@ -193,7 +193,7 @@ Here we look up the object by its Mongo `_id`. If it’s there, we update it; if
 
 The `deleteItem` function is much simpler, and looks like this
 
-```javascript{numberLines: true}
+```javascript
 function deleteItem(_id, table) {
   let open = indexedDB.open("books", 1);
 
@@ -271,7 +271,7 @@ function readBooks(variableString) {
     skip,
     cursorSkip,
     limit,
-    idxDir,
+    idxDir
   }).then(gqlResponse("allBooks", "Books", { Meta: { count: 12 } }));
 }
 
