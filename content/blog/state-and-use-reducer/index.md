@@ -122,7 +122,7 @@ const BookEntryList = props => {
 
 While slightly more lines, we no longer have multiple update functions, our `useEffect` body is much more simple and readable, and we no longer have to worry about stale state being trapped in a closure: all of our updates happen via dispatches against our single reducer. This also aids in testability, since our reducer is incredibly easy to test; it's just a vanilla JavaScript function. As Sunil Pai from the React team puts it, using a reducer helps separate reads, from writes. Our `useEffect` body now only worries about dispatching actions, which produce new state; before it was concerned with both reading existing state, and also writing new state.
 
-Lastly, you may have noticed actions being to the reducer as an array, with the type in the 0th slot, rather than as an object with a `type` key. Either are allowed with useReducer; this is just a trick Dan Abramov showed me to reduce the boilerplate a bit :)
+You may have noticed actions being sent to the reducer as an array, with the type in the zero slot, rather than as an object with a `type` key. Either are allowed with useReducer; this is just a trick Dan Abramov showed me to reduce the boilerplate a bit :)
 
 ## Linting against errors like this
 
@@ -142,7 +142,7 @@ rather than
 setPending(pending - 1 || 0);
 ```
 
-This would have indeed removed the closure problem, and worked fine for this particularly use case; however, the minute updates to `booksJustSaved` needed access to the value of `pending`, or vice versa, this solution would have broken down, leaving us right where we started. Moreover, I find the reducer version to be a bit cleaner, with the state management nicely separated in its own reducer function.
+This would have removed the closure problem, and worked fine for this particular use case; however, the minute updates to `booksJustSaved` needed access to the value of `pending`, or vice versa, this solution would have broken down, leaving us right where we started. Moreover, I find the reducer version to be a bit cleaner, with the state management nicely separated in its own reducer function.
 
 All in all, I think `useReducer()` is incredibly under-utilized at present. It's nowhere near as scary as you might think. Give it a try!
 
