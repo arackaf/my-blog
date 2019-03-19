@@ -364,7 +364,6 @@ Let's start with data that is not filtered or searched. For the case of my bookl
 
 Here's what the application code looks like
 
-<!-- prettier-ignore -->
 ```javascript
 import AllSubjectsQuery from "graphQL/subjects/allSubjects.graphql";
 import UpdateSubjectMutation from "graphQL/subjects/updateSubject.graphql";
@@ -373,8 +372,26 @@ import DeleteSubjectMutation from "graphQL/subjects/deleteSubject.graphql";
 import { graphqlClient } from "./appRoot";
 
 graphqlClient.subscribeMutation([
-  { when: /updateSubject/, run: (op, res) => syncUpdates(AllSubjectsQuery, res.updateSubject, "allSubjects", "Subjects") },
-  { when: /deleteSubject/, run: (op, res) => syncDeletes(AllSubjectsQuery, res.deleteSubject, "allSubjects", "Subjects") }
+  {
+    when: /updateSubject/,
+    run: (op, res) =>
+      syncUpdates(
+        AllSubjectsQuery,
+        res.updateSubject,
+        "allSubjects",
+        "Subjects"
+      )
+  },
+  {
+    when: /deleteSubject/,
+    run: (op, res) =>
+      syncDeletes(
+        AllSubjectsQuery,
+        res.deleteSubject,
+        "allSubjects",
+        "Subjects"
+      )
+  }
 ]);
 ```
 
@@ -382,14 +399,93 @@ I'm grabbing my graphql client (created elsewhere) and telling it that on any mu
 
 For the finishing touch, let's see how we tell our query hook to sync up these these changes when relevant mutations happen
 
-<!-- prettier-ignore -->
 ```javascript
 let { loading, loaded, data } = useQuery(
-    buildQuery(AllSubjectsQuery, { publicUserId, userId }, { onMutation: { when: /(update|delete)Subject/, run: ({ refresh }) => refresh() } })
-  );
+  buildQuery(
+    AllSubjectsQuery,
+    { publicUserId, userId },
+    {
+      onMutation: {
+        when: /(update|delete)Subject/,
+        run: ({ refresh }) => refresh()
+      }
+    }
+  )
+);
 ```
 
 The query hook (and render prop component) allow us to hook into mutations, and in the callback, provide methods to do things like hard reset the results, soft reset, or in this case, just refresh from what's already in the cache. Subscriptions run in order, so the global sync is guarenteed to run first.
+
+#### That boierplate, tho!
+
+If you're thinking that that amount of boilerplate, while not huge, still would not scale in a large web application, then take a step back, and look more broadly at. More specifically, replace any and all references to the word `"subject"`, no matter the casing, or plurality, with `X`. Then remove references to `AllSubjectsQuery` (the query that reads the subjects) with `Y`. It should look something like this
+
+```javascript
+graphqlClient.subscribeMutation([
+  {
+    when: /updateX/,
+    run: (op, res) => syncUpdates(Y, res.update, "allX", "X")
+  },
+  { when: /deleteX/, run: (op, res) => syncDeletes(Y, res.delete, "allX", "X") }
+]);
+
+let { loading, loaded, data } = useQuery(
+  buildQuery(
+    Y,
+    { publicUserId, userId },
+    {
+      onMutation: { when: /(update|delete)X/, run: ({ refresh }) => refresh() }
+    }
+  )
+);
+```
+
+You've now got a prime refactoring opportunity. It would be straightforward to replace those two chunks of code with two function calls, passing in the query name (or even array of query names, if you need), and the type name.
+
+_In fact_ - the beauty of hooks is how well they compose together. Those two global mutation handlers could absolutely be inside the hook (`onMutation` can take a single object, **or** an array of them). If your application is big enough to justify it, a custom hook like this would work fine
+
+```javascript
+//TODO: test this
+const useSyncdQuery = (Query, Type, variables) => {
+  let plural = Type.toLowerCase() + s;
+  let pluralLower = plural + "s";
+  return useQuery(
+    buildQuery(Query, variables, {
+      onMutation: [
+        {
+          when: new RegExp(`update${Type}`),
+          run: (op, res) =>
+            syncUpdates(Query, res.update, `all${plural}`, Plural)
+        },
+        {
+          when: new RegExp(`delete${Type}`),
+          run: (op, res) =>
+            syncDeletes(Query, res.delete, `all${plural}`, Plural)
+        },
+        {
+          when: new RegExp(`(update|delete)${Type}`),
+          run: ({ refresh }) => refresh()
+        }
+      ]
+    })
+  );
+};
+```
+
+And now anytimewe want to use a query that syncs up, we can just do
+
+```javascript
+let { loaded, data } = useSyncdQuery(AllSubjectsQuery, "Subject", {
+  publicUserId,
+  userId
+});
+```
+
+### Don't overdo your abstractions
+
+This library was designed to provide useful primitives, which can be tailored to your particular application. But don't overdo your abstractions. As always, try to wait until you have three identical pieces of code before you look to move them into one shared call. If you never get to three, it might mean your application is too small to bother (like my booklist project); or it might mean that you have a lot of special cases in your code, in which case a one-size-fit-all solution would never have suited you anyway. Of course, it might also mean that you have a lot of inconsistencies in your GraphQL endpoint naming scheme, which regardless you should look to standardize.
+
+### Helpers implementaion
 
 Let's check out `syncUpdates` and `syncDeletes`
 
