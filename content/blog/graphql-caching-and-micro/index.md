@@ -347,3 +347,95 @@ and get back
 Urql has no way of knowing that query holds Tasks, since it has no way of knowing what `TaskQueryResult` is. This means that if you run a mutation creating a task that's assigned to Fred, the mutation result will not be able to indicate that this particular query needs to be cleared.
 
 Interestingly, this is actually a solveable problem with a build step. A build step would be able to manually introspect the entire GraphQL endpoint, and figure out that `TaskQueryResult` contains `Task` objects, and fix this problem.
+
+## micro-graphql-react
+
+`micro-graphql-react` was written with the assumption that managing cache invalidation transparently is a problem that's too difficult to solve. Instead, it's designed to make this easy to manage yourself. To be clear, there's no cache management out of the box. By default, mutations will not update previously cached query results at all. You can easily turn caching off entirely, but to get something intelligent working, like Apollo, you need to implement it yourself. Fortunately the structured nature of GraphQL makes this surprisingly easy—this is one of the many reasons I like GraphQL so much.
+
+A side-effect of hte above is that unlike Apollo and Urql, this library does no client-side parsing of your queries (or mutations). This not only keeps the library tiny (2.8K min+gzip) but it also allows you to even omit the GraphQL querues themselves from your bundles, if you use something like [my generic-persistgraphql library](https://github.com/arackaf/generic-persistgraphql).
+
+The remainder of this post will go over how `micro-graphql-react` handles some common use cases. It'll paint with broad strokes, so be sure to check out [the docs](https://github.com/arackaf/micro-graphql-react) if you want to see some more detail on anything. As usual, all the code samples herein are from [my booklist project](https://github.com/arackaf/booklist).
+
+**Note** All of the code below was written for my particular application, based on what its GraphQL endpoint looks like. _Don't_ expect this code to work in your application, which will almost certainly have some differences in its GraphQL endpoint. In my particular case, my endpoint was created with my [`mongo-graphql-starter` project](https://github.com/arackaf/mongo-graphql-starter).
+
+### Use case 1 - non-searched data
+
+Let's start with data that is not filtered or searched. For the case of my booklist project, the hierarchical subjects which can be applied to books. Here, a query to fetch all the subjects is fired at startup, and then kept in sync as updates are made.
+
+Here's what the application code looks like
+
+<!-- prettier-ignore -->
+```javascript
+import AllSubjectsQuery from "graphQL/subjects/allSubjects.graphql";
+import UpdateSubjectMutation from "graphQL/subjects/updateSubject.graphql";
+import DeleteSubjectMutation from "graphQL/subjects/deleteSubject.graphql";
+
+import { graphqlClient } from "./appRoot";
+
+graphqlClient.subscribeMutation([
+  { when: /updateSubject/, run: (op, res) => syncUpdates(AllSubjectsQuery, res.updateSubject, "allSubjects", "Subjects") },
+  { when: /deleteSubject/, run: (op, res) => syncDeletes(AllSubjectsQuery, res.deleteSubject, "allSubjects", "Subjects") }
+]);
+```
+
+I'm grabbing my graphql client (created elsewhere) and telling it that on any mutation that has a result set matching `/updateSubject/` to call my `syncUpdates` method, and similarly for `/deleteSubject/` and `syncDeletes`. Those subscriptions are global, and will span the applications lifetime; they make sure our cache is always correct.
+
+For the finishing touch, let's see how we tell our query hook to sync up these these changes when relevant mutations happen
+
+<!-- prettier-ignore -->
+```javascript
+let { loading, loaded, data } = useQuery(
+    buildQuery(AllSubjectsQuery, { publicUserId, userId }, { onMutation: { when: /(update|delete)Subject/, run: ({ refresh }) => refresh() } })
+  );
+```
+
+The query hook (and render prop component) allow us to hook into mutations, and in the callback, provide methods to do things like hard reset the results, soft reset, or in this case, just refresh from what's already in the cache. Subscriptions run in order, so the global sync is guarenteed to run first.
+
+Let's check out `syncUpdates` and `syncDeletes`
+
+<!-- prettier-ignore -->
+```javascript
+import { getDefaultClient } from "micro-graphql-react";
+let graphqlClient = getDefaultClient();
+
+export const syncUpdates = (cacheName, newResults, resultSet, arrName, options = {}) => {
+  const cache = graphqlClient.getCache(cacheName);
+
+  [...cache.entries].forEach(([uri, currentResults]) =>
+    syncResults(currentResults.data[resultSet], arrName, newResults, options)
+  );
+
+  if (options.force) {
+    graphqlClient.forceUpdate(cacheName);
+  }
+};
+
+export const syncResults = (resultSet, arrName, newResults, { sort } = {}) => {
+  const lookupNew = new Map(newResults.map(o => [o._id, o]));
+
+  resultSet[arrName] = resultSet[arrName].concat();
+  resultSet[arrName].forEach((o, index) => {
+    if (lookupNew.has(o._id)) {
+      resultSet[arrName][index] = Object.assign({}, o, lookupNew.get(o._id));
+    }
+  });
+  const existingLookup = new Set(resultSet[arrName].map(o => o._id));
+  resultSet[arrName].push(
+    ...newResults.filter(o => !existingLookup.has(o._id))
+  );
+  return sort ? resultSet[arrName].sort(sort) : resultSet[arrName];
+};
+
+export const syncDeletes = (cacheName, _ids, resultSet, arrName, { sort } = {}) => {
+  const cache = graphqlClient.getCache(cacheName);
+  const deletedMap = new Set(_ids);
+
+  [...cache.entries].forEach(([uri, currentResults]) => {
+    let res = currentResults.data[resultSet];
+    res[arrName] = res[arrName].filter(o => !deletedMap.has(o._id));
+    sort && res[arrName].sort(sort);
+  });
+};
+```
+
+It's not the simplest code, but nor is it terribly complex. It's mosttly boring boilerplate that runs through result sets, updating what's needed. These are centralized helper methods used by my GraphQL hooks.
