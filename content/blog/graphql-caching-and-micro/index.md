@@ -52,7 +52,7 @@ while the response to that query might look like this
 
 Since the data come back in such a structured way, it's, in theory, feasible to keep track of things on the client side, and cache data as they come in, for future use. The old joke about the two difficult problems in computer science being cache invalidation and naming has some truth though; this is hard to get right.
 
-I'll spend the rest of this post describing how existing GraphQL libraries approach this problem, the tradeoffs they incur, and then discuss my own GraphQL library (and the tradeoffs **it** incurrs). There's no silver bullet here. I created `micro-graphql-react` because the existing options didn't fit well for me, for what I need from a GraphQL library. It's likely others will have different requirements, and need to pick differently; I'll do my best to articulate what these tradeoffs are, so readers can choose for themselves.
+I'll spend the rest of this post describing how existing GraphQL libraries approach this problem, the tradeoffs they incur, and then discuss my own GraphQL library (and the tradeoffs **it** incurrs). There's no silver bullet here. I created `micro-graphql-react` because the existing options didn't fit well for me, for what I need from a GraphQL library. It's likely others will have different requirements; I'll do my best to articulate what these tradeoffs are, so readers can best choose for themselves.
 
 ### Apollo
 
@@ -207,7 +207,7 @@ you'll get back
 }
 ```
 
-again, without any network requests needing to fire.
+again, without any network requests.
 
 ### Apollo's Tradeoff
 
@@ -246,7 +246,7 @@ with these results
 }
 ```
 
-and now the user runs _this_ mutation
+now, if the user runs _this_ mutation
 
 ```graphql
 mutation {
@@ -259,7 +259,7 @@ mutation {
 }
 ```
 
-Now we're changing the `assignedTo` value, instead of the description. Apollo will update its normalized cache as before, updating that task's fields, as before, but this time modifying the `assignedTo` property, instead of the `description` property.
+we're changing the `assignedTo` value, instead of the description. Apollo will update its normalized cache as before, updating that task's fields, as before, but this time modifying the `assignedTo` property, instead of the `description` property.
 
 This means that later, if the user re-runs this query
 
@@ -300,7 +300,7 @@ which is horribly wrong. We requested tasks assigned to `"Adam"`, but got back r
 
 Well, Apollo inspected our query, and saw that it had a match for that same query, already, so it promptly returned it for us. The problem is, the mutation we ran happened to invalidate one of the results—but Apollo had no way of knowing that. Apollo has no way of knowing that changes to the `description` field on this task have no effect on the correctness of the results for this particular query, while changes to `assignedTo`, do. Of course we can just as easily imagine a query against the `description` field which would have the reverse problem: changes to `assignedTo` would have no affect on correctness, while changes to `description`, would.
 
-Of course Apollo has ways to tweak its cache. You can either update the specific results for a particular query (which requires you to match the query text, and the identical variable values), or you can blow away the entire cache.
+Apollo has workarounds, of course. You can either update the specific results for a particular query (which requires you to match the query text, and the identical variable values), or you can blow away the entire cache.
 
 ## Urql
 
@@ -346,4 +346,4 @@ and get back
 
 Urql has no way of knowing that query holds Tasks, since it has no way of knowing what `TaskQueryResult` is. This means that if you run a mutation creating a task that's assigned to Fred, the mutation result will not be able to indicate that this particular query needs to be cleared.
 
-Interestingly, this is actually a solveable problem with a build step. A build step would be able to manually introspect the entire GraphQL endpoint, and figure out that `TaskQueryResult` contains `Task` objects, and fix the problem above.
+Interestingly, this is actually a solveable problem with a build step. A build step would be able to manually introspect the entire GraphQL endpoint, and figure out that `TaskQueryResult` contains `Task` objects, and fix this problem.
