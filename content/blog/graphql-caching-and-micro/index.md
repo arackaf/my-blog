@@ -447,8 +447,7 @@ _In fact_ - the beauty of hooks is how well they compose together. Those two glo
 ```javascript
 //TODO: test this
 const useSyncdQuery = (Query, Type, variables) => {
-  let plural = Type.toLowerCase() + s;
-  let pluralLower = plural + "s";
+  let plural = Type + "s";
   return useQuery(
     buildQuery(Query, variables, {
       onMutation: [
@@ -480,6 +479,92 @@ let { loaded, data } = useSyncdQuery(AllSubjectsQuery, "Subject", {
   userId
 });
 ```
+
+### Use case 2 - soft resetting search results
+
+Let's now look at a use case similar to the example I started with: running mutations against data that was searched, where the mutations may (or may not) invalidate the current search results. We'll assume that books can be searched for via any number of search filters, and sorted in any number of directions. As a result, it's exceedingly difficult to track all the ways in which modifying a book might cause it to either no longer show up in the current results, or even show up in a different place (ie sorted differently).
+
+Let's assume that for any mutation on a book, we'll just clear the entire cache of book search results, but update the current results on the screen. So if you're searching all `History` books, but you change one of their subject's from `History` to `Literature` then the UI will change to reflect that, but the next time that search is run, a new network request will fire. This is a UI choice, and certainly subject to debate. Some might prefer the new network request fire immeidiately, with the recently updated book vanishing as soon as the new results come back. I happen to prefer the former, but the library supports either; check the docs for more info, and examples.
+
+Here's the code we'll start with
+
+```javascript
+import GetBooksQuery from "graphQL/books/getBooks.graphql";
+
+// ...
+
+const variables = getBookSearchVariables(searchState);
+const onBooksMutation = [
+  {
+    when: /updateBooks?/,
+    run: ({ currentResults, softReset }, resp) => {
+      syncResults(
+        currentResults.allBooks,
+        "Books",
+        resp.updateBooks ? resp.updateBooks.Books : [resp.updateBook.Book]
+      );
+      softReset(currentResults);
+    }
+  },
+  {
+    when: /deleteBook/,
+    run: ({ refresh }, res, req) => {
+      syncDeletes(GetBooksQuery, [req._id], "allBooks", "Books");
+      refresh();
+    }
+  }
+];
+const { data, loading, loaded, currentQuery } = useQuery(
+  buildQuery(GetBooksQuery, variables, { onMutation: onBooksMutation })
+);
+```
+
+This time, updates and deletions can only ever happen while the query hook is active, so those mutation subscriptions are placed right there. Here though, when an update or delete comes in, we sync it with the current results, that happen to be currently shown, while removing absolutely everything from cache, including those same current results; if the user runs a new query, then comes back, the query will re-fire. Of course, `softReset` is a helper that does just that. The code works, but as before, it's a bit cumbersome. But again as before, if this is a common use case in our application, we can refactor this reasonably easily. Let's see about making a custom hook that wraps `useQuery`, while performing this cache invalidation.
+
+```javascript
+//TODO: test this
+const useSoftResetQuery = (Query, Type, variables) => {
+  let plural = Type.toLowerCase() + "s";
+  return useQuery(
+    buildQuery(Query, variables, {
+      onMutation: [
+        {
+          when: new RegExp(`update${plural}?`),
+          run: ({ currentResults, softReset }, resp) => {
+            syncResults(
+              currentResults.allBooks,
+              plural,
+              resp[`update${plural}`]
+                ? resp[`update${plural}`][plural]
+                : resp[`update${Type}`][Type]
+            );
+            softReset(currentResults);
+          }
+        },
+        {
+          when: new RegExp(`delete${Type}`),
+          run: ({ refresh }, res, req) => {
+            syncDeletes(GetBooksQuery, [req._id], `all${plural}`, plural);
+            refresh();
+          }
+        }
+      ]
+    })
+  );
+};
+```
+
+The code's hardly more readable, but it's not terribly complex, and it's code you'd write once, and re-use everywhere. Here's what the application code querying data with this cache strategy would now look like.
+
+```javascript
+const variables = getBookSearchVariables(searchState);
+
+const { data, loading, loaded, currentQuery } = useSoftResetQuery(GetBooksQuery, "Book" variables);
+```
+
+You could drop that anywhere you needed data that respected this partular cache invalidation strategy.
+
+The point of this library is not to figure out a way to solve the cache invalidation problem; the point of this library is to make it easy for you to solve the cache invalidation problem easily, yourself, in a way that's tailored to your own app.
 
 ### Don't overdo your abstractions
 
