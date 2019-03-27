@@ -304,7 +304,7 @@ Apollo has workarounds, of course. You can either update the specific results fo
 
 ## Urql
 
-Urql is the creation of Bourbon connoisseur, professional Twitter Shit-poster, and one of my favorite people: Ken Wheeler. His is a considerable improvement on Apollo. Urql caches things more at the query level, and keeps track of what **types** are returned. If any data modifications are performed, he clears the cache for all queries that hold that type. For example, if you run
+Urql is the creation of Bourbon connoisseur, professional Twitter Shit-poster, and one of my favorite people: Ken Wheeler. His is a considerable improvement on Apollo for solving this problem. Urql caches things more at the query level, and keeps track of what **types** are returned. If any data modifications are performed, he clears the cache for all queries that hold that type. For example, if you run
 
 ```graphql
 mutation {
