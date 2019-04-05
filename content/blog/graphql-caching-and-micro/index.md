@@ -55,7 +55,7 @@ which would return something like this
 
 Since the data come back in such a structured way, it's, in theory, feasible to keep track of things on the client, and cache data as they come in. The old joke about the two difficult problems in computer science being cache invalidation and naming has some truth, though; this is hard to get right.
 
-I'll spend the rest of this post describing how existing GraphQL libraries approach this problem, the tradeoffs they incur, and then discuss my own GraphQL library (and the tradeoffs **it** incurrs). There's no silver bullet here. I created `micro-graphql-react` because the existing options didn't fit well for me, for what I need from a GraphQL library. It's likely others will have different requirements; I'll do my best to articulate what these tradeoffs are, so readers can best choose for themselves.
+I'll spend the rest of this post describing how existing GraphQL libraries approach this problem, the tradeoffs they incur, and then discuss my own GraphQL library (and the tradeoffs **it** incurs). There's no silver bullet here. I created `micro-graphql-react` because the existing options didn't fit well for me, for what I need from a GraphQL library. It's likely others will have different requirements; I'll do my best to articulate what these tradeoffs are, so readers can best choose for themselves.
 
 ### Apollo
 
@@ -304,7 +304,7 @@ which is horribly wrong. We requested tasks assigned to `"Adam"`, but got back r
 
 Well, Apollo inspected our query, and saw that it had a match for that same query, already, so it promptly returned it for us. The problem is, the mutation we ran happened to invalidate one of the results for that query—but Apollo had no way of knowing that. Apollo has no way of knowing that changes to the `description` field on this task have no effect on the correctness of the results for this particular query, while changes to `assignedTo`, do. Of course we can just as easily imagine a query against the `description` field which would have the reverse problem: changes to `assignedTo` would have no affect on correctness, while changes to `description`, would.
 
-Apollo has ways of fixing this, of course. It provides you the ability to manually update the specific results for a particular query (which requires you to match the query text, and the identical variable values). It provides you a `refetchQueries` method that can refect a specific query, or even all instances of a certain query text—[here's a sandbox demonstrating this, from Apollo Engineer Hugh Wilson](https://codesandbox.io/s/2pp3nq6x8j). Lastly, Apollo also gives you the ability to wipe away your entire cache.
+Apollo has ways of fixing this, of course. It provides you the ability to manually update the specific results for a particular query (which requires you to match the query text, and the identical variable values). It provides you a `refetchQueries` method that can reflect a specific query, or even all instances of a certain query text—[here's a sandbox demonstrating this, from Apollo Engineer Hugh Wilson](https://codesandbox.io/s/2pp3nq6x8j). Lastly, Apollo also gives you the ability to wipe away your entire cache.
 
 Apollo is a brilliant work of engineering, but these caching options weren't quite flexible enough for me, and I found them a tad complex to implement. I wanted something simpler, and also more flexible, which is why I created `micro-graphql-react`. But before I get to that, I'd like to talk about:
 
@@ -352,7 +352,7 @@ and get back
 
 Urql has no way of knowing that query holds Tasks, since it has no way of knowing what `TaskQueryResult` is. This means that if you run a mutation _creating_ a task that's assigned to Fred, the mutation result will not be able to indicate that this particular query needs to be cleared.
 
-Interestingly, this is actually a solveable problem with a build step. A build step would be able to manually introspect the entire GraphQL endpoint, and figure out that `TaskQueryResult` contains `Task` objects, and fix this problem.
+Interestingly, this is actually a solvable problem with a build step. A build step would be able to manually introspect the entire GraphQL endpoint, and figure out that `TaskQueryResult` contains `Task` objects, and fix this problem.
 
 ## micro-graphql-react
 
@@ -408,9 +408,9 @@ let { loading, loaded, data } = useQuery(
 );
 ```
 
-The React hook allows us to subscribe to mutations, and in the callback, provide methods to do things like hard reset the results, soft reset, or in this case, just refresh from what's already in the cache. Subscriptions run in order, so the global sync is guarenteed to run first, before we do our refresh.
+The React hook allows us to subscribe to mutations, and in the callback, provide methods to do things like hard reset the results, soft reset, or in this case, just refresh from what's already in the cache. Subscriptions run in order, so the global sync is guaranteed to run first, before we do our refresh.
 
-#### That boierplate, tho!
+#### That boilerplate, tho!
 
 If you're thinking that that amount of boilerplate, while not huge, still would not scale in a large web application, then take a step back, and look more broadly. More specifically, replace any and all references to the word `"subject"`, no matter the casing, or plurality, with `X`. Then remove references to `SubQuery` (the query that reads the subjects) with `Y`. It should look something like this
 
@@ -466,7 +466,7 @@ const useSyncdQuery = (Query, Type, variables) => {
 };
 ```
 
-And now anytimewe want to use a query that syncs up, we can just do
+And now anytime we want to use a query that syncs up, we can just do
 
 ```javascript
 let { loaded, data } = useSyncdQuery(SubQuery, "Subject", {
@@ -477,16 +477,16 @@ let { loaded, data } = useSyncdQuery(SubQuery, "Subject", {
 
 ### Use case 2 - soft resetting search results
 
-Let's look at a use case similar what I started with: running mutations against data that was searched, where the mutations may (or may not) invalidate the current search results. We'll assume that books can be searched for via any number of search filters, and sorted in any number of directions. As a result, it's exceedingly difficult to track all the ways in which modifying a book might cause it to either no longer show up in the current results, or even show up in a different place (ie sorted differently).
+Let's look at a use case similar what I started with: running mutations against data that was searched, where the mutations may (or may not) invalidate the current search results. We'll assume books can be searched with any number of filters, and sorted in any number of directions. As a result, it's exceedingly difficult to track all the ways in which modifying a book might cause it to either no longer show up in the current results, or show up in a different place (ie sorted differently).
 
-Let's assume that for any mutation on a book, we'll just clear the entire cache of book search results, but update the current results on the screen. So if you're searching all `History` books, but you change one of their subject's from `History` to `Literature` then the UI will change to reflect that, but the next time that search is run, a new network request will fire. This is a UI choice, and certainly subject to debate. Some might prefer the new network request fire immeidiately, with the recently updated book vanishing as soon as the new results come back. I happen to prefer the former, but the library supports either; check the docs for more info, and examples.
+Let's assume that for any mutation on a book, we'll just clear the entire cache of book search results, but update the current results on the screen. So if you're searching all `History` books, but you change one of their subject's from `History` to `Literature`, then the UI will change to reflect that, but the next time that search is run, a new network request will fire. This is a UI choice, and certainly subject to debate. Some might prefer the new network request fire immediately, with the recently updated book vanishing as soon as the new results come back. I happen to prefer the former, but the library supports either; check the docs for more info, and examples.
 
 Here's the code we'll start with
 
 ```javascript
 import BooksQuery from "graphQL/books/getBooks.graphql";
 
-// ...
+//...
 
 const variables = getBookSearchVariables(searchState);
 const onBooksMutation = [
@@ -514,10 +514,9 @@ const { data, loading, loaded, currentQuery } = useQuery(
 );
 ```
 
-This time, updates and deletes can only ever happen while the query hook is active, so those mutation subscriptions are placed right there. Here though, when an update or delete comes in, we sync it with the current results that happen to be currently shown, while removing absolutely everything from cache, including those same current results; if the user runs a new query, then comes back, the query will re-fire. Of course, `softReset` is a helper that does just that. The code works, but as before, it's a bit cumbersome. But again as before, if this is a common use case in our application, we can refactor it reasonably easily. Let's see about making a custom hook that wraps `useQuery`, while performing this cache invalidation.
+This time, updates and deletes can only ever happen while the query hook is active, so those mutation subscriptions are placed right in the hook. Here though, when an update or delete comes in, we sync it with the results that are currently shown, while removing absolutely everything from cache, including those same currently-showing results; if the user runs a new query, then comes back, the query will re-fire. Of course, `softReset` is a helper that does just that. The code works, but as before, it's a bit cumbersome. But again as before, if this is a common use case in our application, we can refactor it reasonably easily. Let's see about making a custom hook that wraps `useQuery`, while performing this cache invalidation.
 
 ```javascript
-//TODO: test this
 const useSoftResetQuery = (Query, Type, variables) => {
   let plural = Type + "s";
   return useQuery(
@@ -561,7 +560,7 @@ const { data, loading, loaded, currentQuery } = useSoftResetQuery(
 );
 ```
 
-You could drop that anywhere you needed data that respected this partular cache invalidation strategy.
+You could drop that anywhere you needed data that respected this particular cache invalidation strategy.
 
 The point of this library is not to figure out a way to solve the cache invalidation problem; the point of this library is to make it easy for you to solve the cache invalidation problem yourself, in a way that's tailored to your own app.
 
@@ -569,7 +568,7 @@ The point of this library is not to figure out a way to solve the cache invalida
 
 This library was designed to provide useful primitives, which can be tailored to your particular application. But don't overdo your abstractions. As always, try to wait until you have three identical pieces of code before you look to move them into one shared call. If you never get to three, it might mean your application is too small to bother (like my booklist project); or it might mean that you have a lot of special cases in your code, in which case a one-size-fit-all solution would never have suited you anyway. Of course, it might also mean that you have a lot of inconsistencies in your GraphQL endpoint naming scheme, which regardless you should look to standardize.
 
-### Helpers implementaion
+### Helpers implementation
 
 Let's check out `syncUpdates` and `syncDeletes`
 
@@ -621,4 +620,10 @@ export const syncDeletes = (cacheName, _ids, resultSet, arrName, { sort } = {}) 
 };
 ```
 
-It's not the simplest code, but neither is it terribly complex. It's mostly boring boilerplate that runs through result sets, updating what's needed. These are centralized helper methods used by my GraphQL hooks.
+It's not the simplest code, but neither is it terribly complex. It's mostly boring boilerplate that runs through result sets, updating what's needed. These are centralized helper methods my app uses with `micro-graphql-react`'s hooks.
+
+## Wrapping up
+
+If you think `micro-graphql-react` might be a good fit for your app, check out [the docs](https://github.com/arackaf/micro-graphql-react). There's more examples, and fuller explanations of how everything works.
+
+Happy Coding!
