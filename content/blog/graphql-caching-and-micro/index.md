@@ -519,7 +519,7 @@ This time, updates and deletes can only ever happen while the query hook is acti
 ```javascript
 //TODO: test this
 const useSoftResetQuery = (Query, Type, variables) => {
-  let plural = Type.toLowerCase() + "s";
+  let plural = Type + "s";
   return useQuery(
     buildQuery(Query, variables, {
       onMutation: [
@@ -527,7 +527,7 @@ const useSoftResetQuery = (Query, Type, variables) => {
           when: new RegExp(`update${plural}?`),
           run: ({ currentResults, softReset }, resp) => {
             syncResults(
-              currentResults.allBooks,
+              currentResults[`all${plural}`],
               plural,
               resp[`update${plural}`]
                 ? resp[`update${plural}`][plural]
@@ -539,7 +539,7 @@ const useSoftResetQuery = (Query, Type, variables) => {
         {
           when: new RegExp(`delete${Type}`),
           run: ({ refresh }, res, req) => {
-            syncDeletes(BooksQuery, [req._id], `all${plural}`, plural);
+            syncDeletes(Query, [req._id], `all${plural}`, plural);
             refresh();
           }
         }
@@ -556,7 +556,7 @@ const variables = getBookSearchVariables(searchState);
 
 const { data, loading, loaded, currentQuery } = useSoftResetQuery(
   BooksQuery,
-  "Book"
+  "Book",
   variables
 );
 ```
@@ -591,6 +591,9 @@ export const syncUpdates = (cacheName, newResults, resultSet, arrName, options =
 };
 
 export const syncResults = (resultSet, arrName, newResults, { sort } = {}) => {
+  if (!Array.isArray(newResults)) {
+    newResults = [newResults];
+  }
   const lookupNew = new Map(newResults.map(o => [o._id, o]));
 
   resultSet[arrName] = resultSet[arrName].concat();
