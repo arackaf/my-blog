@@ -47,6 +47,7 @@ which would return something like this
   }
 }
 ```
+
 <br>
 <br>
 
@@ -305,7 +306,7 @@ Well, Apollo inspected our query, and saw that it had a match for that same quer
 
 Apollo has ways of fixing this, of course. It provides you the ability to manually update the specific results for a particular query (which requires you to match the query text, and the identical variable values). It provides you a `refetchQueries` method that can refect a specific query, or even all instances of a certain query text—[here's a sandbox demonstrating this, from Apollo Engineer Hugh Wilson](https://codesandbox.io/s/2pp3nq6x8j). Lastly, Apollo also gives you the ability to wipe away your entire cache.
 
-Apollo is a brilliant work of engineering, but these caching options weren't quite flexible enough for me, and I found them a tad complex to implement. I wanted something simpler, and also more flexible, which is why I created `micro-graphql-react`. But before I get to that, I'd like to talk about: 
+Apollo is a brilliant work of engineering, but these caching options weren't quite flexible enough for me, and I found them a tad complex to implement. I wanted something simpler, and also more flexible, which is why I created `micro-graphql-react`. But before I get to that, I'd like to talk about:
 
 ## Urql
 
@@ -349,7 +350,7 @@ and get back
 }
 ```
 
-Urql has no way of knowing that query holds Tasks, since it has no way of knowing what `TaskQueryResult` is. This means that if you run a mutation *creating* a task that's assigned to Fred, the mutation result will not be able to indicate that this particular query needs to be cleared.
+Urql has no way of knowing that query holds Tasks, since it has no way of knowing what `TaskQueryResult` is. This means that if you run a mutation _creating_ a task that's assigned to Fred, the mutation result will not be able to indicate that this particular query needs to be cleared.
 
 Interestingly, this is actually a solveable problem with a build step. A build step would be able to manually introspect the entire GraphQL endpoint, and figure out that `TaskQueryResult` contains `Task` objects, and fix this problem.
 
@@ -438,21 +439,22 @@ You've now got a prime refactoring opportunity. It would be straightforward to r
 _In fact_ - the beauty of hooks is how well they compose. Those two global mutation handlers could absolutely be inside the hook (`onMutation` can take a single object, **or** an array of them). If your application is big enough to justify it, a custom hook like this would work fine
 
 ```javascript
-//TODO: test this
 const useSyncdQuery = (Query, Type, variables) => {
   let plural = Type + "s";
+  let updateOp = `update${Type}`;
+  let deleteOp = `delete${Type}`;
   return useQuery(
     buildQuery(Query, variables, {
       onMutation: [
         {
-          when: new RegExp(`update${Type}`),
+          when: new RegExp(updateOp),
           run: (op, res) =>
-            syncUpdates(Query, res.update, `all${plural}`, Plural)
+            syncUpdates(Query, res[updateOp], `all${plural}`, plural)
         },
         {
-          when: new RegExp(`delete${Type}`),
+          when: new RegExp(deleteOp),
           run: (op, res) =>
-            syncDeletes(Query, res.delete, `all${plural}`, Plural)
+            syncDeletes(Query, res[deleteOp], `all${plural}`, plural)
         },
         {
           when: new RegExp(`(update|delete)${Type}`),
@@ -553,8 +555,8 @@ The code's hardly more readable, but it's not terribly complex, and it's code yo
 const variables = getBookSearchVariables(searchState);
 
 const { data, loading, loaded, currentQuery } = useSoftResetQuery(
-  BooksQuery, 
-  "Book" 
+  BooksQuery,
+  "Book"
   variables
 );
 ```
