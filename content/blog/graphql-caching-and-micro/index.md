@@ -166,7 +166,7 @@ It gets even better, though. If you run a mutation like this
 
 ```graphql
 mutation {
-  updateTask(id: 1, description: "Adam's Task 2") {
+  updateTask(id: 2, description: "Adam's Task 2") {
     Task {
       id
       description
@@ -253,7 +253,7 @@ now, if the user runs _this_ mutation
 
 ```graphql
 mutation {
-  updateTask(id: 1, description: "Bob's Task", assignedTo: "Bob") {
+  updateTask(id: 2, description: "Bob's Task", assignedTo: "Bob") {
     Task {
       id
       assignedTo
@@ -314,7 +314,7 @@ Urql is the creation of Bourbon connoisseur, professional Twitter Shit-poster, a
 
 ```graphql
 mutation {
-  updateTask(id: 1, assignedTo: "Bob") {
+  updateTask(id: 2, assignedTo: "Bob") {
     Task {
       id
       assignedTo
