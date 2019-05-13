@@ -1,12 +1,12 @@
 ---
-title: Introduction to SASS, and css-modules
+title: Loading css, css-modules, and Sass with webpack
 date: "2019-05-13T10:00:00.000Z"
 description: An introduction to loading css with webpack, and enabling css-modules, and SASS in the process
 ---
 
-The css ecosystem is immense and can be intimidating. This post will start at the beginning. We'll go over loading css with webpack, then move on to css modules, and to wrap up, add in some Sass for good measure. If you have some experience with loading css with webpack-based web applications, some of this may be review for you.
+The css ecosystem is immense and, at times, intimidating. This post will start at the beginning. We'll go over loading basic css with webpack, then move on to css modules, and wrap up with Sass. If you have some experience loading css in webpack-based web applications, some of this may be old news for you.
 
-Note that while the code samples in this post will use React, none of the concept is specific to it in the least. This post is about loading css, css modules, and Sass using webpack.
+Note that while the code samples in this post will use React, none of the concepts are specific to it in the least.
 
 ## Starting at the beginning: basic css loading
 
@@ -25,17 +25,17 @@ const Component = () => (
 );
 ```
 
-Unstyled, it'll look something like this.
+Without accompanying styles, it'll look something like this.
 
 ![Unstyled Component](./unstyledComp.png)
 
-Let's add some basic styling. Let's start simple, and have the JS module this component sits in import a basic css file, with standard, global styling rules. The import will look like this
+Let's add some basic styling. Let's start simple, and have the JS module this component sits in import a css file, with standard, global styling rules. The import will look like this
 
 ```javascript
 import "./styles.css";
 ```
 
-And let's add some purposefully ugly styles
+Let's create that file, and add some purposefully ugly styles
 
 ```css
 .pane {
@@ -62,7 +62,13 @@ As we have it, this code leads to the following webpack error
 
 webpack only knows how to load standard JavaScript by default. To add other content, like css, we need to tell webpack how to handle it. Let's do that now. First, install the `mini-css-extract-plugin` and `css-loader` plugins, using your favorite package manager, in your favorite cli.
 
-Now, there should be a `module` object at the top level of your webpack.config, and somewhere under that, there should be a `rules` array. If either are missing, add them. Now, under `rules`, add this entry
+First load the mini css extract plugin in your webpack.config.js file.
+
+```javascript
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+```
+
+Now, in the same config file, there should be a `module` object at the top of the config object, and somewhere under that, there should be a `rules` array. If either are missing, add them. Now, under `rules`, add this entry
 
 ```javascript
 {
@@ -96,13 +102,19 @@ To enable this behavior, we'll first tweak the webpack loader rule, like so
 ```javascript
 {
   test: /\.css$/,
-  use: [MiniCssExtractPlugin.loader, { loader: "css-loader", options: { modules: true, exportOnlyLocals: false } }]
-}
+  use: [
+    MiniCssExtractPlugin.loader,
+    {
+      loader: "css-loader",
+      options: { modules: true, exportOnlyLocals: false }
+    }
+  ]
+};
 ```
 
-Note that the `exportOnlyLocals` may not be needed, as it should be the default; however, I'd had seen weird errors without it.
+Note that the `exportOnlyLocals` may not be needed, as it should be the default; however, I've seen weird errors without it.
 
-As we have it, our styles will still be loaded, but exposed behind dynamically generated class names. To apply them to our component at development time, we need to grab them off of the css module. It should look like this
+As we have it, our styles will still be loaded, but exposed behind dynamically generated class names. To apply them to our component at development time, we need to grab them off of the css module. Let's do that now
 
 ```jsx
 import styles from "./styles.css";
@@ -128,7 +140,9 @@ Applying everything like so, should reveal the same ugly output as before
 
 ## Best of Both Worlds?
 
-So far so good, but what if, like me, you think global styles aren't so bad, _sometimes_. What if you have some styles that you plan to be universal in your app, used almost everywhere, and manually importing a dynamic value just isn't worth the effort? Examples might include a `.btn`, `.table`, or even a `.pane` class. What if the `.pane` class is intended to be used far and wide, with exactly one meaning. Can we make that class (and others) be global, while using css-modules for module-specific stylings, like out list classes, above. You have two options: you can define each and every global css class with `:global()` (see the [css-modules docs](![Unstyled Component](./styledComponent.png)) for more info), or, my preferred approach, using a naming scheme to differentiate global css files from css-modules.
+So far so good, but what if, like me, you think global styles aren't so bad, _sometimes_. What if you have some styles that you plan to be universal in your app, used almost everywhere, and manually importing them as dynamic values just isn't worth the effort? Examples might include a `.btn`, `.table`, or even a `.pane` class. What if the `.pane` class is intended to be used far and wide, with exactly one meaning. Can we make that class (and others) be global, while using css-modules for module-specific stylings, like our list classes, above.
+
+You can, and you have two options: you can define each and every global css class with `:global()` (see the [css-modules docs](![Unstyled Component](./styledComponent.png)) for more info), or, my preferred approach, you can use a naming scheme to differentiate global css files from css-modules.
 
 Specifically, what if we decide that files ending with `.module.css` are css modules, and any other `.css` file is an old-school, global css file. webpack makes this possible with the `oneOf` construct. Basically, turn your entry in the `rules` section, from before, into this
 
@@ -138,13 +152,19 @@ Specifically, what if we decide that files ending with `.module.css` are css mod
   oneOf: [
     {
       test: /\.module\.css$/,
-      use: [MiniCssExtractPlugin.loader, { loader: "css-loader", options: { modules: true, exportOnlyLocals: false } }]
+      use: [
+        MiniCssExtractPlugin.loader,
+        {
+          loader: "css-loader",
+          options: { modules: true, exportOnlyLocals: false }
+        }
+      ]
     },
     {
       use: [MiniCssExtractPlugin.loader, "css-loader"]
     }
   ]
-},
+};
 ```
 
 This tells webpack to match `.css` files against the first rule that's valid. If the `.css` file ends in `.module.css`, use css modules. Else, use global styles. Let's try this out.
@@ -204,7 +224,7 @@ If all went well, everything should look identical as before.
 
 Lastly, let's say you want to add Sass. Being subject to normal developer constraints, you certainly can't convert each and every css file to be scss, so you want to support both, side-by-side. Fortunately this is the easiest part of this entire post. Since scss is a superset of css, we can just run all `.css` and `.scss` files through the `sass-loader` as a first step, and leave all the rest of the css processing the same, as before. Let's see how.
 
-First, we'll install our new dependencies
+First, we'll install some new dependencies
 
 ```
 npm i node-sass sass-loader --save
@@ -218,18 +238,25 @@ Now, we'll add a slight tweak to our webpack rules
   oneOf: [
     {
       test: /\.module\.s?css$/,
-      use: [MiniCssExtractPlugin.loader, { loader: "css-loader", options: { modules: true, exportOnlyLocals: false } }, "sass-loader"]
+      use: [
+        MiniCssExtractPlugin.loader,
+        {
+          loader: "css-loader",
+          options: { modules: true, exportOnlyLocals: false }
+        },
+        "sass-loader"
+      ]
     },
     {
       use: [MiniCssExtractPlugin.loader, "css-loader", "sass-loader"]
     }
   ]
-}
+};
 ```
 
-We added `sass-loader` as a new, first loader (loaders are processed from right to left. Did you catch the other change? It's the two `?s` in the `test` properties. `?` means optional in regular expressions, so all this means is, our rules now apply to both `.css` and `.scss` files. Plain `.css` files are processed by the sass-loader, but again, css is a subset of `scss`, so this is effectively a no-op.
+We added `sass-loader` as a new, first loader (loaders are processed from right to left. Did you catch the other change? It's the two `?`'s in the `test` properties. `?` means optional in regular expressions, so all this means is, our rules now apply to both `.css` and `.scss` files. Plain `.css` files are processed by the sass-loader, but again, css is a subset of `scss`, so this is effectively a no-op.
 
-To make sure things still work, let's convert our css files to scss, add some Sass, and maybe even tweak the styles to be even cooler, and then make sure everything still works.
+To make sure things still work, let's convert our css files to scss, add some Sass, and maybe even tweak the styles to be even cooler, and make sure everything still works.
 
 First, for `styles.css`, we'll rename it to `styles.scss`, and add a few upgrades.
 
@@ -246,3 +273,27 @@ $paneSpanColor: purple;
   color: $paneSpanColor;
 }
 ```
+
+Now, we'll rename `styles.module.css` to be `styles.modules.scss` and make it look something like this
+
+```scss
+$listStyleType: armenian;
+
+.list {
+  margin-left: 20px;
+}
+
+.list-item {
+  list-style-type: $listStyleType;
+}
+```
+
+after re-starting our webpack process, our cool component should look like this
+
+![Unstyled Component](./styledSass.png)
+
+## Concluding thoughts
+
+In the end, a few lines of webpack config allowed us to easily load global, or scoped css, with optional sass processing in either case. Of course this is only scratching the surface of what's possible. There's no shortage of PostCSS, or other plugins you could toss into the loader list.
+
+Happy Coding!
