@@ -136,6 +136,8 @@ const Component = () => (
 
 We now import an object from the css file. The keys of this object are the class names we wrote originally in the css file, and the property values are the dynamically generated class names. Note the weird syntax around the `list-item` class. JavaScript identifiers cannot be hyphenated, so you'll either need to alias it, or just use valid JS names in your css modules.
 
+_Edit_ - after publishing this, Marc Bernstein pointed out on Twitter that css-loader has a `camelCase` option that will convert hyphenated class names to camel-cased equivalents. You can read the docs on it [here](https://github.com/webpack-contrib/css-loader#camelcase)
+
 Applying everything like so should reveal the same ugly output as before
 
 ![Unstyled Component](./styledComponent.png)
