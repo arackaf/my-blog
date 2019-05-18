@@ -6,7 +6,7 @@ description: An introduction to loading css with webpack, and enabling css-modul
 
 The css ecosystem is immense and, at times, intimidating. This post will start at the beginning. We'll go over loading basic css with webpack, then move on to css modules, and wrap up with Sass. If you have some experience loading css in webpack-based web applications, some of this may be old news for you.
 
-Note that while the code samples in this post will use React, none of the concepts are specific to it in the least.
+Note that while the code samples in this post use React, none of the concepts are specific to it in the least. Also, this post does _not_ cover css-in-js, for the simple reason that I haven't yet gotten around to diving into that ecosystem; I'm hoping by the time I do, it'll be a bit less crowded :)
 
 ## Starting at the beginning: basic css loading
 
@@ -62,7 +62,7 @@ As we have it, this code leads to the following webpack error
 
 webpack only knows how to load standard JavaScript by default. To add other content, like css, we need to tell webpack how to handle it. Let's do that now. First, install the `mini-css-extract-plugin` and `css-loader` plugins, using your favorite package manager, in your favorite cli.
 
-First load the mini css extract plugin in your webpack.config.js file.
+Now load the mini css extract plugin in your webpack.config.js file.
 
 ```javascript
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
@@ -84,6 +84,8 @@ new MiniCssExtractPlugin({
   filename: isProd ? "[name]-[contenthash].css" : "[name].css"
 });
 ```
+
+If you're new to webpack, and that went a little too fast for you, check out the [webpack docs](https://webpack.js.org/plugins/mini-css-extract-plugin/#root) for a slower treatment of this.
 
 Now, if we restart webpack, and reload our page, we should see this disgusting, but technically correct result
 
@@ -134,7 +136,7 @@ const Component = () => (
 
 We now import an object from the css file. The keys of this object are the class names we wrote originally in the css file, and the property values are the dynamically generated class names. Note the weird syntax around the `list-item` class. JavaScript identifiers cannot be hyphenated, so you'll either need to alias it, or just use valid JS names in your css modules.
 
-Applying everything like so, should reveal the same ugly output as before
+Applying everything like so should reveal the same ugly output as before
 
 ![Unstyled Component](./styledComponent.png)
 
@@ -142,7 +144,7 @@ Applying everything like so, should reveal the same ugly output as before
 
 So far so good, but what if, like me, you think global styles aren't so bad, _sometimes_. What if you have some styles that you plan to be universal in your app, used almost everywhere, and manually importing them as dynamic values just isn't worth the effort? Examples might include a `.btn`, `.table`, or even a `.pane` class. What if the `.pane` class is intended to be used far and wide, with exactly one meaning. Can we make that class (and others) be global, while using css-modules for module-specific stylings, like our list classes, above.
 
-You can, and you have two options: you can define each and every global css class with `:global()` (see the [css-modules docs](![Unstyled Component](./styledComponent.png)) for more info), or, my preferred approach, you can use a naming scheme to differentiate global css files from css-modules.
+You can, and you have two options: you can define each and every global css class with `:global()` (see the [css-modules docs](https://github.com/css-modules/css-modules) for more info), or, my preferred approach, you can use a naming scheme to differentiate global css files from css-modules.
 
 Specifically, what if we decide that files ending with `.module.css` are css modules, and any other `.css` file is an old-school, global css file. webpack makes this possible with the `oneOf` construct. Basically, turn your entry in the `rules` section, from before, into this
 
@@ -218,11 +220,11 @@ const Component = () => (
 );
 ```
 
-If all went well, everything should look identical as before.
+If all went well, everything should look identical to before.
 
 ## Getting Sassy
 
-Lastly, let's say you want to add Sass. Being subject to normal developer constraints, you certainly can't convert each and every css file to be scss, so you want to support both, side-by-side. Fortunately this is the easiest part of this entire post. Since scss is a superset of css, we can just run all `.css` and `.scss` files through the `sass-loader` as a first step, and leave all the rest of the css processing the same, as before. Let's see how.
+Lastly, let's say you want to add Sass. Being subject to normal developer constraints, you certainly can't convert each and every css file to be scss, so you want to support both, side-by-side. Fortunately this is the easiest part of the post. Since scss is a superset of css, we can just run all `.css` and `.scss` files through the `sass-loader` as a first step, and leave all the rest of the css processing the same, as before. Let's see how.
 
 First, we'll install some new dependencies
 
@@ -254,7 +256,7 @@ Now, we'll add a slight tweak to our webpack rules
 };
 ```
 
-We added `sass-loader` as a new, first loader (loaders are processed from right to left. Did you catch the other change? It's the two `?`'s in the `test` properties. `?` means optional in regular expressions, so all this means is, our rules now apply to both `.css` and `.scss` files. Plain `.css` files are processed by the sass-loader, but again, css is a subset of `scss`, so this is effectively a no-op.
+We added `sass-loader` as a new, first loader (loaders are processed from right to left). Did you catch the other change? It's the two `?`'s in the `test` properties. `?` means optional in regular expressions, so all this means is, our rules now apply to both `.css` and `.scss` files. Plain `.css` files are processed by the sass-loader, but again, css is a subset of `scss`, so this is effectively a no-op.
 
 To make sure things still work, let's convert our css files to scss, add some Sass, and maybe even tweak the styles to be even cooler, and make sure everything still works.
 
