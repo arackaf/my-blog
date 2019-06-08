@@ -8,13 +8,15 @@ description: A walk through of the various ways useReducer can be made more ergo
 
 If you're new to `useReducer`, be sure to check out [my prior post on it](https://adamrackis.dev/state-and-use-reducer/).
 
+This code in this post will often use TypeScript, especially at the end, when we start adding our own typings. If you're unfamiliar with TypeScript, _some_ of the code below may look unfamiliar.
+
 ## Our App state reducer
 
 As usual with these posts, the code will all come from my Booklist project. For those new here, it's a side project I have that's helped me learn new web dev things (like React!), and also, incidentally, let's me track my own book collection—for whatever reason.
 
 Anyway, this is what my appState reducer looks like. It's directly adapted from Redux, since this app was built with Redux originally, which I recently converted to hooks.
 
-```javascript
+```typescript
 function appReducer(state: AppState, action): AppState {
   switch (action.type) {
     case SET_PUBLIC_INFO:
@@ -56,7 +58,7 @@ function appReducer(state: AppState, action): AppState {
 
 This reducer manages things like desktop vs mobile views, login state, if a publicly-available user's books are being viewed, online/offline status, etc.
 
-In the Redux days, we could, for free, wire up action creators, like this
+In the Redux days we could, for free, wire up action creators, like this
 
 ```javascript
 const requestDesktop = () => dispatch => {
@@ -79,17 +81,17 @@ Without Redux, how can we get a similar, simple way of working with this reducer
 
 ## A false profit: emulating Redux
 
-Let's start out by just re-creating Redux's action creator api—or at least something very similar—from scratch, using Closures and other fun JavaScript tricks. I'll say upfront that this approach adds a lot of complexity; some would say too much complexity. But with popular projects on npm today which do similar things, it's worth looking at how it works. And of course you might decide this approach adds less complexity than is claimed, and is worth the effort for the nicer api.
+Let's start out by just re-creating Redux's action creator api—or at least something very similar—from scratch, using closures and other fun JavaScript tricks. I'll say upfront that this approach adds a lot of complexity; some would say it adds too much complexity. But with popular projects on npm today which do similar things, it's worth looking at how it works. And of course you might decide this approach adds less complexity than claimed, and is worth the effort for the nicer api.
 
 ### And the first one now will later be last
 
 We'll start by looking at the end result, so we can see what we're building, and then proceed to see how it's built. The goal is to have a single hook that wraps the reducer above, exposing the current state; the action creators; and the raw dispatch function, just in case. To be precise, we'll have the hook return an array containing those three things, in that order. The final hook looks like this
 
-```javascript
+```typescript
 export function useAppState(): [AppState, any, any] {
   //other actions elided for space
   let actions = { requestDesktop, requestMobile, setModule, setPublicInfo };
-  let result = getStatePacket < AppState > (appReducer, initialState, actions);
+  let result = getStatePacket<AppState>(appReducer, initialState, actions);
 
   let colorTheme = result[0].colorTheme;
   useEffect(() => {
@@ -111,8 +113,12 @@ const [{ colorTheme }, actions, dispatch] = useContext(AppContext);
 
 Everything above hinges on `getStatePacket`, so let's turn there.
 
-```javascript
-export function getStatePacket<T>(reducer, initialState, actions?): [T, any, any] {
+```typescript
+export function getStatePacket<T>(
+  reducer,
+  initialState,
+  actions?
+): [T, any, any] {
   let [state, dispatch] = useReducer(reducer, initialState);
   let newDispatch = useCallback(
     val => {
@@ -125,7 +131,14 @@ export function getStatePacket<T>(reducer, initialState, actions?): [T, any, any
     [state, dispatch]
   );
 
-  return useMemo(() => [state, actions ? makeActionCreators(newDispatch, actions) : {}, dispatch], [state]) as any;
+  return useMemo(
+    () => [
+      state,
+      actions ? makeActionCreators(newDispatch, actions) : {},
+      dispatch
+    ],
+    [state]
+  ) as any;
 }
 ```
 
@@ -170,7 +183,7 @@ It's also worth noting that re-binding all of these functions on every state cha
 
 ## Re-thinking our life choices
 
-Let's step back for a moment and remember what our original goal was: to make dealing with our reducer easier. Most people, myself included, find it easier to work with an action creator, than a raw dispatch function, since they're easier to work with, essentially being statically typed for free. With action creators, our editor will tell us every action creator there is (via autocompletion when importing), and it'll tell us which arguments they take, often with types inferred automatically (or added manually, when needed).
+Let's step back for a moment and remember what our original goal was: to make dealing with our reducer easier. Some people, myself included, find it easier to work with an action creator, than a raw dispatch function, since they're essentially typed for free. With action creators, our editor will tell us every action creator there is (via autocompletion when importing), and it'll tell us which arguments they take, often with types inferred automatically (or added manually, when needed).
 
 But can we get these same benefits without all the overhead we saw above? It turns out we can come pretty close. But first, let's make a quick tweak to our reducers in general.
 
@@ -220,7 +233,7 @@ It doesn't do anything useful, but that's ok; we're only interested in seeing ho
 
 ### Type the return value
 
-Let's start by typing the shape of the state returned by the reducer. We do this simply by adding a return type to the reducer, like so
+Let's start by typing the shape of the state returned by the reducer. We do this by adding a return type to the reducer, like so
 
 ```javascript
 function myReducer(state, [type, payload]): typeof initialState {
@@ -232,11 +245,11 @@ Now, when we use this reducer, TypeScript will tell us what fields are on our re
 
 That was the easy part. Let's turn to our dispatch function, and see how we can get it to communicate its actions to TypeScript, and to us. Don't worry, this won't be terribly difficult, either.
 
-### Type dispatch
+### Type the dispatch function
 
 The key to typing our dispatch function is to provide a typing for each action that can be dispatched, and then assigning the payload to the union of all of them. The code will hopefully explain this more clearly than I can
 
-```javascript
+```typescript
 type actions =
   | ["SET_X", number]
   | ["SET_Y", number]
@@ -275,9 +288,9 @@ const staggeredSetX = (dispatch, x1, x2) => {
 };
 ```
 
-Of course `dispatch` is implicitly typed as any, now. If we want the same autocomplete as before, we can type it with the same `actions` type name from before, like so
+Of course `dispatch` is implicitly typed as `any`, now. If we want the same autocomplete as before, we can type it with our `actions` type, like so
 
-```javascript
+```typescript
 const staggeredSetX = (dispatch: (packet: actions) => any, x1, x2) => {
   dispatch(["SET_X", x1]);
   setTimeout(() => {
@@ -288,14 +301,14 @@ const staggeredSetX = (dispatch: (packet: actions) => any, x1, x2) => {
 
 And now we can just call that function, and pass `dispatch` in manually.
 
-```javascript
+```typescript
 const Widget: FunctionComponent<{}> = () => {
   const [state, dispatch] = useReducer(myReducer, initialState);
 
   staggeredSetX(dispatch, 3, 4);
 
   //rest of component
-}
+};
 ```
 
 ## Wrapping up
