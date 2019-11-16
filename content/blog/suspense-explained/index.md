@@ -50,11 +50,11 @@ and after importing, and calling that function in our routing code when thee boo
 
 ![Waterfall fixed](./initialWaterfallFixed.png)
 
-I'll stress, this has nothing to do with Suspense, or even React. No matter what JS framework you're using, you should preload data as soon as you know you'll need it, even if your UI code isn't loaded yet.
+I'll stress, this has nothing to do with Suspense, or even React; this preloading is an essential part of the "render-as-you-fetch" pattern the React team promotes, with Suspense. But no matter what JS framework you're using, you should preload data as soon as you know you'll need it, even if your UI code isn't loaded yet.
 
 ## And now, Suspense
 
-Ok let's get those two data requests above in sync now. First, let's wrap our module with a `Suspense` component, like this. Make sure your `<Suspense>` boundary is _above_ any components which are reading data. That won't make a difference yet, but it'll affect `useTransition` in a bit.
+Ok let's get those two data requests above in sync. First, let's wrap our module with a `Suspense` component, like this. Make sure your `<Suspense>` boundary is _above_ any components which are reading data. That won't make a difference yet, but it'll affect `useTransition` in a bit.
 
 ```tsx
 export default () => {
@@ -66,7 +66,11 @@ export default () => {
 };
 ```
 
-Now, as things are loading, we display the specified placeholder, which will not leave until everything is ready. The way we specify that we're waiting on something is by throwing a promise. This applies to components wrapped with `React.lazy`, and also our data. `React.lazy` of course handles the promise throwing internally, but data loading is our responsibility. For `micro-graphql-react`, we'll use the `useSuspenseQuery` hook.
+Now, as things are loading, we display the specified placeholder, which will not leave until everything is ready. The way we specify that we're waiting on something in userland is by throwing a promise. Components wrapped with `React.lazy` have their own, internal way of integrating with Suspense, but for userland, we handle it with a thrown promise.
+
+A quick note, here. When you throw a promise, the identity of the promise should be consistent. So if you have query X, throw Promise P, a subsequent read for that same query, should have the same promise be thrown. Also, the very mechanism of throwing promises is an implementation detail, which may change. This should not affect application developers since **all** of this low-level integration will be handled by your data fetching library in practice. I'm explaining it only for you to get a decent idea of how things are working.
+
+So, to integrate with Suspense via `micro-graphql-react`, we'll use the `useSuspenseQuery` hook.
 
 ```typescript
 const { data } = useSuspenseQuery<QueryOf<Queries["allBooks"]>>(
@@ -74,7 +78,7 @@ const { data } = useSuspenseQuery<QueryOf<Queries["allBooks"]>>(
 );
 ```
 
-See the docs for more info, but `useSuspenseQuery` is a companion hook to `useQuery`. They're both for loading data via GraphQL queries, and have identical API's, except `useSuspenseQuery` throws a promise when used if, (and only if), the requested data are not ready. And now, lo and behold, our app does not activate until all of our data are ready. Our silly "Loading, yo" message will show when the component first mounts, if either piece of data are not ready.
+See the [micro-graphql-react docs](https://github.com/arackaf/micro-graphql-react) for more info, but `useSuspenseQuery` is a companion hook to `useQuery`. They're both for loading data via GraphQL queries, and have identical API's, except `useSuspenseQuery` throws a promise when used if, (and only if), the requested data are not ready. And now, lo and behold, our app does not activate until all of our data are ready. Our silly "Loading, yo" message will show when the component first mounts, if either piece of data are not ready.
 
 Hooray!
 
