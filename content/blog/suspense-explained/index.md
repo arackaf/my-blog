@@ -4,27 +4,27 @@ date: "2019-11-14T10:00:00.000Z"
 description: A walk through of the family of React features commonly all referred to as "Suspense"
 ---
 
-React Suspense is a new way for React components to wait for something asynchronous. It can be difficult to understand its scope at first because it doesn’t replace any concrete existing solution. It’s not a data fetching library, but a new, different way to think about asynchronous UI. This post is my attempt at explaining what problems it solves, with what primitives, which I'll take you through, step by step, showing what they do, and how they're employed.
+React Suspense is a new way for React components to wait for something asynchronous. It can be difficult to understand its scope at first because it doesn’t replace any concrete existing solution. It’s not a data fetching library, but a new, different way to think about asynchronous UI. This post is my attempt at explaining what problems it solves, with what primitives, which I'll take you through step by step, showing what they do, and how they're employed.
 
 What this post is _not_ is a quick guide to improving your application's data loading with Suspense. If that's all you want, just read the docs for the modern Suspense-enabled Relay, and go to work.
 
-Again, the only goal of this post is to explain what problems Suspense solves, but from a *slightly* lower level than what the current Suspense docs have, which left me with a lot of unanswered questions. This is the introduction to Suspense I was looking for when I first started reading about. I hope it's also useful to some of you!
+Again, the only goal of this post is to explain what problems Suspense solves, but from a *slightly* lower level than what the current Suspense docs have, which left me with a lot of unanswered questions. This is the introduction to Suspense I was looking for when I first started reading about it. I hope it's also useful to some of you!
 
 ## The Plan
 
-As usual with these posts, the code will come from my Booklist project, which is a side project of mine that exists to help me to learn modern JS tools. You don't really know a software engineering library until you build something with it, and this is that something, for me, when I have something that needs learning. Needless to say, since the project is the product of my own efforts, in scarce free time, don't expect high quality (especially the design). But it's good enough to explore ideas, which is our goal.
+As usual with these posts, the code will come from my Booklist project, which is a side project of mine that exists to help me to learn modern JS tools. You don't really know a dev library until you build something with it, and this is that something, for me. Needless to say, since the project is the product of my own efforts, in scarce free time, don't expect high quality (especially the design). But it's good enough to explore ideas, which is our goal.
 
 Our data loading will be done with my `micro-graphql-react` library, which provides some simple GraphQL React bindings. I've updated this library to have the pieces necessary to use Suspense, but of course any Suspense-ready library (and expect your favorite library to be updated soon, if it's not already) could be used instead.
 
 ## Our Use Case
 
-Suspense is all about coordinating multiple async operations in such a way that your UI stays consistent. Let's explore what that means with an example. `booklist` unsurprisingly has a screen to display your books in a table.
+Suspense is all about coordinating multiple async operations in a way that keeps your UI consistent. Let's explore what that means with an example. `booklist` unsurprisingly has a screen to display your books.
 
 ![Book list UI](./booklistView.png)
 
 The books are paged, but we also show the total number in that searched result set. Currently it's a single request that fetches the books, and the total, but let's pretend those two pieces of data are fetched with different queries—and for this blog post, I did split them out. As the current search changes, we fire off a new request to get our books, and a new request to get the total count for that result set. As each request is running, there's some sort of loading indicator in place. The books table has a subtle spinner overlaid, and the book count shows a small spinner next to it, while the next count total is fetching. Since they're distinct async operations, we have no control over which will finish first, or even how closely together they'll finish. That means the new books list may come in first, while the count for the previous search results continues to show, with a spinner next to it—or vice versa.
 
-Coordinating these separate async operations in order to prevent this **inconsistent UI** is the entire point of what we're doing here.
+Coordinating these separate async operations in order to prevent this **inconsistent UI** is the point of what we're doing here.
 
 ## You may not need Suspense
 
@@ -46,7 +46,7 @@ export default function preload() {
 }
 ```
 
-and after importing, and calling that function in our routing code when thee books module becomes active, we see the waterfall vanish.
+and after importing, and calling that function in our routing code when the books module becomes active, we see the waterfall vanish.
 
 ![Waterfall fixed](./initialWaterfallFixed.png)
 
@@ -54,7 +54,7 @@ I'll stress, this has nothing to do with Suspense, or even React; this preloadin
 
 ## And now, Suspense
 
-Ok let's get those two data requests above in sync. First, let's wrap our module with a `Suspense` component, like this. Make sure your `<Suspense>` boundary is _above_ any components which are reading data. That won't make a difference yet, but it'll affect `useTransition` in a bit.
+Ok let's get those two data requests in sync. First, let's wrap our module with a `Suspense` component, like this. Make sure your `<Suspense>` boundary is _above_ any components which are reading data. That won't make a difference yet, but it'll affect `useTransition` in a bit.
 
 ```tsx
 export default () => {
@@ -68,7 +68,7 @@ export default () => {
 
 Now, as things are loading, we display the specified placeholder, which will not leave until everything is ready. The way we specify that we're waiting on something in userland is by throwing a promise. Components wrapped with `React.lazy` have their own, internal way of integrating with Suspense, but for userland, we handle it with a thrown promise.
 
-A quick note, here. When you throw a promise, the identity of the promise should be consistent. So if you have query X, throw Promise P, a subsequent read for that same query, should have the same promise be thrown. Also, the very mechanism of throwing promises is an implementation detail, which may change. This should not affect application developers since **all** of this low-level integration will be handled by your data fetching library in practice. I'm explaining it only for you to get a decent idea of how things are working.
+A quick note, here. When you throw a promise, the identity of the promise should be consistent. So if you have query X, throw Promise P, a subsequent read for that same query, should throw the same promise. Also, the very mechanism of throwing promises is an implementation detail, which may change. This should not affect application developers since in practice **all** of this low-level integration will be handled by your data fetching library. I'm explaining it only for you to get a decent idea of how things work.
 
 So, to integrate with Suspense via `micro-graphql-react`, we'll use the `useSuspenseQuery` hook.
 
@@ -97,9 +97,9 @@ This is because `useSuspenseQuery` is throwing a promise when encountered. That 
 </Component>
 ```
 
-and `A` and `B` both suspend, you will **not** get a waterfall. The code above, however, is more similar to `Component` suspending, and then `A` also suspending. So React cannot possible Render `A`, until `Component` is done, hence the waterfall.
+and `A` and `B` both suspend, you will **not** get a waterfall. The code above, however, is more similar to `Component` suspending, and then `A` also suspending. So React cannot possible Render `A`, until `Component` is done—hence the waterfall.
 
-There's two possible fixes, here. I could move the top read to be lower, deeper in the component tree, to where that data are actually **used**. Currently I was reading this high in the component tree, and putting the results in context. If you've heard people say that with Suspense, you should read data as low as possible, only when used, this is a huge reason why.
+There's two possible fixes, here. I could move the top read to be lower, deeper in the component tree, to where that data are actually **used**. Currently I was reading this data high in the component tree, and putting the results in context. If you've heard people say that with Suspense, you should read data as low as possible, only when used, this is a huge reason why.
 
 The other fix, and the one I'll use here, to avoid refactoring, is the same as the fix for the original waterfall: preload. When our URL changes, just preload the new data we'll need, using the exact same preload method from before. If you're using any kind of decent routing library, you can likely do this preload in one place, as your `<Route />` receives new match parameters. Since my app is *not* using a decent routing library, I'll just have to duplicate that function call; but that shortcoming is entirely due to my own bad architecture, and not React or Suspense
 
@@ -119,7 +119,7 @@ And now our waterfall is gone
 
 ## useTransition
 
-Now let's make the UX a little nicer. Wouldn't it be nice if, instead of setting our new state, and kicking off a render that threw promises, triggering our `Suspense` boundary, which removed our existing UI, we could, instead, tell React start the new render, but "off to the side, in memory." What if we could tell React: fork my entire app to an in-memory copy, apply the state there, and then apply the new, updated UI to the screen when it's all ready, or after a specified amount of time has expired (whichever comes first). That's what useTransition does, and I'll explain it some more, don't worry.
+Now let's make the UX a little nicer. Wouldn't it be nice if, instead of setting our new state, and kicking off a render that suspended, triggering our `Suspense` boundary which removed our existing UI, we could, instead, tell React start the new render, but "off to the side, in memory." What if we could tell React: fork my entire app to an in-memory copy, apply the state there, and then apply the new, updated UI to the screen when it's all ready, or after a specified amount of time has expired (whichever comes first). That's `what useTransition` does, and I'll explain it some more, don't worry.
 
 Here's how we use it
 
@@ -154,11 +154,11 @@ Tweak that timeout amount as desired, and remember, you can use anything you wan
 
 Remember, you don't have to add Suspense to existing code, and doing so _might_ be more work than you think. When changing the code above to use Suspense api's, I noticed that my `<Suspense>` boundary (the ugly "Loading, yo" message) was being triggered at unexpected times. This happened because of state changes that were **not** wrapped in `startTransition`, which triggered new data loading. As you convert data reads to be Suspense ready, be _certain_ to wrap **every** state change that triggers those reads with `startTransition`
 
-Suspense is currently primarily released for library authors. Eventually, the ecosystem's tooling should improve, and using these new patterns should be much easier. Be patient!
+Suspense is currently primarily released for library authors. Eventually, the ecosystem's tooling should improve, and using these new patterns should be much easier, and more common. Be patient!
 
 ## Where to, from here
 
-Remember, you can place `<Suspense>` boundaries wherever you want. If a promise is thrown during rendering, React will render the fallback of the _first_ Suspense boundary it can find, by walking _up_ the tree from where the exception was thrown. You can also use `useTransition` wherever you want, for any state change that involves async data loading (including lazy-loaded components created with `React.lazy`)
+Remember, you can place `<Suspense>` boundaries wherever you want. If a component suspends during rendering, React will render the fallback of the _first_ Suspense boundary it can find, by walking _up_ the tree from where the suspension happened. You can also use `useTransition` wherever you want, for any state change that involves async data loading (including lazy-loaded components created with `React.lazy`)
 
 With that in mind, I'll briefly note that these same primitives will likely need to be integrated into whatever routing solution you're using. New route parameters will likely need to be set with `useTransition`, with some sort of soft spinner that can display over the old route, while the new one loads. Which of course means you'll need a `<Suspense />` boundary at the very top of your app, to handle route transitions that take longer than the specified timeout.
 
