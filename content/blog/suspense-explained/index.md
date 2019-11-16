@@ -52,7 +52,7 @@ I'll stress, this has nothing to do with Suspense, or even React. No matter what
 
 ## And now, Suspense
 
-Ok let's get those two data requests above in sync now. First, let's wrap our module with a `Suspense` component, like this. Make sure your `<Suspense>` boundary is *above* any components which are reading data. That won't make a difference yet, but it'll affect `useTransition` in a bit.
+Ok let's get those two data requests above in sync now. First, let's wrap our module with a `Suspense` component, like this. Make sure your `<Suspense>` boundary is _above_ any components which are reading data. That won't make a difference yet, but it'll affect `useTransition` in a bit.
 
 ```tsx
 export default () => {
@@ -67,9 +67,9 @@ export default () => {
 Now, as things are loading, we display the specified placeholder, which will not leave until everything is ready. The way we specify that we're waiting on something is by throwing a promise. This applies to components wrapped with `React.lazy`, and also our data. `React.lazy` of course handles the promise throwing internally, but data loading is our responsibility. For `micro-graphql-react`, we'll use the `useSuspenseQuery` hook.
 
 ```typescript
-const { data, loading, loaded, currentQuery } = useSuspenseQuery<
-  QueryOf<Queries["allBooks"]>
->(buildQuery(GetBooksQuery, variables, { onMutation: onBooksMutation }));
+const { data } = useSuspenseQuery<QueryOf<Queries["allBooks"]>>(
+  buildQuery(GetBooksQuery, variables, { onMutation: onBooksMutation })
+);
 ```
 
 See the docs for more info, but `useSuspenseQuery` has an identical api to `useQuery`, except it throws a promise when used if, (and only if), the requested data are not ready. And now, lo and behold, our app does not activate until all of our data are ready. Our silly "Loading, yo" message will show when the component first mounts, if either piece of data are ready.
@@ -129,13 +129,13 @@ useEffect(() => {
 
 this tells React to start rendering this state change in a detached, in-memory copy of my app. If everything finishes, and stops throwing promises before the 3 second timeout, then cool, we'll update the UI then, with our new, consistent results. If it's not done within three seconds, then we'll apply it anyway, in it's suspended state.
 
-The `isPending` does what it says, and we can use it to display some sort of local loading indicator. The difference is, that loading indicator will represent the loading state of *all* pending async operations. Again, that's what Suspense gives us: it allows us to coordinate multiple, separate async operations. Previously we would have to co-locate these data requests somehow, and tie them together with `Promise.all`, or similar. 
+The `isPending` does what it says, and we can use it to display some sort of local loading indicator. The difference is, that loading indicator will represent the loading state of _all_ pending async operations. Again, that's what Suspense gives us: it allows us to coordinate multiple, separate async operations. Previously we would have to co-locate these data requests somehow, and tie them together with `Promise.all`, or similar.
 
 Tweak that timeout amount as desired, and remember, you can use anything you want for the fallback display. The "Loading, yo" was silly and snarky; in practice you'll likely make it a shell of your actual UI, with a special message indicating how sorry you are that this search is taking so long.
 
 ## A warning on integrating this into existing applications
 
-Remember, you don't have to add Suspense to existing code, and doing so *might* be more work than you think. When changing the code above to use Suspense apis, I noticed that my `<Suspense>` boundary (the ugly "Loading, yo" message) was being triggered at unexpected times.  This happened because of state changes that were **not** wrapped in `startTransition`, which triggered new data loading. As you convert data reads to be Suspense ready, be *certain* to wrap **every** state change that starts it with `startTransition`
+Remember, you don't have to add Suspense to existing code, and doing so _might_ be more work than you think. When changing the code above to use Suspense apis, I noticed that my `<Suspense>` boundary (the ugly "Loading, yo" message) was being triggered at unexpected times. This happened because of state changes that were **not** wrapped in `startTransition`, which triggered new data loading. As you convert data reads to be Suspense ready, be _certain_ to wrap **every** state change that starts it with `startTransition`
 
 ## Where to, from here
 
