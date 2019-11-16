@@ -88,7 +88,7 @@ We'd probably prefer to just show the current data, and then update it all when 
 
 ![Another Waterfall](./incrementalWaterfall.png)
 
-This is because `useSuspenseQuery` is throwing a promise when encountered. That causes React to suspend rendering (get it - that's why it's called Suspense), until the requested data are ready. In this particular case, the two reads are nested beneath one another: the first query happens in a component that's above the component containing the other query. Normally React will try to render every possible branch of your component tree, even if promises are thrown. So if you have
+This is because `useSuspenseQuery` is throwing a promise when encountered. That causes React to suspend rendering (get it - that's why it's called Suspense), until the requested data are ready. In this particular case, the two reads are nested beneath one another: the first query happens in a component that's above the component containing the other query. Normally React will try to render every possible branch of your component tree, even if a component suspends. So if you have
 
 ```tsx
 <Component>
@@ -97,7 +97,7 @@ This is because `useSuspenseQuery` is throwing a promise when encountered. That 
 </Component>
 ```
 
-and `A` and `B` both throw, you will **not** get a waterfall. The code above, however, is more similar to `Component` throwing, and then `A` also throwing. So React cannot possible Render `A`, until `Component` is done, hence the waterfall.
+and `A` and `B` both suspend, you will **not** get a waterfall. The code above, however, is more similar to `Component` suspending, and then `A` also suspending. So React cannot possible Render `A`, until `Component` is done, hence the waterfall.
 
 There's two possible fixes, here. I could move the top read to be lower, deeper in the component tree, to where that data are actually **used**. Currently I was reading this high in the component tree, and putting the results in context. If you've heard people say that with Suspense, you should read data as low as possible, only when used, this is a huge reason why.
 
@@ -144,7 +144,7 @@ useEffect(() => {
 }, []);
 ```
 
-this tells React to start rendering this state change in a detached, in-memory copy of my app. If everything finishes, and stops throwing promises before the 3 second timeout, then cool, we'll update the UI then, with our new, consistent results. If it's not done within three seconds, then we'll apply it anyway, in it's suspended state, which will trigger the Suspense boundary's fallback ("Loading, yo").
+this tells React to start rendering this state change in a detached, in-memory copy of my app. If everything finishes, and stops suspending before the 3 second timeout, then cool, we'll update the UI then, with our new, consistent results. If it's not done within three seconds, then we'll apply it anyway, in it's suspended state, which will trigger the Suspense boundary's fallback ("Loading, yo").
 
 The `isPending` does what it says, and we can use it to display some sort of local loading indicator. The difference is, *that* loading indicator will represent the loading state of _all_ pending async operations. Again, that's what Suspense gives us: it allows us to coordinate multiple, separate async operations. Previously we would have to co-locate these data requests somehow, and tie them together with `Promise.all`.
 
