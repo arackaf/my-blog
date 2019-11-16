@@ -4,7 +4,7 @@ date: "2019-11-14T10:00:00.000Z"
 description: A walk through of the family of React features commonly all referred to as "Suspense"
 ---
 
-React Suspense can be difficult to understand, at first. This post is my attempt at explaining what problems it solves, with what primitives, which I'll take you through, step by step, showing what they do, and how they're employed.
+React Suspense is a new way for React components to wait for something asynchronous. It can be difficult to understand its scope at first because it doesn’t replace any concrete existing solution. It’s not a data fetching library, but a new, different way to think about asynchronous UI. This post is my attempt at explaining what problems it solves, with what primitives, which I'll take you through, step by step, showing what they do, and how they're employed.
 
 What this post is _not_ is a quick guide to improving your application's data loading with Suspense. If that's all you want, just read the docs for the modern Suspense-enabled Relay, and go to work.
 
@@ -22,7 +22,7 @@ Suspense is all about coordinating multiple async operations in such a way that 
 
 ![Book list UI](./booklistView.png)
 
-The books are paged, but we also show the total number in that searched result set. Currently it's a single request that fetches the books, and the total, but let's pretend those two pieces of data are fetched with different queries—and for this blog post, I did split them out. As the current search changes, we fire off a new request to get our books, and a new request to get the total count for that result set. As each request is running, there's some sort of loading indicator in place. The books table has a subtle spinner overlaid, and the book count shows a small spinner next to it, when the next count total is fetching. Since they're distinct async operations, we have no control over which will finish first, or even how closely together these operations will finish. That means the new books list may come in first, while the count for the previous search results continues to show, with a spinner next to it—or vice versa.
+The books are paged, but we also show the total number in that searched result set. Currently it's a single request that fetches the books, and the total, but let's pretend those two pieces of data are fetched with different queries—and for this blog post, I did split them out. As the current search changes, we fire off a new request to get our books, and a new request to get the total count for that result set. As each request is running, there's some sort of loading indicator in place. The books table has a subtle spinner overlaid, and the book count shows a small spinner next to it, while the next count total is fetching. Since they're distinct async operations, we have no control over which will finish first, or even how closely together they'll finish. That means the new books list may come in first, while the count for the previous search results continues to show, with a spinner next to it—or vice versa.
 
 Coordinating these separate async operations in order to prevent this **inconsistent UI** is the entire point of what we're doing here.
 
@@ -74,7 +74,7 @@ const { data } = useSuspenseQuery<QueryOf<Queries["allBooks"]>>(
 );
 ```
 
-See the docs for more info, but `useSuspenseQuery` has an identical api to `useQuery`, except it throws a promise when used if, (and only if), the requested data are not ready. And now, lo and behold, our app does not activate until all of our data are ready. Our silly "Loading, yo" message will show when the component first mounts, if either piece of data are not ready.
+See the docs for more info, but `useSuspenseQuery` is a companion hook to `useQuery`. They're both for loading data via GraphQL queries, and have identical API's, except `useSuspenseQuery` throws a promise when used if, (and only if), the requested data are not ready. And now, lo and behold, our app does not activate until all of our data are ready. Our silly "Loading, yo" message will show when the component first mounts, if either piece of data are not ready.
 
 Hooray!
 
@@ -84,7 +84,20 @@ We'd probably prefer to just show the current data, and then update it all when 
 
 ![Another Waterfall](./incrementalWaterfall.png)
 
-This is because `useSuspenseQuery` is throwing a promise when encountered. That causes React to suspend rendering (get it - that's why it's called Suspense), until that data are ready. The fix for the waterfall is the same as the fix for the original waterfall: preload. When our URL changes, just preload the new data we'll need, using the exact same preload method from before. If you're using any kind of decent routing library, you can likely do this preload in one place, as your `<Route />` receives new match parameters. Since my app is *not* using a decent routing library, I'll just have to duplicate that function call; but that shortcoming is entirely due to my own bad architecture, and not React or Suspense
+This is because `useSuspenseQuery` is throwing a promise when encountered. That causes React to suspend rendering (get it - that's why it's called Suspense), until the requested data are ready. In this particular case, the two reads are nested beneath one another: the first query happens in a component that's above the component containing the other query. Normally React will try to render every possible branch of your component tree, even if promises are thrown. So if you have
+
+```tsx
+<Component>
+  <A />
+  <B />
+</Component>
+```
+
+and `A` and `B` both throw, you will **not** get a waterfall. The code above, however, is more similar to `Component` throwing, and then `A` also throwing. So React cannot possible Render `A`, until `Component` is done, hence the waterfall.
+
+There's two possible fixes, here. I could move the top read to be lower, deeper in the component tree, to where that data are actually **used**. Currently I was reading this high in the component tree, and putting the results in context. If you've heard people say that with Suspense, you should read data as low as possible, only when used, this is a huge reason why.
+
+The other fix, and the one I'll use here, to avoid refactoring, is the same as the fix for the original waterfall: preload. When our URL changes, just preload the new data we'll need, using the exact same preload method from before. If you're using any kind of decent routing library, you can likely do this preload in one place, as your `<Route />` receives new match parameters. Since my app is *not* using a decent routing library, I'll just have to duplicate that function call; but that shortcoming is entirely due to my own bad architecture, and not React or Suspense
 
 ```typescript
 useEffect(() => {
@@ -115,9 +128,7 @@ let [startTransition, isPending] = useTransition({
 
 useEffect(() => {
   return history.listen(() => {
-    // `unstable_runWithPriority(unstable_UserBlockingPriority` is temporary,
-    // since we're calling startTransition outside of a render method
-    // and shouldn't be required when Suspense is actually released.
+    // This line is needed due to a React bug that's already fixed in master. Ignore it
     unstable_runWithPriority(unstable_UserBlockingPriority, () => {
       startTransition(() => {
         preload(); //preload before updating!
@@ -138,6 +149,8 @@ Tweak that timeout amount as desired, and remember, you can use anything you wan
 ## A warning on integrating this into existing applications
 
 Remember, you don't have to add Suspense to existing code, and doing so _might_ be more work than you think. When changing the code above to use Suspense api's, I noticed that my `<Suspense>` boundary (the ugly "Loading, yo" message) was being triggered at unexpected times. This happened because of state changes that were **not** wrapped in `startTransition`, which triggered new data loading. As you convert data reads to be Suspense ready, be _certain_ to wrap **every** state change that triggers those reads with `startTransition`
+
+Suspense is currently primarily released for library authors. Eventually, the ecosystem's tooling should improve, and using these new patterns should be much easier. Be patient!
 
 ## Where to, from here
 
