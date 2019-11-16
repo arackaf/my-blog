@@ -133,6 +133,10 @@ The `isPending` does what it says, and we can use it to display some sort of loc
 
 Tweak that timeout amount as desired, and remember, you can use anything you want for the fallback display. The "Loading, yo" was silly and snarky; in practice you'll likely make it a shell of your actual UI, with a special message indicating how sorry you are that this search is taking so long.
 
+## A warning on integrating this into existing applications
+
+Remember, you don't have to add Suspense to existing code, and doing so *might* be more work than you think. When changing the code above to use Suspense apis, I noticed that my `<Suspense>` boundary (the ugly "Loading, yo" message) was being triggered at unexpected times.  This happened because of state changes that were **not** wrapped in `startTransition`, which triggered new data loading. As you convert data reads to be Suspense ready, be *certain* to wrap **every** state change that starts it with `startTransition`
+
 ## Where to, from here
 
 Remember, you can place `<Suspense>` boundaries wherever you want. If a promise is thrown during rendering, React will render the fallback of the _first_ Suspense boundary it can find, by walking _up_ the tree from where the exception was thrown. You can also use `useTransition` wherever you want, for any state change that involves async data loading (including lazy-loaded components created with `React.lazy`)
