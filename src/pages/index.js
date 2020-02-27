@@ -12,20 +12,29 @@ class BlogIndex extends React.Component {
     const { title: siteTitle, subtitle } = data.site.siteMetadata;
     const posts = data.allMarkdownRemark.edges;
 
-    posts.push({
-      node: {
-        external: true,
-        frontmatter: {
-          title: "Making your web app work offline",
-          date: "December 7, 2017",
-          description: "A gentle introduction to offline web development"
-        },
-        fields: {
-          slug:
+    if (
+      !posts.filter(
+        p =>
+          p.node.fields &&
+          p.node.fields.slug ==
             "https://css-tricks.com/making-your-web-app-work-offline-part-1/"
+      ).length
+    ) {
+      posts.push({
+        node: {
+          external: true,
+          frontmatter: {
+            title: "Making your web app work offline",
+            date: "December 7, 2017",
+            description: "A gentle introduction to offline web development"
+          },
+          fields: {
+            slug:
+              "https://css-tricks.com/making-your-web-app-work-offline-part-1/"
+          }
         }
-      }
-    });
+      });
+    }
 
     return (
       <Layout
