@@ -36,6 +36,38 @@ class BlogIndex extends React.Component {
       });
     }
 
+    if (
+      !posts.filter(
+        p =>
+          p.node.fields &&
+          p.node.fields.slug ==
+            "https://css-tricks.com/react-suspense-in-practice/"
+      ).length
+    ) {
+      const index = posts.findIndex(
+        p =>
+          p.node &&
+          p.node.fields &&
+          p.node.fields.slug == "/suspense-explained/"
+      );
+
+      if (index >= 0) {
+        posts.splice(index, 0, {
+          node: {
+            external: true,
+            frontmatter: {
+              title: "React Suspense in Practice",
+              date: "March 19, 2020",
+              description: "A practical, hands-on tutorial to React Suspense"
+            },
+            fields: {
+              slug: "https://css-tricks.com/react-suspense-in-practice/"
+            }
+          }
+        });
+      }
+    }
+
     return (
       <Layout
         location={this.props.location}
