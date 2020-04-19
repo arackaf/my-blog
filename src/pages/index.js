@@ -93,7 +93,7 @@ class BlogIndex extends React.Component {
                     href={node.fields.slug}
                     style={{ boxShadow: `none`, textDecoration: "none" }}
                   >
-                    {title}
+                    {title} <i class='fad fa-external-link'></i>
                   </a>
                 ) : (
                   <Link
