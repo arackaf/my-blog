@@ -52,19 +52,36 @@ class BlogIndex extends React.Component {
       );
 
       if (index >= 0) {
-        posts.splice(index, 0, {
-          node: {
-            external: true,
-            frontmatter: {
-              title: "React Suspense in Practice",
-              date: "March 19, 2020",
-              description: "A practical, hands-on tutorial to React Suspense"
-            },
-            fields: {
-              slug: "https://css-tricks.com/react-suspense-in-practice/"
+        posts.splice(
+          index,
+          0,
+          {
+            node: {
+              external: true,
+              frontmatter: {
+                title: "Building Your First Serverless Service With AWS Lambda Functions",
+                date: "May 29, 2020",
+                description: "A beginners introduction to the Serverless framework"
+              },
+              fields: {
+                slug: "https://css-tricks.com/building-your-first-serverless-service-with-aws-lambda-functions/"
+              }
+            }
+          },
+          {
+            node: {
+              external: true,
+              frontmatter: {
+                title: "React Suspense in Practice",
+                date: "March 19, 2020",
+                description: "A practical, hands-on tutorial to React Suspense"
+              },
+              fields: {
+                slug: "https://css-tricks.com/react-suspense-in-practice/"
+              }
             }
           }
-        });
+        );
       }
     }
 
@@ -93,7 +110,7 @@ class BlogIndex extends React.Component {
                     href={node.fields.slug}
                     style={{ boxShadow: `none`, textDecoration: "none" }}
                   >
-                    {title} <i class='fad fa-external-link'></i>
+                    {title} <i class="fad fa-external-link"></i>
                   </a>
                 ) : (
                   <Link
