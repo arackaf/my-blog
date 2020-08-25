@@ -12,14 +12,7 @@ class BlogIndex extends React.Component {
     const { title: siteTitle, subtitle } = data.site.siteMetadata;
     const posts = data.allMarkdownRemark.edges;
 
-    if (
-      !posts.filter(
-        p =>
-          p.node.fields &&
-          p.node.fields.slug ==
-            "https://css-tricks.com/making-your-web-app-work-offline-part-1/"
-      ).length
-    ) {
+    if (!posts.find(p => p.node.fields && p.node.fields.slug == "https://css-tricks.com/making-your-web-app-work-offline-part-1/")) {
       posts.push({
         node: {
           external: true,
@@ -29,32 +22,32 @@ class BlogIndex extends React.Component {
             description: "A gentle introduction to offline web development"
           },
           fields: {
-            slug:
-              "https://css-tricks.com/making-your-web-app-work-offline-part-1/"
+            slug: "https://css-tricks.com/making-your-web-app-work-offline-part-1/"
           }
         }
       });
     }
 
-    if (
-      !posts.filter(
-        p =>
-          p.node.fields &&
-          p.node.fields.slug ==
-            "https://css-tricks.com/react-suspense-in-practice/"
-      ).length
-    ) {
-      const index = posts.findIndex(
-        p =>
-          p.node &&
-          p.node.fields &&
-          p.node.fields.slug == "/suspense-explained/"
-      );
+    if (!posts.find(p => p.node.fields && p.node.fields.slug == "https://css-tricks.com/react-suspense-in-practice/")) {
+      const index = posts.findIndex(p => p.node && p.node.fields && p.node.fields.slug == "/suspense-explained/");
 
       if (index >= 0) {
         posts.splice(
           index,
           0,
+          {
+            node: {
+              external: true,
+              frontmatter: {
+                title: "Making Sense of react-spring",
+                date: "Aug 20, 2020",
+                description: "Understanding how react-spring works, and how to leverage it for common animation use cases"
+              },
+              fields: {
+                slug: "https://css-tricks.com/making-sense-of-react-spring/"
+              }
+            }
+          },
           {
             node: {
               external: true,
@@ -86,15 +79,8 @@ class BlogIndex extends React.Component {
     }
 
     return (
-      <Layout
-        location={this.props.location}
-        title={siteTitle}
-        subtitle={subtitle}
-      >
-        <SEO
-          title="Adam Reacts"
-          keywords={[`blog`, `javascript`, `react`, `graphql`]}
-        />
+      <Layout location={this.props.location} title={siteTitle} subtitle={subtitle}>
+        <SEO title="Adam Reacts" keywords={[`blog`, `javascript`, `react`, `graphql`]} />
         <Bio />
         {posts.map(({ node }) => {
           const title = node.frontmatter.title || node.fields.slug;
@@ -106,10 +92,7 @@ class BlogIndex extends React.Component {
                 }}
               >
                 {node.external ? (
-                  <a
-                    href={node.fields.slug}
-                    style={{ boxShadow: `none`, textDecoration: "none" }}
-                  >
+                  <a href={node.fields.slug} style={{ boxShadow: `none`, textDecoration: "none" }}>
                     {title} <i class="fad fa-external-link"></i>
                   </a>
                 ) : (
