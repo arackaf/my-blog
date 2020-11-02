@@ -39,6 +39,32 @@ class BlogIndex extends React.Component {
             node: {
               external: true,
               frontmatter: {
+                title: "Pre-Caching Images with React Suspense",
+                date: "Sept 21, 2020",
+                description: "Using Suspense to block a component's rendering until its images have loaded"
+              },
+              fields: {
+                slug: "https://css-tricks.com/pre-caching-image-with-react-suspense/"
+              }
+            }
+          },
+          {
+            node: {
+              external: true,
+              frontmatter: {
+                title: "How to Use CSS Grid for Sticky Headers and Footers",
+                date: "Sept 14, 2020",
+                description: "A beginner friendly introduction to CSS Grid, with examples implementing sticky headers and footers"
+              },
+              fields: {
+                slug: "https://css-tricks.com/how-to-use-css-grid-for-sticky-headers-and-footers/"
+              }
+            }
+          },
+          {
+            node: {
+              external: true,
+              frontmatter: {
                 title: "Making Sense of react-spring",
                 date: "Aug 20, 2020",
                 description: "Understanding how react-spring works, and how to leverage it for common animation use cases"
@@ -71,32 +97,6 @@ class BlogIndex extends React.Component {
               },
               fields: {
                 slug: "https://css-tricks.com/react-suspense-in-practice/"
-              }
-            }
-          },
-          {
-            node: {
-              external: true,
-              frontmatter: {
-                title: "How to Use CSS Grid for Sticky Headers and Footers",
-                date: "Sept 14, 2020",
-                description: "A beginner friendly introduction to CSS Grid, with examples implementing sticky headers and footers"
-              },
-              fields: {
-                slug: "https://css-tricks.com/how-to-use-css-grid-for-sticky-headers-and-footers/"
-              }
-            }
-          },
-          {
-            node: {
-              external: true,
-              frontmatter: {
-                title: "Pre-Caching Images with React Suspense",
-                date: "Sept 21, 2020",
-                description: "Using Suspense to block a component's rendering until its images have loaded"
-              },
-              fields: {
-                slug: "https://css-tricks.com/pre-caching-image-with-react-suspense/"
               }
             }
           }
