@@ -31,7 +31,7 @@ function Bio() {
               }}
             />
             <p>
-              A personal blog by <strong>{author}</strong> focusing on web development, and the React stack in particular.
+              A personal blog by <strong>{author}</strong> focusing on web development, and the Svelte and React stacks in particular.
               {` `}
             </p>
           </div>

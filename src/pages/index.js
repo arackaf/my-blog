@@ -39,6 +39,32 @@ class BlogIndex extends React.Component {
             node: {
               external: true,
               frontmatter: {
+                title: "Svelte and Spring Animations",
+                date: "Jan 8, 2021",
+                description: "A deep dive into Svelte's spring animation features"
+              },
+              fields: {
+                slug: "https://css-tricks.com/svelte-and-spring-animations/"
+              }
+            }
+          },
+          {
+            node: {
+              external: true,
+              frontmatter: {
+                title: "Integrating TypeScript with Svelte",
+                date: "Dec 28, 2020",
+                description: "Manually adding TypeScript to a non-greenfield Svelte project"
+              },
+              fields: {
+                slug: "https://css-tricks.com/integrating-typescript-with-svelte/"
+              }
+            }
+          },
+          {
+            node: {
+              external: true,
+              frontmatter: {
                 title: "Pre-Caching Images with React Suspense",
                 date: "Sept 21, 2020",
                 description: "Using Suspense to block a component's rendering until its images have loaded"
