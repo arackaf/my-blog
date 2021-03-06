@@ -159,7 +159,10 @@ class BlogIndex extends React.Component {
                   </Link>
                 )}
               </h3>
-              <small>{node.frontmatter.date}</small>
+              <small>
+                {node.frontmatter.date}
+                {node.external ? <span> on css-tricks.com</span> : null}
+              </small>
               <p
                 dangerouslySetInnerHTML={{
                   __html: node.frontmatter.description || node.excerpt
