@@ -39,6 +39,32 @@ class BlogIndex extends React.Component {
             node: {
               external: true,
               frontmatter: {
+                title: "Svelte for the Experienced React Dev",
+                date: "May 21, 2021",
+                description: "A high-level introduction to Svelte, from the perspective of an experienced React developer"
+              },
+              fields: {
+                slug: "https://css-tricks.com/svelte-and-spring-animations/"
+              }
+            }
+          },
+          {
+            node: {
+              external: true,
+              frontmatter: {
+                title: "Coordinating Svelte Animations With XState",
+                date: "April 7, 2021",
+                description: "An introduction to XState, for simplifying Svelte animation code"
+              },
+              fields: {
+                slug: "https://css-tricks.com/svelte-and-spring-animations/"
+              }
+            }
+          },
+          {
+            node: {
+              external: true,
+              frontmatter: {
                 title: "Svelte and Spring Animations",
                 date: "Jan 8, 2021",
                 description: "A deep dive into Svelte's spring animation features"
