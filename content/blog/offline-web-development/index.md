@@ -327,6 +327,6 @@ I’ll stress once more that abstractions can make that code considerably simple
 
 Happy coding!
 
-### Further Readubg
+### Further Reading
 
 If you’d like to dig in more deeply to IndexedDB, Service Workers, and or PWAs in general, you won’t do better than [Progressive Web Apps](https://www.amazon.com/Building-Progressive-Web-Apps-Bringing/dp/1491961651/ref=sr_1_2?ie=UTF8&qid=1545942601&sr=8-2&keywords=progressive+web+app) by Tal Ater.
