@@ -203,4 +203,4 @@ As we've seen, Dynamo expects us to model our data pretty precisely, for queries
 
 When I say we've only scratched the surface of Dynamo, I mean it. As I've said, the best learning resource on the market for Dynamo is Alex DeBrie's [DynamoDB book](https://www.dynamodbbook.com/). It's well over 400 pages, and there's no fluff. There are entire chapters dedicated to modeling relationships, like our authors and books, above; the structure I picked is one option among many, which I mainly picked to help highlight how GSI's work.
 
-I hope this post has peaked your curiosity in Dynamo. It's an incredibly exciting product, that has some impressive capabilities.
+I hope this post has piqued your curiosity in Dynamo. It's an incredibly exciting product, that has some impressive capabilities.
