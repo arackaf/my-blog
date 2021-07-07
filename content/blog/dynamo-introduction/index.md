@@ -65,7 +65,7 @@ The root record is telling us that all values less than 9 are in the memory page
 
 These leaf pages also contain pointers to the **next** page, which will come in handy for range queries. For example, if you search for all values >= 10, the database engine will locate value 10, and then just walk the rest of the values in that page, then follow the pointer to the next page, consume those values, and so on. In fact, in real life those pointers between leaf pages are bidirectional, with each page containing a pointer to the next page, and also the previous page, which means an index can handle range query in either ascending or descending order.
 
-But what happens when out table gets so big that we can no longer have a single root page with a pointer to a single memory page with all values less than a certain key. Pages in memory are a fixed size, and pointers are not free, after all. When this happens, the B+ tree will just grow, adding more non-leaf levels.
+But what happens when our table gets so big that we can no longer have a single root page with a pointer to a single memory page with all values less than a certain key. Pages in memory are a fixed size, and pointers are not free, after all. When this happens, the B+ tree will just grow, adding more non-leaf levels.
 
 ![B+ Tree 2](./img5.png)
 
@@ -95,7 +95,7 @@ The index we added indexed on `employeeId`. Each leaf contains the employeeId, t
 
 ![Query execution plan](./img8.png)
 
-Interesting. The engine decided to just scan the main table and get what we asked for. This is almost certainly because we have a tiny amount of data in the table. SQL Server maintains metadata about the size of tables and indexes to help it make decisions like this. It also allows us to force it to use a particular index by using a “hint” (which we _usually_ want to avoid, and let SQL Server to make smart choices for us). But just for fun, let’s see what it looks like
+Interesting. The engine decided to just scan the main table and get what we asked for. This is almost certainly because we have a tiny amount of data in the table. SQL Server maintains metadata about the size of tables and indexes to help it make decisions like this. It also allows us to force it to use a particular index by using a “hint,” which we _usually_ want to avoid, and let SQL Server to make smart choices for us. But just for fun, let’s see what it looks like
 
 ```sql
 SELECT employeeId, id, [name]
@@ -109,7 +109,7 @@ There we go. Key Lookup is the process by which SQL Server grabs the full row fr
 
 This is what SQL Server would have done with any real amount of data, and it would kill our performance, compared to the simple seek if we were pulling back a lot of records. Before, we could seek to a particular value in a small number of page reads. But now, if our query returned 100 rows, each of those 100 rows would need to do a lookup in the main table. This latter step would dominate the performance of this query.
 
-Without getting too deep in the weeds, we could solve this particular problem by adding what's called an included field. That means the index stays exactly as it is, except the "leaf" pages, which contain the indexed value, the primary key, and pointer to memory, would now also "include" whatever field(s) we add. You can include as many fields as you want, but as you do, your index grows in size. When an index can "cover" all fields a query is looking for, by some combination of the indexed fields, the primary key, and included fields, it's known as a "covering index," and will usually be quite fast.
+Without getting too deep in the weeds, we could solve this particular problem by adding what's called an "included" field. That means the index stays exactly as it is, except the "leaf" pages, which contain the indexed value, the primary key, and pointer to memory, would now also "include" whatever field(s) we add. You can include as many fields as you want, but as you do, your index grows in size. When an index can "cover" all fields a query is looking for, by some combination of the indexed fields, the primary key, and included fields, it's known as a "covering index," and will usually be quite fast.
 
 Let’s create a new index
 
