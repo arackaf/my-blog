@@ -154,6 +154,70 @@ class BlogIndex extends React.Component {
           }
         );
       }
+
+      if (!posts.find(p => p.node.fields && p.node.fields.slug == "https://css-tricks.com/react-suspense-lessons-learned-while-loading-data/")) {
+        const index = posts.findIndex(p => p.node && p.node.fields && p.node.fields.slug == "/dynamo-introduction/");
+
+        if (index >= 0) {
+          posts.splice(
+            index,
+            0,
+            {
+              node: {
+                external: true,
+                frontmatter: {
+                  title: "Demystifying TypeScript Discriminated Unions",
+                  date: "Jan 17, 2022",
+                  description: "Explaining TypeScript unions, and discriminated unions"
+                },
+                fields: {
+                  slug: "https://css-tricks.com/typescript-discriminated-unions/"
+                }
+              }
+            },
+            {
+              node: {
+                external: true,
+                frontmatter: {
+                  title: "Making a Site Work Offline Using the VitePWA Plugin",
+                  date: "Jan 18, 2022",
+                  description: "Diving deeper into Vite, and using the VitePWA plugin to improve your site's performance"
+                },
+                fields: {
+                  slug: "https://css-tricks.com/vitepwa-plugin-offline-service-worker/"
+                }
+              }
+            },
+            {
+              node: {
+                external: true,
+                frontmatter: {
+                  title: "Adding Vite to Your Existing Web App",
+                  date: "Jan 11, 2022",
+                  description: "A fun, painless introduction to Vite"
+                },
+                fields: {
+                  slug: "https://css-tricks.com/adding-vite-to-your-existing-web-app/"
+                }
+              }
+            },
+
+            {
+              node: {
+                external: true,
+                frontmatter: {
+                  title: "React Suspense: Lessons Learned While Loading Data",
+                  date: "Nov 9, 2021",
+                  description: "A deeper dive into data loading with Suspense"
+                },
+                fields: {
+                  slug: "https://css-tricks.com/react-suspense-lessons-learned-while-loading-data/"
+                }
+              }
+            }
+          );
+        }
+      }
     }
 
     return (
