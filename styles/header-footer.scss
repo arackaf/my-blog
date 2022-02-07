@@ -1,0 +1,40 @@
+header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+
+  padding: 15px 0;
+
+  background-color: var(--primary-4);
+  color: var(--primary-10);
+
+  h1 {
+    font-size: 24px;
+  }
+
+  nav {
+    ul {
+      display: flex;
+      flex-direction: row;
+
+      li {
+        padding: 0 10px;
+
+        a,
+        span {
+          color: var(--primary-10);
+          text-decoration: none;
+
+          &::after {
+            content: attr(data-text);
+            font-weight: bold;
+          }
+        }
+        span {
+          font-weight: bold;
+        }
+      }
+    }
+  }
+}
