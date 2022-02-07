@@ -11,7 +11,7 @@ export default function Index({ allPosts }) {
   const morePosts = allPosts.slice(1);
   return (
     <>
-      <Layout>
+      <Layout preview={null}>
         <Head>
           <title>Adam Rackis's personal site and blog</title>
         </Head>
