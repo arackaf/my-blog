@@ -1,6 +1,4 @@
 import Container from "../components/container";
-import MoreStories from "../components/more-stories";
-import HeroPost from "../components/hero-post";
 import Intro from "../components/intro";
 import Layout from "../components/layout";
 import { getAllPosts } from "../lib/api";
@@ -16,18 +14,12 @@ export default function Index({ allPosts }) {
           <title>Adam Rackis's personal site and blog</title>
         </Head>
         <Container>
-          <Intro />
-          {heroPost && (
-            <HeroPost
-              title={heroPost.title}
-              coverImage={heroPost.coverImage}
-              date={heroPost.date}
-              author={heroPost.author}
-              slug={heroPost.slug}
-              excerpt={heroPost.excerpt}
-            />
-          )}
-          {morePosts.length > 0 && <MoreStories posts={morePosts} />}
+          <img src="../assets/home/avatar.jpeg" />
+          <div>Hello</div>
+
+          <div>
+            <pre>{JSON.stringify(allPosts, null, 2)}</pre>
+          </div>
         </Container>
       </Layout>
     </>
