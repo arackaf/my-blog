@@ -8,7 +8,6 @@ export default function Layout({ children }) {
       <Meta />
       <Nav />
       <main>{children}</main>
-      <Footer />
     </>
   );
 }

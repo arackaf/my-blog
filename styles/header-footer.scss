@@ -5,13 +5,7 @@ header {
   justify-content: center;
 
   padding: 15px 0;
-
-  background-color: var(--primary-4);
-  color: var(--primary-10);
-
-  h1 {
-    font-size: 24px;
-  }
+  color: var(--neutral-text);
 
   nav {
     ul {
@@ -23,7 +17,7 @@ header {
 
         a,
         span {
-          color: var(--primary-10);
+          color: var(--neutral-text);
           text-decoration: none;
 
           &::after {

@@ -5,7 +5,6 @@ import { useRouter } from "next/router";
 export const Nav = () => {
   return (
     <header>
-      <h1>Adam Rackis</h1>
       <nav>
         <ul>
           <Link text="Home" uri="/" />
