@@ -5,7 +5,7 @@ export default class MyDocument extends Document {
     return (
       <Html lang="en" className="scheme3">
         <Head />
-        <body>
+        <body className="line-numbers">
           <Main />
           <NextScript />
         </body>

@@ -12,7 +12,7 @@ ogImage:
 
 # My first post
 
-```js
+```js{numberLines: true}
 class Foo {
   x = 12;
 
