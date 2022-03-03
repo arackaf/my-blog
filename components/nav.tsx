@@ -23,6 +23,5 @@ interface LinkProps {
 
 const Link: FunctionComponent<LinkProps> = ({ text, uri }) => {
   const routeInfo = useRouter();
-  console.log("xxx", routeInfo.asPath);
   return <li>{routeInfo.asPath === uri ? <span>{text}</span> : <a href={uri}>{text}</a>}</li>;
 };
