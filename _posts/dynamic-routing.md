@@ -12,9 +12,9 @@ ogImage:
 
 # My first post
 
-```js{numberLines: true}
+```js[class="line-numbers"][data-line="5-7"]
 class Foo {
-  x = 12;
+  x = 13;
 
   foo() {
     console.log("Hello World");
