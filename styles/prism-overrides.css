@@ -1,3 +1,20 @@
+:root {
+  --highlight-background: rgba(0,0,0,0);
+  --highlight-width: 0;
+}
+
 .line-numbers span.line-numbers-rows {
   margin-top: -1px;
+}
+
+.line-numbers span.line-numbers-rows > span {
+  position: relative;
+}
+
+.line-numbers span.line-numbers-rows > span::after {
+  content: ' ';
+  background: var(--highlight-background);
+  width: var(--highlight-width);
+  position: absolute;
+  top: 0;
 }
