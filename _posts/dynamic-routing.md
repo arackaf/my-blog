@@ -12,7 +12,7 @@ ogImage:
 
 # My first post
 
-```js[class="line-numbers"][data-line="2,5-7"]
+```js[class="line-numbers"][data-line="2,4-6"]
 class Foo {
   x = 13;
 
