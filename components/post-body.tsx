@@ -2,6 +2,9 @@ import { useEffect, useRef } from "react";
 
 export default function PostBody({ content }) {
   const rootRef = useRef<HTMLDivElement>(null);
+
+  function highlightCode(pre, highlightRanges, lineNumberRowsContainer) {}
+
   useEffect(() => {
     const allPres = rootRef.current.querySelectorAll("pre");
 
@@ -11,13 +14,13 @@ export default function PostBody({ content }) {
         continue;
       }
 
-      const highlight = pre.dataset.line;
-      const lineNumberRows = pre.querySelector(".line-numbers-rows");
+      const highlightRanges = pre.dataset.line;
+      const lineNumberRowsContainer = pre.querySelector(".line-numbers-rows");
 
-      if (!highlight || !lineNumberRows) {
+      if (!highlightRanges || !lineNumberRowsContainer) {
         continue;
       }
-      const ranges = highlight.split(",").filter(val => val);
+      const ranges = highlightRanges.split(",").filter(val => val);
       const preWidth = pre.scrollWidth;
 
       for (const range of ranges) {
@@ -28,9 +31,8 @@ export default function PostBody({ content }) {
         }
 
         for (let i = +start; i <= +end; i++) {
-          const lineNumberSpan: HTMLSpanElement = lineNumberRows.querySelector(
-            `span:nth-child(${i})`
-          );
+          const lineNumberSpan: HTMLSpanElement =
+            lineNumberRowsContainer.querySelector(`span:nth-child(${i})`);
           lineNumberSpan.style.setProperty(
             "--highlight-background",
             "rgba(100, 100, 100, 0.5)"
@@ -46,7 +48,9 @@ export default function PostBody({ content }) {
 
   return (
     <div ref={rootRef} className="max-w-2xl mx-auto">
-      <div className={""} dangerouslySetInnerHTML={{ __html: content }} />
+      <div style={{ display: "flex" }}>
+        <div className={""} dangerouslySetInnerHTML={{ __html: content }} />
+      </div>
     </div>
   );
 }
