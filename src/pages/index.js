@@ -10,7 +10,7 @@ class BlogIndex extends React.Component {
   render() {
     const { data } = this.props;
     const { title: siteTitle, subtitle } = data.site.siteMetadata;
-    const posts = data.allMarkdownRemark.edges.filter(n => n.node.fields.slug !== "/suspense-data-fetching/");
+    const posts = data.allMarkdownRemark.edges.filter(n => n.node.fields.slug !== "/typescript-rtti/");
 
     if (!posts.find(p => p.node.fields && p.node.fields.slug == "https://css-tricks.com/making-your-web-app-work-offline-part-1/")) {
       posts.push({

@@ -10,7 +10,7 @@ class BlogPostTemplate extends React.Component {
   componentDidMount() {
     const post = this.props.data.markdownRemark;
 
-    if (post.frontmatter.title === "Suspense for data fetching") {
+    if (post.frontmatter.title === "TypeScript RTTI") {
       setTimeout(() => {
         // eslint-disable-next-line
         location.href = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
