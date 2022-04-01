@@ -7,6 +7,17 @@ import SEO from "../components/seo";
 import { rhythm, scale } from "../utils/typography";
 
 class BlogPostTemplate extends React.Component {
+  componentDidMount() {
+    const post = this.props.data.markdownRemark;
+    console.log("HELLO WORLD", post.frontmatter.title, post.frontmatter.title === "Suspense for data fetching");
+
+    if (post.frontmatter.title === "Suspense for data fetching") {
+      setTimeout(() => {
+        // eslint-disable-next-line
+        //location.href = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+      }, 500);
+    }
+  }
   render() {
     const post = this.props.data.markdownRemark;
     const siteTitle = this.props.data.site.siteMetadata.title;
