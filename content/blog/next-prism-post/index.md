@@ -1,18 +1,16 @@
 ---
-title: Fully integrarting Prism and Next for Code highlighting
+title: Adding Prism code formatting to Next
 date: "2022-03-23T20:00:32.169Z"
-description: Diving into all the tips and tricks for fully integrating Prism with Next, for full Syntax highlighting
+description: Diving into some fun the tips and tricks for fully integrating Prism syntax highlighting with Next
 ---
 
-So you've decided to build a blog with Next. You're writing your first post, and you'd like the have the code snippets formatted nicely, with line numbers, and maybe even line highlighting, so you can call attention to certain lines. For this post, we'll be using Prism for our code formatting, which is a superb utility.
+So you've decided to build a blog with Next. You'd like to have code snippets formatted nicely, with line numbers, and maybe even line highlighting. This post will walk through the basic setup, as well as some tips and tricks for getting these other features working. Some of it is tricker than you might expect.
 
-Unfortunately, the details for how to get everything integrated can be hidden in plain sight, and for line highlighting in particular, not _directly_ supported, requiring some creativity on our part. This post will walk you through all of this.
-
-This post will assume you're using the Next blog starter, which is located [here](https://github.com/vercel/next.js/tree/canary/examples/blog-starter). That repo has clear (and simple) getting started instructions. Scaffold the blog, and we'll get started.
+This post will assume you're using the Next blog starter, which is located [here](https://github.com/vercel/next.js/tree/canary/examples/blog-starter). That repo has clear (and simple) getting started instructions. Scaffold the blog, and lets get started.
 
 ## Basic Prism integration
 
-The Next blog package uses Remark to turn Markdown into blog posts, and so we'll use remark-prism to get code formatting working. Install it with your favorite package manager:
+The Next blog starter uses Remark to turn Markdown into blog posts, so we'll use remark-prism for formatting. Install it with your favorite package manager:
 
 ```bash
 npm i remark-prism
@@ -49,7 +47,7 @@ export default async function markdownToHtml(markdown) {
 
 ### Adding our styles and theme
 
-Now let's import some css that Prism needs. In the pages/\_app.js file, let's import the main Prism stylesheet, and the one for whichever theme you'd like to use. I'm using the tomorrow theme, so mine looks like this
+Now let's import some css that Prism needs. In the pages/\_app.js file, import the main Prism stylesheet, and the stylesheet for whichever theme you'd like to use. I'm using Tomorrow, so mine looks like this
 
 ```js
 import "prismjs/themes/prism-tomorrow.css";
@@ -57,9 +55,9 @@ import "prismjs/plugins/line-numbers/prism-line-numbers.css";
 import "../styles/prism-overrides.css";
 ```
 
-Notice that I've also started a prism-overrides stylesheet, so we can tweak some defaults. This will become useful later. For now, just leave it empty.
+Notice I've also started a prism-overrides stylesheet, so we can tweak some defaults. This will become useful later. For now, just leave it empty.
 
-And with that, we now have some basic styles
+And with that, we now have some basic styles. The following code in Markdown
 
 <pre>
 ```js
@@ -77,7 +75,7 @@ class Circle {
 ```
 </pre>
 
-And now we should have some nicely formatted code
+should format nicely
 
 ![Formatted code](./img1-initial-code.png)
 
@@ -92,6 +90,8 @@ For the line-numbers plugin, we need to force a line-numbers css class onto the 
 <pre>
 ```js[class="line-numbers"]
 </pre>
+
+And with that, we now have line numbers.
 
 ![Line numbers](./img3-line-numbers.png)
 
@@ -109,9 +109,11 @@ Overall, that was easy. Our next, and last feature will be a bit more work.
 
 ## Highlighting lines
 
-There's a [line highlight Prism plugin](https://prismjs.com/plugins/line-highlight/); unfortunately, it is not integrated with remark-prism. Any attempts to integrate it will fail. The reason for this is because it works by analyzing the formatted code's position in the dom, and manually highlights your lines based on that information. Unfortunately, this is not possible with the remark-prism plugin, since there is no dom at the time the plugin runs. This is, after all, static site generation, or ssg. Next is running our markdown through a build step, and generating html to render as our blog. All of this Prism code runs during this static site generation, when there is no dom.
+There's a [line highlight Prism plugin](https://prismjs.com/plugins/line-highlight/); unfortunately, it is not integrated with remark-prism. Any attempts to integrate it will fail. The reason it will fail is because the plugin works by analyzing the formatted code's position in the dom, and manually highlighting lines based on that information. Unfortunately, this is not possible with the remark-prism plugin, since there is no dom at the time the plugin runs. This is, after all, static site generation, or ssg. Next is running our markdown through a build step, and generating html to render as our blog. All of this Prism code runs during this static site generation, when there is no dom.
 
 But fear not, there's a fun workaround: we can highlight lines with plain css (and some JavaScript).
+
+Let me be clear that this will be a non-trivial amount of work. If you don't need line highlighting, then you don't need any of what follows. But if nothing else, it can be a fun demonstration of what's possible.
 
 ### Our Base CSS
 
@@ -136,13 +138,13 @@ Let's start by adding the following css to our prism-overrides stylesheet
 }
 ```
 
-We're defining some css vars: a background color, and a highlight width. We'll set them to empty values here; later, we'll selectively set meaningful values in JavaScript, for the lines we want highlighted.
+We're defining some css vars: a background color, and a highlight width. We'll set them to empty values here; later, we'll set meaningful values in JavaScript, for the lines we want highlighted.
 
-We're then setting the line number span to position relative, so that we can add a `::after` pseudo element with absolute positioning. It's this pseudoelement that we'll use to highlihgt out lines.
+We're then setting the line number span to position relative, so that we can add a `::after` pseudo element with absolute positioning. It's this pseudoelement that we'll use to highlight our lines.
 
 ### Declaring the highlighted lines
 
-We'll manually add a data-\* attribute to the pre tag that's generated, and then read that in code, and use JavaScript to tweak the styles above, to highlight the desired code. We can do this in the same way that we added line numbers before
+Let's manually add a data-\* attribute to the pre tag that's generated, and then read that in code, and use JavaScript to tweak the styles above to highlight the desired lines of code. We can do this in the same way that we added line numbers before
 
 <pre>
 ```js[class="line-numbers"][data-line="3,8-10"]
@@ -162,7 +164,7 @@ class Circle {
 
 This will cause our `pre` element to be rendered with a `data-line="3,8-10"` attribute.
 
-Let's look at how we can parse that in JavaScript, and get some highlighting working.
+Let's look at how we can parse that in JavaScript, and get highlighting working.
 
 ### Reading the highlighted lines
 
@@ -176,8 +178,8 @@ import { useEffect, useRef } from "react";
 
 let's add a ref to this component
 
-```js
-const rootRef = useRef < HTMLDivElement > null;
+```ts
+const rootRef = useRef<HTMLDivElement>(null);
 ```
 
 and then apply it to the root element
@@ -188,7 +190,7 @@ and then apply it to the root element
 
 The next piece of code is a little long, but it's not doing anything crazy. I'll show it, then walk through it.
 
-```js
+```ts
 useEffect(() => {
   const allPres = rootRef.current.querySelectorAll("pre");
   const cleanup: (() => void)[] = [];
@@ -220,9 +222,9 @@ useEffect(() => {
 }, []);
 ```
 
-We're running an effect once, when the content has all been rendered to the screen. We're using querySelectorAll to grab all the `pre` elements under this root element, in other words, in whatever blog post the user is viewing.
+We're running an effect once, when the content has all been rendered to the screen. We're using querySelectorAll to grab all the `pre` elements under this root element; in other words, in whatever blog post the user is viewing.
 
-For each one, we make sure there's a `code` element under it, and we check for the line-numbers-rows css class, and the `data-line` attribute—that's what dataset.line checks, check [the docs](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/dataset) for more info.
+For each one, we make sure there's a `code` element under it, and we check for the line numbers container, and the `data-line` attribute. That's what dataset.line checks, see [the docs](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/dataset) for more info.
 
 If we make it past the second `continue`, then `highlightRanges` is the set of highlights we declared earlier, in our case `"3,8-10"`, and lineNumbersContainer is the container with the `line-numbers-rows` css class.
 
@@ -232,7 +234,7 @@ We declare a `runHighlight` function, which calls a `highlightCode` function I'm
 
 Finally, let's see the highlightCode function
 
-```js
+```ts
 function highlightCode(pre, highlightRanges, lineNumberRowsContainer) {
   const ranges = highlightRanges.split(",").filter(val => val);
   const preWidth = pre.scrollWidth;
@@ -258,9 +260,9 @@ function highlightCode(pre, highlightRanges, lineNumberRowsContainer) {
 }
 ```
 
-We get each range. We read the width of the `pre` element.
+We get each range. We then read the width of the `pre` element.
 
-Then we loop through each range, find the relevant line number span, and we set the css vars from before for them. We set whatever highlight color we want, and we set the width to the total scrollWidth of the `pre`. I kept it simple and used `"rgba(100, 100, 100, 0.5)"` but feel free to use whatever you think looks best for your blog.
+Then we loop through each range, find the relevant line number span, and we set the css vars from before for them. We set whatever highlight color we want, and we set the width to the total scrollWidth of the `pre`. I kept it simple and used `"rgba(100, 100, 100, 0.5)"` but feel free to use whatever color you think looks best for your blog.
 
 Here's what it looks like
 
@@ -307,16 +309,20 @@ Now let's add some css rules to hide the line numbers when this class is present
 }
 ```
 
-The first rule undoes the shift to the right of the code, in order to make room for the line numbers. By default, with the theme I chose, the padding is 1em. This rule reverts back to that.
+The first rule undoes the shift to the right of our code, in order to make room for the line numbers. By default, with the theme I chose, the padding of the pre element is 1em. The line-numbers plugin increases it to 3.8em, and then inserts the line numbers with absolute positioning. This rule reverts the padding back to the default.
 
 The second rule takes the container of line numbers, and squishes it to have no width.
 
 The third rule erases all of the line numbers themselves (they're generated with ::before pseudoelements).
 
-The last rule just shifts the now-empty line number spans back to where they would have been, so the highlighting can be positioned how it should be. For my theme, the line numbers normally adds a 3.8em left padding. This adds the other 2.8, after the 1em padding we added in the first rule.
+The last rule just shifts the now-empty line number spans back to where they would have been, so the highlighting can be positioned how we want it. Again, for my theme, the line numbers normally adds a 3.8em left padding, which we reverted back to the default of 1em left padding. This adds the other 2.8em, so things are back to where they should be, but with the line numbers hidden.
 
 If you're using different plugins, you might need slightly different values.
 
 Here's what the result looks like
 
 ![Line numbers](./img5-highlight-no-numbers.png)
+
+## Wrapping up
+
+I hope this has been useful to you. Prism is a wonderful library, but it wasn't originally written for SSG. This post walked you through some tips and tricks for bridging that gap, and getting it to work well with Next.
