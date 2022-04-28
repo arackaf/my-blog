@@ -327,6 +327,8 @@ Here's what the result looks like
 
 Before we wrap up, let's add one finishing touch: a button allowing our dear reader to copy the code from our snippet. Let's see how. 
 
+It's actually somewhat straightforward. There's a `navigator.clipboard.writeText` api for this. We pass that method the text we'd like to copy, and that's that. We can inject a button next to every one of our `<code>` elements to send the code's text to that api call, in order to copy it. We're already messing with those `<code>` elements in order to highlight lines, so let's integrate our copy button in the same place.
+
 First, from the `useEffect` code above, let's add one line
 
 ```js
@@ -370,13 +372,15 @@ function createCopyButton(codeEl) {
 }
 ```
 
-We create our button, give it a css class, and some text. And then of course we create a click handler to do the copying. The real work is on this line 
+Lots of code, but it's mostly boilerplate. We create our button, give it a css class, and some text. And then of course we create a click handler to do the copying. After the copy is done, we change the button's text and disable it for a few seconds, to help give the user feedback that it worked. 
+
+The real work is on this line 
 
 ```js
 navigator.clipboard.writeText(codeEl.textContent || "");
 ```
 
-The rest adjusts the button's text after the copy, and disables the button for a few seconds before resetting to the original state.
+We're passing `codeEl.textContent` rather than innerHTML, since we want only the actual text that's rendered, rather than all the markup prism adds in order to format our code nicely.
 
 Now let's see how we might style this button. I'm no designer, but this is what I came up with
 
