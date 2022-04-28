@@ -22,15 +22,38 @@ export default function PostBody({ content }) {
     }
   }
 
+  function createCopyButton(codeEl) {
+    const button = document.createElement("button");
+    button.classList.add("prism-copy-button");
+    button.textContent = "Copy";
+
+    button.addEventListener("click", () => {
+      if (button.textContent === "Copied") {
+        return;
+      }
+      navigator.clipboard.writeText(codeEl.textContent || "");
+      button.textContent = "Copied";
+      button.disabled = true;
+      setTimeout(() => {
+        button.textContent = "Copy";
+        button.disabled = false;
+      }, 3000);
+    });
+
+    return button;
+  }
+
   useEffect(() => {
     const allPres = rootRef.current.querySelectorAll("pre");
     const cleanup: (() => void)[] = [];
 
     for (const pre of allPres) {
       const code = pre.firstElementChild;
-      if (!/code/i.test(code.tagName)) {
+      if (!code || !/code/i.test(code.tagName)) {
         continue;
       }
+
+      pre.appendChild(createCopyButton(code));
 
       const highlightRanges = pre.dataset.line;
       const lineNumbersContainer = pre.querySelector(".line-numbers-rows");
