@@ -323,6 +323,86 @@ Here's what the result looks like
 
 ![Line numbers](./img5-highlight-no-numbers.png)
 
+## Copying our code
+
+Before we wrap up, let's add one finishing touch: a button allowing our dear reader to copy the code from our snippet. Let's see how. 
+
+First, from the `useEffect` code above, let's add one line
+
+```js
+useEffect(() => {
+  const allPres = rootRef.current.querySelectorAll("pre");
+  const cleanup: (() => void)[] = [];
+
+  for (const pre of allPres) {
+    const code = pre.firstElementChild;
+    if (!code || !/code/i.test(code.tagName)) {
+      continue;
+    }
+
+    pre.appendChild(createCopyButton(code));
+```
+
+Note the last line. We're going to append our copy button right into the dom, underneath our `pre` element. Our pre element is already `position: relative` which will make positioning our copy button a bit easier.
+
+Let's see what `createCopyButton` looks like.
+
+```js
+function createCopyButton(codeEl) {
+  const button = document.createElement("button");
+  button.classList.add("prism-copy-button");
+  button.textContent = "Copy";
+
+  button.addEventListener("click", () => {
+    if (button.textContent === "Copied") {
+      return;
+    }
+    navigator.clipboard.writeText(codeEl.textContent || "");
+    button.textContent = "Copied";
+    button.disabled = true;
+    setTimeout(() => {
+      button.textContent = "Copy";
+      button.disabled = false;
+    }, 3000);
+  });
+
+  return button;
+}
+```
+
+We create our button, give it a css class, and some text. And then of course we create a click handler to do the copying. The real work is on this line 
+
+```js
+navigator.clipboard.writeText(codeEl.textContent || "");
+```
+
+The rest adjusts the button's text after the copy, and disables the button for a few seconds before resetting to the original state.
+
+Now let's see how we might style this button. I'm no designer, but this is what I came up with
+
+```css
+.prism-copy-button {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 10ch;
+  background-color: rgba(100, 100, 100, 0.5);
+  border-width: 0;
+  color: rgb(0, 0, 0);
+  cursor: pointer;
+}
+
+.prism-copy-button[disabled] {
+  cursor: default;
+}
+```
+
+which looks like this 
+
+![Line numbers](./img6-copy-button.jpg)
+
+and works. It copys our code, and even preserves the formatting! 
+
 ## Wrapping up
 
 I hope this has been useful to you. Prism is a wonderful library, but it wasn't originally written for SSG. This post walked you through some tips and tricks for bridging that gap, and getting it to work well with Next.
