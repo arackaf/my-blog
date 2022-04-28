@@ -405,7 +405,7 @@ which looks like this
 
 ![Line numbers](./img6-copy-button.jpg)
 
-and works. It copys our code, and even preserves the formatting! 
+and works. It copys our code, and even preserves the formatting (ie newlines and indentation)! 
 
 ## Wrapping up
 
