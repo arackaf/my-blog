@@ -24,7 +24,7 @@ npm i remark-prism
 Now go into the `markdownToHtml` file, in the `/lib` folder, and switch on remark-prism:
 
 ```js
-import remarkPrism.js from "remark-prism";
+import remarkPrism from "remark-prism";
 
 // later ...
 
@@ -38,7 +38,7 @@ The whole module should now look like this:
 ```js
 import { remark } from "remark";
 import html from "remark-html";
-import remarkPrism.js from "remark-prism";
+import remarkPrism from "remark-prism";
 
 export default async function markdownToHtml(markdown) {
   const result = await remark()
@@ -86,7 +86,7 @@ class Circle {
 
 ### Adding line numbers
 
-You might have noticed that the code snippet we generated does not display line numbers even though we imported the plugin that supports it at the same time we imported remark-prism. The solution is hidden in plain sight in the remark-prism README:
+You might have noticed that the code snippet we generated does not display line numbers even though we imported the plugin that supports it when we imported remark-prism. The solution is hidden in plain sight in the remark-prism README:
 
 > Don't forget to include the appropriate css in your stylesheets.
 
@@ -111,7 +111,7 @@ You may not need that, but there you have it. We have line numbers!
 
 ### Highlighting lines
 
-Our next feature will be a bit more work. This is where we want the ability to highlight or call out certain lines of code in the snippet.
+Our next feature will be a bit more work. This is where we want the ability to highlight, or call out certain lines of code in the snippet.
 
 There's a [Prism.js line-highlight plugin](https://prismjs.com/plugins/line-highlight/); unfortunately, it is not integrated with remark-prism. The plugin works by analyzing the formatted code's position in the DOM, and manually highlights lines based on that information. That's impossible with the remark-prism plugin since there is no DOM at the time the plugin runs. This is, after all, static site generation. Next.js is running our Markdown through a build step and generating HTML to render the blog. All of this Prism.js code runs during this static site generation, when there is no DOM.
 
@@ -341,7 +341,7 @@ useEffect(() => {
     pre.appendChild(createCopyButton(code));
 ```
 
-Note the last line. We're going to append our button right into the DOM underneath our `<pre>` element, which is already `position: relative`, making positioning the button a bit easier.
+Note the last line. We're going to append our button right into the DOM underneath our `<pre>` element, which is already `position: relative`, allowing us to position the button more easily.
 
 Let's see what the `createCopyButton` function looks like:
 
