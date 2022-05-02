@@ -4,15 +4,15 @@ date: "2022-03-23T20:00:32.169Z"
 description: Diving into some fun the tips and tricks for fully integrating Prism.js syntax highlighting with Next
 ---
 
-So, you've decided to build a blog with [Next.js](https://nextjs.org). And like any dev blogger, you'd like to have code snippets in your posts that are formatted nicely with syntax highlighting. Perhaps you want to display line numbers in the snippets, too, and maybe even have the ability to call out certain lines of code.
+So, you've decided to build a blog with [Next.js](https://nextjs.org). Like any dev blogger, you'd like to have code snippets in your posts that are formatted nicely with syntax highlighting. Perhaps you also want to display line numbers in the snippets, and maybe even have the ability to call out certain lines of code.
 
 This post will show you how to get that set up, as well as some tips and tricks for getting these other features working. Some of it is tricker than you might expect.
 
 ### Prerequisites
 
-We're using the [Next.js blog starter](https://github.com/vercel/next.js/tree/canary/examples/blog-starter) as the base for our project, but the same principles should apply to other frameworks. That repo has clear (and simple) getting started instructions. Scaffold the blog, and let's get started!
+We're using the [Next.js blog starter](https://github.com/vercel/next.js/tree/canary/examples/blog-starter) as the base for our project, but the same principles should apply to other frameworks. That repo has clear (and simple) getting started instructions. Scaffold the blog, and let's go!
 
-Another thing we're using here is [Prism.js](https://prismjs.com), a popular syntax highlighting library that's even used right here on CSS-Tricks. The Next.js blog starter uses [Remark](https://remark.js.org) to convert Markdown into markup, so we can actually use the [remark-Prism.js plugin](https://github.com/sergioramos/remark-prism) for formatting our code snippets.
+Another thing we're using here is [Prism.js](https://prismjs.com), a popular syntax highlighting library that's even used right here on CSS-Tricks. The Next.js blog starter uses [Remark](https://remark.js.org) to convert Markdown into markup, so we'll use the [remark-Prism.js plugin](https://github.com/sergioramos/remark-prism) for formatting our code snippets.
 
 ### Basic Prism.js integration
 Let's start by integrating Prism.js into our Next.js starter. Since we already know we're using the remark-prism plugin, the first thing to do is install it with your favorite package manager:
@@ -52,7 +52,7 @@ export default async function markdownToHtml(markdown) {
 
 #### Adding Prism.js styles and theme
 
-Now let's import the CSS that Prism.js needs to style the code snippets. In the `pages/\_app.js` file, import the main Prism.js stylesheet, and the stylesheet for whichever theme you'd like to use. I'm using Prism.js's "Tomorrow Night" theme, so my imports looks like this:
+Now let's import the CSS that Prism.js needs to style the code snippets. In the `pages/_app.js` file, import the main Prism.js stylesheet, and the stylesheet for whichever theme you'd like to use. I'm using Prism's "Tomorrow Night" theme, so my imports look like this:
 
 ```js
 import "prismjs/themes/prism-tomorrow.css";
@@ -232,11 +232,11 @@ For each one, we make sure there's a `<code>` element under it, and we check for
 
 If we make it past the second `continue`, then `highlightRanges` is the set of highlights we declared earlier which, in our case, is `"3,8-10"`, where `lineNumbersContainer` is the container with the `.line-numbers-rows` CSS class.
 
-The last thing is that we declare a `runHighlight` function that calls a `highlightCode` function that I'm about to show you. Then, we set up a `ResizeObserver` to run that same function anytime our blog post changes size, i.e., if the user resizes the browser window.
+Lastly, we declare a `runHighlight` function that calls a `highlightCode` function that I'm about to show you. Then, we set up a `ResizeObserver` to run that same function anytime our blog post changes size, i.e., if the user resizes the browser window.
 
 #### The `highlightCode` function
 
-Finally, let's check out that aforementioned `highlightCode` function:
+Finally, let's see our `highlightCode` function:
 
 ```ts
 function highlightCode(pre, highlightRanges, lineNumberRowsContainer) {
@@ -264,7 +264,7 @@ function highlightCode(pre, highlightRanges, lineNumberRowsContainer) {
 }
 ```
 
-We get each range then read the width of the `<pre>` element. Then we loop through each range, find the relevant line number `<span>`, and set the CSS custom property values for them. We set whatever highlight color we want, and we set the width to the total `scrollWidth` value of the `<pre>` element. I kept it simple and used `"rgb(100 100 100 / 0.5)"` but feel free to use whatever color you think looks best for your blog.
+We get each range, and read the width of the `<pre>` element. Then we loop through each range, find the relevant line number `<span>`, and set the CSS custom property values for them. We set whatever highlight color we want, and we set the width to the total `scrollWidth` value of the `<pre>` element. I kept it simple and used `"rgb(100 100 100 / 0.5)"` but feel free to use whatever color you think looks best for your blog.
 
 Here's what it looks like:
 
@@ -272,9 +272,9 @@ Here's what it looks like:
 
 #### Line highlighting without line numbers
 
-You may have noticed that all of this so far depends on line numbers being present. But what if we want to highlight lines, but there are no line numbers?
+You may have noticed that all of this so far depends on line numbers being present. But what if we want to highlight lines, but without line numbers?
 
-One way to implement this would be to keep everything the same, and then add a new option to simply hide those line numbers with CSS. First, we'll add a new CSS class, `.hide-numbers`:
+One way to implement this would be to keep everything the same, and add a new option to simply hide those line numbers with CSS. First, we'll add a new CSS class, `.hide-numbers`:
 
 <pre>
 ```js[class="line-numbers"][class="hide-numbers"][data-line="3,8-10"]
