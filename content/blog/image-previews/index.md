@@ -136,7 +136,7 @@ For this, we'll need to use the [Sharp](https://www.npmjs.com/package/sharp) lib
 
 **Note**
 
-To generate your blurhash previews, you'll likely want to run some sort of serverless function to process your images, and generate the previews. For this post, I'll be using AWS Lambda, but any alternative should work. Just be careful about maximum size limitations; the binaries Sharp installs adds about 7MB to the serverless function's size.
+To generate your blurhash previews, you'll likely want to run some sort of serverless function to process your images, and generate the previews. For this post, I'll be using AWS Lambda, but any alternative should work. Just be careful about maximum size limitations; the binaries Sharp installs add about 7MB to the serverless function's size.
 
 To run this code in an AWS Lambda, you'll need to install the library like this 
 
