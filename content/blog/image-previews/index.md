@@ -1,7 +1,7 @@
 ---
 title: Inline image previews
 date: "2022-04-15T10:00:00.000Z"
-description: Like progressive jpeg's, but better—inline image previews 
+description: Inline Image Previews with Sharp, Blurhash, and Lambda Functions 
 ---
 
 Don't you hate it when you load a website / web app, some content displays, *and then* some images load, causing content to shift around. That's called [content reflow](https://developers.google.com/speed/docs/insights/browser-reflow) and it can be incredibly annoying. I've previously [written about](https://css-tricks.com/pre-caching-image-with-react-suspense/) solving this with React's Suspense. This solution prevents the UI from loading until the images come in. 
@@ -10,11 +10,18 @@ This solves the content reflow problem, but at the expense of performance. The u
 
 ## So you mean progressive jpeg's?
 
-You might be wondering if I'm about to talk about progressive jpeg's. Progressive jpegs are an alternate encoding that causes images to initially render, full size, blurry, and then gradually refine the image as the data come in, until everything renders correctly. 
+You might be wondering if I'm about to talk about progressive jpeg's. [Progressive jpegs](https://css-tricks.com/progressive-jpgs-a-new-best-practice/) are an alternate encoding that causes images to initially render, full size, blurry, and then gradually refine the image as the data come in, until everything renders correctly. 
 
 This seems like a great solution until you get into some of the details. Re-encoding your images as progressive jpeg's is reasonably straightforward; there are plugins for [Sharp](https://sharp.pixelplumbing.com/) that will handle that for you. Unfortunately, you still need to wait for *some* of your images' bytes to come over the wire until even a blurry preview of your image displays, at which point your content will reflow, making room for the image's preview. You might look for some sort of event to indicate that an initial preview of the image has loaded, but none exist (come on, web platform), and the workarounds are ... [not ideal](https://stackoverflow.com/a/48372320/352552).
 
 Let's look at two alternatives for this.
+
+## The libraries we'll be using
+
+Before we start, I'd like to call out the versions of the libraries I'll be using for this post:
+
+ - [Blurhash](https://www.npmjs.com/package/blurhash) version 1.1.5
+ - [Sharp](https://www.npmjs.com/package/sharp) version 0.30.3
 
 ## Making our own previews
 
@@ -109,7 +116,17 @@ We take care to set the image component's src after the onLoad handler, to ensur
 
 ## Improving things with Blurhash
 
-The image preview we saw before was small, but not *that* small. The the preview for the larger image was, unsurprisingly, about twice as big. And these strings will not gzip well. Depending on how many of these images you have, this may or may not be good enough. But if you'd like to compress things even smaller, and you're willing to do a bit more work, there's a wonderful tool called [Blurhash](https://blurha.sh/) that will help us out. Let's see how.
+The image preview we saw before was small, but not *that* small. The the preview for the larger image was, unsurprisingly, about twice as big. And these strings will not gzip well. Depending on how many of these images you have, this may or may not be good enough. But if you'd like to compress things even smaller, and you're willing to do a bit more work, there's a wonderful tool called [Blurhash](https://blurha.sh/). 
+
+Blurhash generates incredibly small previews using base 83 encoding. Base 83 encoding allows it to squeeze more information into fewer bytes, which is part of how it keeps the previews so small. 83 might seem like an arbitrary number, but [the readme](https://github.com/woltapp/blurhash#why-base-83) sheds some light on this
+
+> First, 83 seems to be about how many low-ASCII characters you can find that are safe for use in all of JSON, HTML and shells.
+
+> Secondly, 83 * 83 is very close to, and a little more than, 19 * 19 * 19, making it ideal for encoding three AC components in two characters.
+
+Best of all, Blurhash is used in [a number of apps](https://github.com/woltapp/blurhash#users) you might have heard of, like Signal and Mastodon. 
+
+Let's see it in action.
 
 ### Generating Blurhash previews
 
@@ -118,6 +135,8 @@ For this, we'll need to use the [Sharp](https://www.npmjs.com/package/sharp) lib
 ---
 
 **Note**
+
+To generate your blurhash previews, you'll likely want to run some sort of serverless function to process your images, and generate the previews. For this post, I'll be using AWS Lambda, but any alternative should work. Just be careful about maximum size limitations; the binaries Sharp installs adds about 7MB to the serverless function's size.
 
 To run this code in an AWS Lambda, you'll need to install the library like this 
 
@@ -187,7 +206,7 @@ That's incredibly small, and the larger image isn't much bigger—it's actually 
 }
 ```
 
-This is a base 83 encoding of the image, which is why it's so small. The tradeoff is that *using* this preview is a bit more involved. Basically, we need to call blurhash's `decode` method, and render our image preview in a canvas tag. This is what the `PreviewCanvas` component was doing before, and why we were rendering it if the typeof our preview was not string, since for our blurhash previews we're using an entire object, containing not only the preview string, but the image dimensions.
+This is the base 83 encoding of the image, which is why it's so small. The tradeoff is that *using* this preview is a bit more involved. Basically, we need to call blurhash's `decode` method, and render our image preview in a canvas tag. This is what the `PreviewCanvas` component was doing before, and why we were rendering it if the typeof our preview was not string, since for our blurhash previews we're using an entire object, containing not only the preview string, but the image dimensions.
 
 Ok, let's look at our `PreviewCanvas` component.
 
