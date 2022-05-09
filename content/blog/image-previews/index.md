@@ -1,7 +1,7 @@
 ---
 title: Inline image previews
 date: "2022-04-15T10:00:00.000Z"
-description: Inline Image Previews with Sharp, Blurhash, and Lambda Functions
+description: Inline Image Previews with Sharp, BlurHash, and Lambda Functions
 ---
 
 Don't you hate it when you load a website or web app, some content displays *and then* some images load — causing content to shift around? That's called [*content reflow*](https://developers.google.com/speed/docs/insights/browser-reflow) and can lead to an incredibly annoying user experience for visitors.
@@ -25,7 +25,7 @@ Let's look at two alternatives for this.
 Before we start, I'd like to call out the versions of the libraries I'll be using for this post:
 
  - [Jimp](https://www.npmjs.com/package/jimp) version 0.16.1
- - [Blurhash](https://www.npmjs.com/package/blurhash) version 1.1.5
+ - [BlurHash](https://www.npmjs.com/package/blurhash) version 1.1.5
  - [Sharp](https://www.npmjs.com/package/sharp) version 0.30.3
 
 ## Making our own previews
@@ -114,21 +114,21 @@ Don't worry about the `PreviewCanvas` component yet. And don't worry about the f
 
 Note that we set the image component's `src` after the `onLoad` handler, to ensure it fires. We show the preview, and when the real image loads, we swap it in.
 
-## Improving things with Blurhash
+## Improving things with BlurHash
 
-The image preview we saw before might not be small enough to send down with our JavaScript bundle and these strings will not [gzip](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding#compressing_with_gzip) well. Depending on how many of these images you have, this may or may not be good enough. But if you'd like to compress things even smaller, and you're willing to do a bit more work, there's a wonderful library called [Blurhash](https://blurha.sh/).
+The image preview we saw before might not be small enough to send down with our JavaScript bundle and these strings will not [gzip](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding#compressing_with_gzip) well. Depending on how many of these images you have, this may or may not be good enough. But if you'd like to compress things even smaller, and you're willing to do a bit more work, there's a wonderful library called [BlurHash](https://blurha.sh/).
 
-Blurhash generates incredibly small previews using Base83 encoding. Base83 encoding allows it to squeeze more information into fewer bytes, which is part of how it keeps the previews so small. 83 might seem like an arbitrary number, but [the README sheds some light on this](https://github.com/woltapp/blurhash#why-base-83):
+BlurHash generates incredibly small previews using Base83 encoding. Base83 encoding allows it to squeeze more information into fewer bytes, which is part of how it keeps the previews so small. 83 might seem like an arbitrary number, but [the README sheds some light on this](https://github.com/woltapp/blurhash#why-base-83):
 
 > First, 83 seems to be about how many low-ASCII characters you can find that are safe for use in all of JSON, HTML and shells.
 
 > Secondly, 83 * 83 is very close to, and a little more than, 19 * 19 * 19, making it ideal for encoding three AC components in two characters.
 
-The README also states how [Blurhash is used in Signal and Mastodon](https://github.com/woltapp/blurhash#users).
+The README also states how [BlurHash is used in Signal and Mastodon](https://github.com/woltapp/blurhash#users).
 
 Let's see it in action.
 
-### Generating Blurhash previews
+### Generating `blurhash` previews
 
 For this, we'll need to use the [Sharp](https://www.npmjs.com/package/sharp) library.
 
@@ -136,7 +136,7 @@ For this, we'll need to use the [Sharp](https://www.npmjs.com/package/sharp) lib
 
 **Note**
 
-To generate your blurhash previews, you'll likely want to run some sort of serverless function to process your images, and generate the previews. I'll be using AWS Lambda, but any alternative should work.
+To generate your `blurhash` previews, you'll likely want to run some sort of serverless function to process your images, and generate the previews. I'll be using AWS Lambda, but any alternative should work.
 
 Just be careful about maximum size limitations. The binaries Sharp installs add about 9 MB to the serverless function's size.
 
@@ -146,11 +146,11 @@ To run this code in an AWS Lambda, you'll need to install the library like this:
 install-deps": "npm i && SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm i --arch=x64 --platform=linux sharp
 ```
 
-And make sure you're not doing any sort of bundling to ensure all of the binaries are sent to your Lambda. This will affect the size of the Lambda deploy. Sharp alone will wind up being about 9 MB, which won't be great for cold start times. The code you'll see below is in a Lambda that just runs periodically (without any user interface waiting on it), generating Blurhash previews.
+And make sure you're not doing any sort of bundling to ensure all of the binaries are sent to your Lambda. This will affect the size of the Lambda deploy. Sharp alone will wind up being about 9 MB, which won't be great for cold start times. The code you'll see below is in a Lambda that just runs periodically (without any user interface waiting on it), generating `blurhash` previews.
 
 ---
 
-This code will look at the size of the image and create a blurhash preview:
+This code will look at the size of the image and create a `blurhash` preview:
 
 ```js
 import { encode, isBlurhashValid } from "blurhash";
@@ -190,7 +190,7 @@ The real work happens here:
 const blurhash = encode(new Uint8ClampedArray(buffer), width, height, 4, 4);
 ```
 
-We're caling blurhash's `encode` method, passing it our image, as well as the image's dimensions. The last two arguments are `componentX` and `componentY` which from my understanding of the documentation, seem to control how many passes blurhash does on our image, adding more and more detail. The acceptable values are 1 to 9, inclusive, and from my own testing 4 is a sweet spot, that produces the best results.
+We're caling `blurhash`'s `encode` method, passing it our image, as well as the image's dimensions. The last two arguments are `componentX` and `componentY` which from my understanding of the documentation, seem to control how many passes `blurhash` does on our image, adding more and more detail. The acceptable values are 1 to 9, inclusive, and from my own testing 4 is a sweet spot, that produces the best results.
 
 Let's see what this produces for that same image:
 
@@ -204,7 +204,7 @@ Let's see what this produces for that same image:
 
 That's incredibly small! The tradeoff is that *using* this preview is a bit more involved.
 
-Basically, we need to call blurhash's `decode` method, and render our image preview in a `canvas` tag. This is what the `PreviewCanvas` component was doing before and why we were rendering it if the type of our preview was not a string. Since our blurhash previews use an entire object, containing not only the preview string, but the image dimensions.
+Basically, we need to call `blurhash`'s `decode` method, and render our image preview in a `canvas` tag. This is what the `PreviewCanvas` component was doing before and why we were rendering it if the type of our preview was not a string. Since our `blurhash` previews use an entire object, containing not only the preview string, but the image dimensions.
 
 Let's look at our `PreviewCanvas` component:
 
@@ -238,6 +238,6 @@ Test, and use what works best for you.
 
 There are many ways to prevent content reflow as your images load on the web. Preventing your UI from rendering at all until the images come in is one way. The downside is that your user winds up waiting longer for content. A good middleground is to immediately show a preview of the image, and just swap the real thing in when it's loaded.
 
-This post walked you through two ways of doing that: generating degraded, blurry versions of an image using a tool like Sharp, and using Blurhash to generate an extremely small, Base83 encoded preview.
+This post walked you through two ways of doing that: generating degraded, blurry versions of an image using a tool like Sharp, and using BlurHash to generate an extremely small, Base83 encoded preview.
 
 Happy coding!
