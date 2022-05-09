@@ -24,6 +24,7 @@ Let's look at two alternatives for this.
 
 Before we start, I'd like to call out the versions of the libraries I'll be using for this post:
 
+ - [Jimp](https://www.npmjs.com/package/jimp) version 0.16.1
  - [Blurhash](https://www.npmjs.com/package/blurhash) version 1.1.5
  - [Sharp](https://www.npmjs.com/package/sharp) version 0.30.3
 
