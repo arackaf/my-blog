@@ -75,7 +75,7 @@ Obviously this preview encoding isn't small, but then again neither is our image
 Now we can send that image preview down from our data layer, along with the actual image URL, and any other related data. We can immediately display the image preview, and when the actual image loads, swap it out. Here's some (simplified) React code to do that:
 
 ```js
-const Cover = ({ url, preview = "" }) => {
+const Landmark = ({ url, preview = "" }) => {
   const [loaded, setLoaded] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
 
@@ -98,11 +98,11 @@ const Cover = ({ url, preview = "" }) => {
   );
 };
 
-const Preview: FunctionComponent<CoverPreviewProps> = ({ preview, loaded }) => {
+const Preview: FunctionComponent<LandmarkPreviewProps> = ({ preview, loaded }) => {
   if (loaded) {
     return null;
   } else if (typeof preview === "string") {
-    return <img key="book-preview" alt="Book cover preview" src={preview} style={{ display: "block" }} />;
+    return <img key="landmark-preview" alt="Landmark preview" src={preview} style={{ display: "block" }} />;
   } else {
     return <PreviewCanvas preview={preview} loaded={loaded} />;
   }
