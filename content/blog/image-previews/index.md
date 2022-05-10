@@ -6,17 +6,17 @@ description: Inline Image Previews with Sharp, BlurHash, and Lambda Functions
 
 Don't you hate it when you load a website or web app, some content displays *and then* some images load — causing content to shift around? That's called [*content reflow*](https://developers.google.com/speed/docs/insights/browser-reflow) and can lead to an incredibly annoying user experience for visitors.
 
-I've previously [written about solving this with React's Suspense](https://css-tricks.com/pre-caching-image-with-react-suspense/), which prevents the UI from loading until the images come in. This solves the content reflow problem, but at the expense of performance. The user is blocked from seeing any content until the images come in.
+I've previously [written about solving this with React's Suspense](https://css-tricks.com/pre-caching-image-with-react-suspense/), which prevents the UI from loading until the images come in. This solves the content reflow problem but at the expense of performance. The user is blocked from seeing any content until the images come in.
 
-Wouldn't is be nice if we could have the best of both worlds: prevent content reflow while also not making the user wait for the images to come in? This post will walk through generating blurry image previews and displaying them immediately, with the real images rendering over the preview whenever they happen to come in.
+Wouldn't it be nice if we could have the best of both worlds: prevent content reflow while also not making the user wait for the images? This post will walk through generating blurry image previews and displaying them immediately, with the real images rendering over the preview whenever they happen to come in.
 
 ## So you mean progressive JPEGs?
 
-You might be wondering if I'm about to talk about [progressive JPEGs](https://css-tricks.com/progressive-jpgs-a-new-best-practice/), which are an alternate encoding that causes images to initially render — full size and blurry — and then gradually refine as the data come in, until everything renders correctly.
+You might be wondering if I'm about to talk about [progressive JPEGs](https://css-tricks.com/progressive-jpgs-a-new-best-practice/), which are an alternate encoding that causes images to initially render — full size and blurry — and then gradually refine as the data come in until everything renders correctly.
 
 This seems like a great solution until you get into some of the details. Re-encoding your images as progressive JPEGs is reasonably straightforward; there are plugins for [Sharp](https://sharp.pixelplumbing.com/) that will handle that for you. Unfortunately, you still need to wait for *some* of your images' bytes to come over the wire until even a blurry preview of your image displays, at which point your content will reflow, adjusting to the size of the image's preview.
 
-You might look for some sort of event to indicate that an initial preview of the image has loaded, but none currently exist, and the workarounds are ... [not ideal](https://stackoverflow.com/a/48372320/352552).
+You might look for some sort of event to indicate that an initial preview of the image has loaded, but none currently exists, and the workarounds are ... [not ideal](https://stackoverflow.com/a/48372320/352552).
 
 Let's look at two alternatives for this.
 
@@ -30,15 +30,15 @@ Before we start, I'd like to call out the versions of the libraries I'll be usin
 
 ## Making our own previews
 
-Most of us are used to using `<img />` tags by providing a `src` attribute that's a URL to some place on the internet, where our image exists. But we can also provide a [Base64 encoding of an image and just set that inline](https://css-tricks.com/data-uris/). We wouldn't *usually* want to do that, since those Base64 strings can get huge for images, and embedding them in our JavaScript bundles can cause some serious bloat.
+Most of us are used to using `<img />` tags by providing a `src` attribute that's a URL to some place on the internet where our image exists. But we can also provide a [Base64 encoding of an image and just set that inline](https://css-tricks.com/data-uris/). We wouldn't *usually* want to do that since those Base64 strings can get huge for images and embedding them in our JavaScript bundles can cause some serious bloat.
 
-But what if, when we're processing our images (to resize, adjust the quality, etc.), we also make a low quality, blurry version of our image, and take the Base64 encoding of *that*. The size of that Base64 image preview will be significantly smaller. We could save that preview string, put it in our JavaScript bundle, and display that inline until our real image is done loading. This will cause a blurry preview of our image to show immediately, while the image loads. When the real image is done loading, we can hide the preview, and show the real image.
+But what if, when we're processing our images (to resize, adjust the quality, etc.), we also make a low quality, blurry version of our image and take the Base64 encoding of *that*? The size of that Base64 image preview will be significantly smaller. We could save that preview string, put it in our JavaScript bundle, and display that inline until our real image is done loading. This will cause a blurry preview of our image to show immediately while the image loads. When the real image is done loading, we can hide the preview and show the real image.
 
 Let's see how.
 
 ### Generating our preview
 
-For now, let's look at [Jimp](https://www.npmjs.com/package/jimp), which has no dependencies on things like `node-gyp`, and can just be installed and used in a Lambda.
+For now, let's look at [Jimp](https://www.npmjs.com/package/jimp), which has no dependencies on things like `node-gyp` and can be installed and used in a Lambda.
 
 Here's a function (stripped of error handling and logging) that uses Jimp to process an image, resize it, and then creates a blurry preview of the image:
 
@@ -71,7 +71,7 @@ And here's what the preview looks like:
 
 If you'd like to take a closer look, here's the same preview in a [CodeSandbox](https://codesandbox.io/s/base64-preview-c6nhbi?file=/index.html:158-7353).
 
-Obviously this preview encoding isn't small, but then again neither is our image; smaller images will produce smaller previews. Measure and profile for your own use case to see how viable this solution is.
+Obviously, this preview encoding isn't small, but then again, neither is our image; smaller images will produce smaller previews. Measure and profile for your own use case to see how viable this solution is.
 
 Now we can send that image preview down from our data layer, along with the actual image URL, and any other related data. We can immediately display the image preview, and when the actual image loads, swap it out. Here's some (simplified) React code to do that:
 
@@ -112,11 +112,11 @@ const Preview: FunctionComponent<LandmarkPreviewProps> = ({ preview, loaded }) =
 
 Don't worry about the `PreviewCanvas` component yet. And don't worry about the fact that things like a changing URL aren't accounted for.
 
-Note that we set the image component's `src` after the `onLoad` handler, to ensure it fires. We show the preview, and when the real image loads, we swap it in.
+Note that we set the image component's `src` after the `onLoad` handler to ensure it fires. We show the preview, and when the real image loads, we swap it in.
 
 ## Improving things with BlurHash
 
-The image preview we saw before might not be small enough to send down with our JavaScript bundle and these strings will not [gzip](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding#compressing_with_gzip) well. Depending on how many of these images you have, this may or may not be good enough. But if you'd like to compress things even smaller, and you're willing to do a bit more work, there's a wonderful library called [BlurHash](https://blurha.sh/).
+The image preview we saw before might not be small enough to send down with our JavaScript bundle. And these Base64 strings will not [gzip](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding#compressing_with_gzip) well. Depending on how many of these images you have, this may or may not be good enough. But if you'd like to compress things even smaller and you're willing to do a bit more work, there's a wonderful library called [BlurHash](https://blurha.sh/).
 
 BlurHash generates incredibly small previews using Base83 encoding. Base83 encoding allows it to squeeze more information into fewer bytes, which is part of how it keeps the previews so small. 83 might seem like an arbitrary number, but [the README sheds some light on this](https://github.com/woltapp/blurhash#why-base-83):
 
@@ -124,7 +124,7 @@ BlurHash generates incredibly small previews using Base83 encoding. Base83 encod
 
 > Secondly, 83 * 83 is very close to, and a little more than, 19 * 19 * 19, making it ideal for encoding three AC components in two characters.
 
-The README also states how [BlurHash is used in Signal and Mastodon](https://github.com/woltapp/blurhash#users).
+The README also states how [Signal and Mastodon use BlurHash](https://github.com/woltapp/blurhash#users).
 
 Let's see it in action.
 
@@ -136,7 +136,7 @@ For this, we'll need to use the [Sharp](https://www.npmjs.com/package/sharp) lib
 
 **Note**
 
-To generate your `blurhash` previews, you'll likely want to run some sort of serverless function to process your images, and generate the previews. I'll be using AWS Lambda, but any alternative should work.
+To generate your `blurhash` previews, you'll likely want to run some sort of serverless function to process your images and generate the previews. I'll be using AWS Lambda, but any alternative should work.
 
 Just be careful about maximum size limitations. The binaries Sharp installs add about 9 MB to the serverless function's size.
 
@@ -146,7 +146,7 @@ To run this code in an AWS Lambda, you'll need to install the library like this:
 install-deps": "npm i && SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm i --arch=x64 --platform=linux sharp
 ```
 
-And make sure you're not doing any sort of bundling to ensure all of the binaries are sent to your Lambda. This will affect the size of the Lambda deploy. Sharp alone will wind up being about 9 MB, which won't be great for cold start times. The code you'll see below is in a Lambda that just runs periodically (without any user interface waiting on it), generating `blurhash` previews.
+And make sure you're not doing any sort of bundling to ensure all of the binaries are sent to your Lambda. This will affect the size of the Lambda deploy. Sharp alone will wind up being about 9 MB, which won't be great for cold start times. The code you'll see below is in a Lambda that just runs periodically (without any UI waiting on it), generating `blurhash` previews.
 
 ---
 
@@ -178,11 +178,11 @@ export async function getBlurhashPreview(src) {
 }
 ```
 
-Again, I've removed all error handling and logging for clarity. Worth noting is the call to `ensureAlpha`. This ensures that each pixel has 4 bytes, for RGB, and Alpha.
+Again, I've removed all error handling and logging for clarity. Worth noting is the call to `ensureAlpha`. This ensures that each pixel has 4 bytes for RGB and Alpha.
 
-*Jimp lacks this method, which is why we're using Sharp, here; if anyone knows otherwise, please drop a comment.*
+*Jimp lacks this method, which is why we're using Sharp; if anyone knows otherwise, please drop a comment.*
 
-Also note that we're saving not only the preview string, but also the dimensions of the image, which will make sense in a bit. 
+Also, note that we're saving not only the preview string but also the dimensions of the image, which will make sense in a bit. 
 
 The real work happens here:
 
@@ -190,7 +190,7 @@ The real work happens here:
 const blurhash = encode(new Uint8ClampedArray(buffer), width, height, 4, 4);
 ```
 
-We're caling `blurhash`'s `encode` method, passing it our image, as well as the image's dimensions. The last two arguments are `componentX` and `componentY` which from my understanding of the documentation, seem to control how many passes `blurhash` does on our image, adding more and more detail. The acceptable values are 1 to 9, inclusive, and from my own testing 4 is a sweet spot, that produces the best results.
+We're calling `blurhash`'s `encode` method, passing it our image and the image's dimensions. The last two arguments are `componentX` and `componentY`, which from my understanding of the documentation, seem to control how many passes `blurhash` does on our image, adding more and more detail. The acceptable values are 1 to 9 (inclusive). From my own testing, 4 is a sweet spot that produces the best results.
 
 Let's see what this produces for that same image:
 
@@ -204,7 +204,7 @@ Let's see what this produces for that same image:
 
 That's incredibly small! The tradeoff is that *using* this preview is a bit more involved.
 
-Basically, we need to call `blurhash`'s `decode` method, and render our image preview in a `canvas` tag. This is what the `PreviewCanvas` component was doing before and why we were rendering it if the type of our preview was not a string. Since our `blurhash` previews use an entire object, containing not only the preview string, but the image dimensions.
+Basically, we need to call `blurhash`'s `decode` method and render our image preview in a `canvas` tag. This is what the `PreviewCanvas` component was doing before and why we were rendering it if the type of our preview was not a string. Since our `blurhash` previews use an entire object — containing not only the preview string but also the image dimensions.
 
 Let's look at our `PreviewCanvas` component:
 
@@ -230,14 +230,14 @@ Let's see what the image previews look like:
 
 https://codesandbox.io/s/blurhash-preview-6nh9li
 
-In a sense, it's less detailed than our previous previews. But I've also found them to be a bit smoother, and less pixelated; and they take up a tiny fraction of the size.
+In a sense, it's less detailed than our previous previews. But I've also found them to be a bit smoother and less pixelated. And they take up a tiny fraction of the size.
 
 Test, and use what works best for you.
 
 ## Wrapping up
 
-There are many ways to prevent content reflow as your images load on the web. Preventing your UI from rendering at all until the images come in is one way. The downside is that your user winds up waiting longer for content. A good middleground is to immediately show a preview of the image, and just swap the real thing in when it's loaded.
+There are many ways to prevent content reflow as your images load on the web. One approach is to prevent your UI from rendering until the images come in. The downside is that your user winds up waiting longer for content.
 
-This post walked you through two ways of doing that: generating degraded, blurry versions of an image using a tool like Sharp, and using BlurHash to generate an extremely small, Base83 encoded preview.
+A good middle-ground is to immediately show a preview of the image and swap the real thing in when it's loaded. This post walked you through two ways of accomplishing that: generating degraded, blurry versions of an image using a tool like Sharp and using BlurHash to generate an extremely small, Base83 encoded preview.
 
 Happy coding!
