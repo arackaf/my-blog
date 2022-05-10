@@ -178,7 +178,7 @@ export async function getBlurhashPreview(src) {
 }
 ```
 
-Again, I've removed all error handling and logging for clarity. Worth noting is the call to `ensureAlpha`. This ensures that each pixel has 4 bytes for RGB and Alpha.
+Again, I've removed all error handling and logging for clarity. Worth noting is the call to `ensureAlpha`. This ensures that each pixel has 4 bytes, one each for RGB and Alpha.
 
 *Jimp lacks this method, which is why we're using Sharp; if anyone knows otherwise, please drop a comment.*
 
