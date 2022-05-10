@@ -204,7 +204,7 @@ Let's see what this produces for that same image:
 
 That's incredibly small! The tradeoff is that *using* this preview is a bit more involved.
 
-Basically, we need to call `blurhash`'s `decode` method and render our image preview in a `canvas` tag. This is what the `PreviewCanvas` component was doing before and why we were rendering it if the type of our preview was not a string. Since our `blurhash` previews use an entire object — containing not only the preview string but also the image dimensions.
+Basically, we need to call `blurhash`'s `decode` method and render our image preview in a `canvas` tag. This is what the `PreviewCanvas` component was doing before and why we were rendering it if the type of our preview was not a string: our `blurhash` previews use an entire object — containing not only the preview string but also the image dimensions.
 
 Let's look at our `PreviewCanvas` component:
 
