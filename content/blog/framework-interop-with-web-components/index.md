@@ -207,9 +207,9 @@ Let's use it. We'll go into our Svelte App component, and add something like thi
 </main>
 ```
 
-and it works. Our counter renders, increments, and the dropdown updates the color appropriately. As you can see, we render the color attribute in our Svelte template, and, when the value changes, handles the legwork of calling `setAttribute` on our underlying web component instance. There's nothing special here: this is the same thing it already does for *any* html element's attributes. 
+and it works. Our counter renders, increments, and the dropdown updates the color. As you can see, we render the color attribute in our Svelte template and, when the value changes, handles the legwork of calling `setAttribute` on our underlying web component instance. There's nothing special here: this is the same thing it already does for *any* html element's attributes. 
 
-Now let's set the `incrementAmount` prop. Things get a little bit interesting here. This is *not* an attribute on our web component; it's a prop on the web component's class. That means it needs to be set on the web component's instance. Let's see what this means, but stick with me; things will wind up much simpler than they seem.
+Now let's set the `incrementAmount` prop. Things get a little bit interesting here. This is *not* an attribute on our web component; it's a prop on the web component's class. That means it needs to be set on the web component's instance. Let's see what this means, but bear with me; things will wind up much simpler than they seem.
 
 First, we'll add some variables to our Svelte component
 
@@ -236,11 +236,146 @@ and now, in our Svelte template we listen for changes to our component's increme
 ```js
   $: {
     if (wcInstance) {
-      wcInstance.incrementAmount = increment;
+      wcInstance.increment = increment;
     }
   }
 ```
 
-This works, but it's not great. We obviously don't want to do this for every web component / prop we need to change. Wouldn't it be nice if we could just set incrementAmount right on our web component, in markup, and have this ... *just work*. In other words, something like this
+Which works. You can test it out [here](https://stackblitz.com/edit/vitejs-vite-smjw4o?file=src/App.svelte)
 
+This isn't ideal. We obviously don't want to do this for every web component / prop we need to manage. Wouldn't it be nice if we could just set `increment` right on our web component, in markup, like we normally do for component props, and have it ... *just work*? In other words, it'd be nice if we could delete all usages of `wcInstance` and just do this
 
+```html
+<counter-wc increment={increment} color={color}></counter-wc>
+```
+
+Well you can. And it works. Seriously. Svelte handles that legwork for us. Check it out [here](https://stackblitz.com/edit/vitejs-vite-ucexzq?file=src/App.svelte). This is standard behavior for pretty much all JavaScript frameworks.
+
+So why did I show you the manual way of setting the web component's prop? Two reasons: it's useful to understand how these things work, and a moment ago I said "pretty much" all JavaScript frameworks. There's one framework which, maddeningly, does not support web component prop setting like we just saw.
+
+![React logo](./react-logo.png)
+
+Yes. It's React. The most popular JavaScript framework on the planet does not support basic interop with web components. This is a well known problem that's unique to React. Interestingly, this is actually fixed in React's experimental branch, but for some reason wasn't merged into version 18. Track the progress of this [here](https://custom-elements-everywhere.com/). And you can try this yourself with a live demo [here](https://stackblitz.com/edit/react-ydpj3u?file=src/App.js). 
+
+The solution of course is to use a ref, grab the web component instance, and manually set `increment` when that value changes. It looks like this
+
+```js
+import React, { useState, useRef, useEffect } from 'react';
+import './counter-wc';
+
+export default function App() {
+  const [increment, setIncrement] = useState(1);
+  const [color, setColor] = useState('red');
+  const wcRef = useRef(null);
+
+  useEffect(() => {
+    wcRef.current.increment = increment;
+  }, [increment]);
+
+  return (
+    <div>
+      <div className="increment-container">
+        <button onClick={() => setIncrement(1)}>Increment by 1</button>
+        <button onClick={() => setIncrement(2)}>Increment by 2</button>
+      </div>
+
+      <select value={color} onChange={(e) => setColor(e.target.value)}>
+        <option value="red">Red</option>
+        <option value="green">Green</option>
+        <option value="blue">Blue</option>
+      </select>
+
+      <counter-wc ref={wcRef} increment={increment} color={color}></counter-wc>
+    </div>
+  );
+}
+```
+
+there's a live demo of this [here](https://stackblitz.com/edit/react-y43odj?file=src%2FApp.js).
+
+As we discussed, coding this up manually for every web component property is not scalable. But all is not lost; we have a few options, which we'll consider in turn.
+
+### Use attributes everywhere
+
+We have attributes. If you clicked the React demo above, the increment prop wasn't working, but the color did change correctly. Can't we code everything with attributes? Sadly, no. Attribute values can only be strings. That's good enough here, and we'd be able to get somewhat far with this approach. Numbers like `increment` can be converted to and from strings easily. We could even JSON stringify/parse objects. But eventually we'll need to pass a function into a web component, and at that point we'd be out of options.
+
+### Wrap it
+
+There's an old saying, that you can solve any problem in computer science by adding a level of indirection (except the problem of too many levels of indirection). The code to set these props is pretty predictable and simple. What if we hide it in a library. The smart folks behind lit-html have one solution [here](https://www.npmjs.com/package/@lit-labs/react). This library creates a new React component for you, after you give it a web component, and list out the properties it needs. While clever, I'm not a fan of this approach. 
+
+Rather than have a 1:1 mapping of web components to manually-created React components, what if we had **one** React component that we passed our web component *tag name* to (`counter-wc` in our case), along with all the attributes and properties, and this component rendered our web component, added the ref, and then figured out what was a prop, and what was an attribute. That's the ideal solution in my opinion. I don't know of a library that does this, but it should be straightforward to create. Let's give it a shot!
+
+This is the *usage* we're looking for
+
+```js
+<WcWrapper wcTag="counter-wc" increment={increment} color={color} />
+```
+
+`wcTag` is the web component tag name, and the rest are the properties and attributes we want passed along.
+
+Here's what my implementation looks like 
+
+```js
+import React, { createElement, useRef, useLayoutEffect, memo } from 'react';
+
+const _WcWrapper = (props) => {
+  const { wcTag, children, ...restProps } = props;
+  const wcRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const wc = wcRef.current;
+
+    for (const [key, value] of Object.entries(restProps)) {
+      if (key in wc) {
+        if (wc[key] !== value) {
+          wc[key] = value;
+        }
+      } else {
+        if (wc.getAttribute(key) !== value) {
+          wc.setAttribute(key, value);
+        }
+      }
+    }
+  });
+
+  return createElement(wcTag, { ref: wcRef });
+};
+
+export const WcWrapper = memo(_WcWrapper);
+```
+
+The most interesting line is at the end
+
+```js
+return createElement(wcTag, { ref: wcRef });
+```
+
+This is how we create an element in React with a dynamic name. In fact, this is what React normally transpiles your JSX into. All your `<div>`'s are converted to `createElement("div")` calls. We don't normally need to call this api directly, but it's there when you need it.
+
+Beyond that, we want to run a layout effect, and loop through every prop that was passed to our component. We loop through them all, and check to see if it's a property with a simple `in` check. This checks the web component instance object, and also its prototype chain, which will catch any getters/setters that wind up on the class prototype. If no such property exists, it's assumed to be an attribute. In either case, we only set it if the value has actually changed.
+
+If you're wondering why we use `useLayoutEffect`, instead of `useEffect` it's because we want to run these updates immediately, before our content is rendered. Lastly, note that we have no dependency array to our `useLayoutEffect`; this means we want to run this update on **every render**. This can be risky, since React tends to re-render ... *a lot*. To ameliorate this, I'm wrapping the whole thing in `React.memo`. This is essentially the modern version of `React.PureComponent`, which just means the component will only re-render if any of its actual props have changed, which it checks via a simple equality check. The only risk here is that if you're passing an object prop that you're mutating directly, without re-assigning, then you won't see the updates. But this is highly discouraged, especially in the React community, so I wouldn't worry about it.
+
+Before moving on, I'd like to call out one last thing. You might not be happy with what the usage of this looks like. Again, this component is used like this:
+
+```js
+<WcWrapper wcTag="counter-wc" increment={increment} color={color} />
+```
+
+You might not like passing the web component tag name to the WcWrapper component, and prefer instead the @lit-labs/react package above, which created a new, individual React component for each web component. That's totally fair, and I'd encourage you to use whatever you're most comfortable with. But for me, one advantage with this approach is that it's easy to *delete*. If by some miracle React merges proper web component handling from their experimental branch, into main tomorrow, and publishes, you'd be able to change the above code from this
+
+```js
+<WcWrapper wcTag="counter-wc" increment={increment} color={color} />
+```
+
+to this
+
+```js
+<counter-wc ref={wcRef} increment={increment} color={color} />
+```
+
+In fact you could probably write a single codemod to do that everywhere, and then just delete `WcWrapper` altogether. Actually scratch that: a global search and replace with a RegEx would probably work.
+
+## The implementation 
+
+Sorry that intro took so long. React's lack of proper interop added a lot of detail to 
