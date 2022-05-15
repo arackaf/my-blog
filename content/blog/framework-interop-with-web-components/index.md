@@ -378,4 +378,6 @@ In fact you could probably write a single codemod to do that everywhere, and the
 
 ## The implementation 
 
-Sorry that intro took so long. React's lack of proper interop added a lot of detail to 
+Sorry that intro took so long. If you recall, our original goal was to take the image preview code we looked at in my [last post](link.here), and move it to a web component, so it could be used in any JS framework. React's lack of proper interop added a lot of detail to the introduction. But now that we have a decent handle on how to create a web component, and use it, the implementation will almost be anti-climactic. 
+
+...
