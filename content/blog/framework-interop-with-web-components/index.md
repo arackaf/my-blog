@@ -151,9 +151,7 @@ And to drive these state changes, let's use our new counter in a Svelte sandboxâ
 We'll start with the same web component as before, and add a color attribute. To configure our web component to accept / react to an attribute, we add a static `observedAttributes` property, which returns the attributes that our web component listens for.
 
 ```js
-  static get observedAttributes() {
-    return ["color"];
-  }
+  static observedAttributes = ["color"];
 ```
 
 with that in place, we can add a `attributeChangedCallback` lifecycle method, which will run whenever any of the attributes listed in `observedAttributes` are set, or updated.
@@ -380,4 +378,168 @@ In fact you could probably write a single codemod to do that everywhere, and the
 
 Sorry that intro took so long. If you recall, our original goal was to take the image preview code we looked at in my [last post](link.here), and move it to a web component, so it could be used in any JS framework. React's lack of proper interop added a lot of detail to the introduction. But now that we have a decent handle on how to create a web component, and use it, the implementation will almost be anti-climactic. 
 
-...
+I'll post the entire web component, and call out some of the interesting bits. If you'd like to skip to seeing it in action, here's a [working demo](https://stackblitz.com/edit/vitejs-vite-tt8yns?file=src/book-cover-wc.js). It'll switch between my three favorite books, on my three favorite programming languages. The url for each will be unique each time, so you can see the preview each time, though you'll likely want to throttle your network speed in your dev tools network tab. 
+
+```js
+class BookCover extends HTMLElement {
+  static observedAttributes = ['url'];
+
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (name === 'url') {
+      this.createMainImage(newValue);
+    }
+  }
+
+  set preview(val) {
+    this.previewEl = this.createPreview(val);
+    this.render();
+  }
+
+  createPreview(val) {
+    if (typeof val === 'string') {
+      return base64Preview(val);
+    } else {
+      return blurHashPreview(val);
+    }
+  }
+
+  createMainImage(url) {
+    this.loaded = false;
+    const img = document.createElement('img');
+    img.alt = 'Book cover';
+    img.src = url;
+    img.addEventListener('load', () => {
+      if (img === this.imageEl) {
+        this.loaded = true;
+        this.render();
+      }
+    });
+    this.imageEl = img;
+  }
+
+  connectedCallback() {
+    this.render();
+  }
+
+  render() {
+    const elementMaybe = this.loaded ? this.imageEl : this.previewEl;
+    syncSingleChild(this, elementMaybe);
+  }
+}
+```
+
+First we register the attribute we're interested in, and react when it changes 
+
+```js
+  static observedAttributes = ['url'];
+
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (name === 'url') {
+      this.createMainImage(newValue);
+    }
+  }
+```
+
+this causes our image component to be created, which will show only when loaded 
+
+```js
+  createMainImage(url) {
+    this.loaded = false;
+    const img = document.createElement('img');
+    img.alt = 'Book cover';
+    img.src = url;
+    img.addEventListener('load', () => {
+      if (img === this.imageEl) {
+        this.loaded = true;
+        this.render();
+      }
+    });
+    this.imageEl = img;
+  }
+```
+
+next we have our preview property, which can either be our base64 preview string, or our blurhash packet.
+
+```js
+  set preview(val) {
+    this.previewEl = this.createPreview(val);
+    this.render();
+  }
+
+  createPreview(val) {
+    if (typeof val === 'string') {
+      return base64Preview(val);
+    } else {
+      return blurHashPreview(val);
+    }
+  }
+```
+
+this defers to whichever helper function we need 
+
+```js
+function base64Preview(val) {
+  const img = document.createElement('img');
+  img.src = val;
+  return img;
+}
+
+function blurHashPreview(preview) {
+  const canvasEl = document.createElement('canvas');
+  const { w: width, h: height } = preview;
+
+  canvasEl.width = width;
+  canvasEl.height = height;
+
+  const pixels = decode(preview.blurhash, width, height);
+  const ctx = canvasEl.getContext('2d');
+  const imageData = ctx.createImageData(width, height);
+  imageData.data.set(pixels);
+  ctx.putImageData(imageData, 0, 0);
+
+  return canvasEl;
+}
+```
+
+And lastly our render method
+
+```js
+  connectedCallback() {
+    this.render();
+  }
+
+  render() {
+    const elementMaybe = this.loaded ? this.imageEl : this.previewEl;
+    syncSingleChild(this, elementMaybe);
+  }
+```
+
+and a few helpers methods to tie everything together 
+
+```js
+export function syncSingleChild(container, child) {
+  const currentChild = container.firstElementChild;
+  if (currentChild !== child) {
+    clearContainer(container);
+    if (child) {
+      container.appendChild(child);
+    }
+  }
+}
+
+export function clearContainer(el) {
+  let child;
+
+  while ((child = el.firstElementChild)) {
+    el.removeChild(child);
+  }
+}
+```
+
+It's a little bit more boilerplate than we'd need if we build this in a Framework, but the upside is that we can re-use this in any framework we'd like (although React will need a wrapper, for now, as we discussed).
+
+## Wrapping up
+
+Web components are an interested, often underused part of the web development landscape. They can help reduce your dependence on any single JavaScript framework by managing your ui, or "leaf" components. While creating these components as web components, as opposed to Svelte, or React components won't be as ergonomic, the upside is that they'll be widely reusable. 
+
+Happy coding!
