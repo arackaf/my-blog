@@ -4,39 +4,45 @@ date: "2019-05-13T10:00:00.000Z"
 description: Using web components to share code between frameworks
 ---
 
-Those of us who've been web developers for more than a few years have probably written code for the web in more than one Framework. With all the choices out there—React, Svelte, Vue, Angular, Solid—it's all but inevitable. One of the more frustrating things we have to deal with when working across frameworks is re-building all those low-level ui components: buttons, tabs, dropdowns, etc. These are ui components which we need, and want to look and behave a particular way, but ultimately they aren't directly related to whatever we're building.
+Those of us who've been web developers for more than a few years have probably written code using more than one JavaScript Framework. With all the choices out there—React, Svelte, Vue, Angular, Solid—it's all but inevitable. One of the more frustrating things we have to deal with when working across frameworks is re-creating all those low-level ui components: buttons, tabs, dropdowns, etc. These are ui components which we need, and want to look and behave a particular way, but ultimately aren't directly related to whatever we're building.
 
 What's particularly frustrating is that we'll typically have them defined in one framework, say React, but then need to rewrite them in Svelte if we want to build something in Svelte. Or Vue. Or Solid. And so on. Wouldn't it be better if we could define these low-level ui components once, in a framework-agnostic way, and then re-use them between frameworks? Of course it would, and we can; web components are how. This post will walk you through it.
 
+**NOTE**
+
+As of now, the SSR story for web components is a bit lacking. Declarative shadow dom (DSD) is how a web component is server-side rendered, but, as of this writing, it's not integrated with your favorite applications frameworks like Next, Remix or SvelteKit. If that's a requirement for you, be sure to check the latest status of DSD. But otherwise, if SSR isn't something you're using, read on. 
+
 ## Web Components
 
-Web Components are essentially html elements that you define yourself, from the ground up. We'll walk through the process in a bit, but essentially you'll define a JavaScript class, inherit it from `HTMLElement` (there are other options), and then define whatever properties, attributes and styles the web component has, and of course the markup it will ultimately render to your users.
+Web Components are essentially html elements that you define yourself, from the ground up. We'll walk through the process in a bit, but essentially you'll define a JavaScript class, inherit it from `HTMLElement`, and then define whatever properties, attributes and styles the web component has, and of course the markup it will ultimately render to your users.
 
 ## Web Components: what they're good at, and what they're not
 
-Being able to define custom html elements which aren't bound to any particular component is definitely exciting. But this freedom is also a limitation. Existing independently of any JavaScript framework means you can't really interact with JavaScript frameworks well. Think of a React component which fetches some data, and then renders some *other* React component, passing along the data. This wouldn't really work as a web component, since a web component doesn't really know how to render a React component. 
+Being able to define custom html elements which aren't bound to any particular component is definitely exciting. But this freedom is also a limitation. Existing independently of any JavaScript framework means you can't really interact with those JavaScript frameworks. Think of a React component which fetches some data, and then renders some *other* React component, passing along the data. This wouldn't really work as a web component, since a web component doesn't really know how to render a React component. 
 
-web components particularly excel as leaf components. Conceptually, leaf components are the last thing to be rendered in a component tree. These are the components which receive some props, and render some ui. These are *not* the components sitting in the middle of your component tree, passing data along, setting context, etc. Just pure pieces of ui which will look the same, no matter which JS framework is powering the rest of the app. 
+Web components particularly excel as leaf components. Leaf components are the last thing to be rendered in a component tree. These are the components which receive some props, and render some ui. These are *not* the components sitting in the middle of your component tree, passing data along, setting context, etc. Just pure pieces of ui which will look the same, no matter which JS framework is powering the rest of the app. 
 
 ## What we'll be building
 
-UI leaf components aren't the only think you can use web components for. You can use a web component-first framework and architect and entire *application* from nothing but wc's. If you're curious to learn more, check out either or both of the main options for that, [lit-html](https://lit.dev/docs/v1/lit-html/introduction/) or [Stencil](https://stenciljs.com/).
+UI leaf components aren't the only think you can use web components for. You can use a web component-first framework and architect and entire *application* from nothing but wc's. If you're curious to learn more, check out the main options for that, [lit-html](https://lit.dev/docs/v1/lit-html/introduction/) or [Stencil](https://stenciljs.com/).
 
 Personally, I'm most excited by the opportunity to reuse low-level ui components between JS frameworks; it's tedious and frankly boring having to define the same rich button, tabs, etc every time you build something with a new framework, so that'll be our focus here. 
 
-Rather than building something boring (and common), like a button, let's build something a little bit different. In my [last post](https://link.here) we looked at using blurry image previews to prevent content reflow. We looked at base64 encoding a blurry, degraded versions of our images, and showing that in our UI while the real image loaded. And we also looked at generating incredibly compact, blurry previews using a tool called [Blurhash](https://blurha.sh/).
+Rather than building something boring (and common), like a button, let's build something a little bit different. In my [last post](https://link.here) we looked at using blurry image previews to prevent content reflow, and provide a decent ui for users while our images load. We looked at base64 encoding a blurry, degraded versions of our images, and showing that in our UI while the real image loaded. We also looked at generating incredibly compact, blurry previews using a tool called [Blurhash](https://blurha.sh/).
 
 That post showed you how to generate those previews, and how to use them in a React project. This post will show you how to use those previews from a web component, so they can be used by *any* JS framework. 
 
 But we need to walk before we can run, so we'll walk through something trivial and silly first, in order to see exactly how web components work.  
 
-Everything in this post will build vanilla web components without any tooling. That means the code will have a bit of boilerplate, but should be relatively easy to follow. As I mentioned above, tools like Lit and Stencil are designed for building web components, and can be used to remove much of this boilerplate. I urge you to check them out! But for this post, I'll prefer a little more boilerplate in exchange for now having to introduce, and teach another dependency. Let's get started!
+Everything in this post will build vanilla web components without any tooling. That means the code will have a bit of boilerplate, but should be relatively easy to follow. As I mentioned above, tools like Lit and Stencil are designed for building web components, and can be used to remove much of this boilerplate. I urge you to check them out! But for this post, I'll prefer a little more boilerplate in exchange for not having to introduce, and teach another dependency. 
+
+Let's get started!
 
 ## Your first web component
 
 Let's build the classic Hello World of JavaScript components: a counter. We'll render a value, and a button that increments that value. Simple and boring, but it'll let us look at the simplest possible web component.
 
-In order to build a web component, the first step is to make a JavaScript class, which inherits from `HTMLElement`. We could inherit from existing html elements, like `HTMLAnchorElement` but we won't need that here.
+In order to build a web component, the first step is to make a JavaScript class, which inherits from `HTMLElement`. 
 
 ```js
 class Counter extends HTMLElement {
@@ -79,7 +85,7 @@ which would work just fine.
 
 ### Adding real content
 
-Let's add some useful, interactive content. We need a span to hold our current value, and we need a button to increment it. Let's see how we can create that. We'll create this content in our constructor this time, and append when the web component is actually in the dom
+Let's add some useful, interactive content. We need a span to hold our current value, and we need a button to increment it. Let's see how we can create that. For now we'll create this content in our constructor, and append when the web component is actually in the dom
 
 ```js
   constructor() {
@@ -207,7 +213,7 @@ Let's use it. We'll go into our Svelte App component, and add something like thi
 
 and it works. Our counter renders, increments, and the dropdown updates the color. As you can see, we render the color attribute in our Svelte template and, when the value changes, handles the legwork of calling `setAttribute` on our underlying web component instance. There's nothing special here: this is the same thing it already does for *any* html element's attributes. 
 
-Now let's set the `incrementAmount` prop. Things get a little bit interesting here. This is *not* an attribute on our web component; it's a prop on the web component's class. That means it needs to be set on the web component's instance. Let's see what this means, but bear with me; things will wind up much simpler than they seem.
+Now let's set the `incrementAmount` prop. Things get a little bit interesting here. This is *not* an attribute on our web component; it's a prop on the web component's class. That means it needs to be set on the web component's instance. Let's see what this means, but bear with me; things will wind up much simpler in a bit.
 
 First, we'll add some variables to our Svelte component
 
@@ -253,7 +259,7 @@ So why did I show you the manual way of setting the web component's prop? Two re
 
 ![React logo](./react-logo.png)
 
-Yes. It's React. The most popular JavaScript framework on the planet does not support basic interop with web components. This is a well known problem that's unique to React. Interestingly, this is actually fixed in React's experimental branch, but for some reason wasn't merged into version 18. Track the progress of this [here](https://custom-elements-everywhere.com/). And you can try this yourself with a live demo [here](https://stackblitz.com/edit/react-ydpj3u?file=src/App.js). 
+React. The most popular JavaScript framework on the planet does not support basic interop with web components. This is a well known problem that's unique to React. Interestingly, this is actually fixed in React's experimental branch, but for some reason wasn't merged into version 18. Track the progress of this [here](https://custom-elements-everywhere.com/). And you can try this yourself with a live demo [here](https://stackblitz.com/edit/react-ydpj3u?file=src/App.js). 
 
 The solution of course is to use a ref, grab the web component instance, and manually set `increment` when that value changes. It looks like this
 
@@ -295,7 +301,7 @@ As we discussed, coding this up manually for every web component property is not
 
 ### Use attributes everywhere
 
-We have attributes. If you clicked the React demo above, the increment prop wasn't working, but the color did change correctly. Can't we code everything with attributes? Sadly, no. Attribute values can only be strings. That's good enough here, and we'd be able to get somewhat far with this approach. Numbers like `increment` can be converted to and from strings easily. We could even JSON stringify/parse objects. But eventually we'll need to pass a function into a web component, and at that point we'd be out of options.
+We have attributes. If you clicked the React demo above, the increment prop wasn't working, but the color did change correctly. Can't we code everything with attributes? Sadly, no. Attribute values can only be strings. That's good enough here, and we'd be able to get somewhat far with this approach. Numbers like `increment` can be converted to and from strings. We could even JSON stringify/parse objects. But eventually we'll need to pass a function into a web component, and at that point we'd be out of options.
 
 ### Wrap it
 
@@ -360,7 +366,7 @@ Before moving on, I'd like to call out one last thing. You might not be happy wi
 <WcWrapper wcTag="counter-wc" increment={increment} color={color} />
 ```
 
-You might not like passing the web component tag name to the WcWrapper component, and prefer instead the @lit-labs/react package above, which created a new, individual React component for each web component. That's totally fair, and I'd encourage you to use whatever you're most comfortable with. But for me, one advantage with this approach is that it's easy to *delete*. If by some miracle React merges proper web component handling from their experimental branch, into main tomorrow, and publishes, you'd be able to change the above code from this
+You might not like passing the web component tag name to the WcWrapper component, and prefer instead the @lit-labs/react package above, which created a new, individual React component for each web component. That's totally fair, and I'd encourage you to use whatever you're most comfortable with. But for me, one advantage with this approach is that it's easy to *delete*. If by some miracle React merges proper web component handling from their experimental branch, into main tomorrow, you'd be able to change the above code from this
 
 ```js
 <WcWrapper wcTag="counter-wc" increment={increment} color={color} />
