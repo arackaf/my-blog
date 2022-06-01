@@ -1,6 +1,6 @@
 ---
 title: Sharing code between frameworks, using web components
-date: "2019-05-13T10:00:00.000Z"
+date: "2022-05-13T10:00:00.000Z"
 description: Using web components to share code between frameworks
 ---
 
@@ -81,7 +81,7 @@ if (!customElements.get("counter-wc")) {
 
 which would work just fine.
 
-![First web component](./img1.png)
+![First web component](./img1.jpg)
 
 ### Adding real content
 
@@ -113,7 +113,9 @@ Let's add some useful, interactive content. We need a span to hold our current v
   }
   ```
 
-Now we need a settable JavaScript class property named `value`
+If you're really grossed out by the manual dom creation, remember, you can set innerHTML if you prefer, you could create a template element once, set it as a static property of your web component class, and then clone it, and insert the contents for new web components instances. There's probably some other options I'm not creative enough to think of, or again, you can always use a web component framework like Lit or Stencil. But for this post, we'll continue to keep it simple. 
+
+Moving on, we need a settable JavaScript class property named `value`
 
   ```js
   #currentValue = 0;
@@ -126,7 +128,7 @@ Now we need a settable JavaScript class property named `value`
 
 It's just a standard class property, with a setter, along with a second property to hold the value. One fun twist is that I'm using a private JavaScript class property syntax for these values. That means nobody outside out web component can ever touch these values. This is standard JavaScript that's supported in all modern browsers, so don't be afraid to use it. 
   
-![CanIUse private class properties](./img2.png)
+![CanIUse private class properties](./img2.jpg)
 
 Or feel free to call it `_value` if you prefer.
 
@@ -140,7 +142,7 @@ And lastly our `update` method.
 
 And it works.
 
-![First web component working](./img3.png)
+![First web component working](./img3.jpg)
 
 Obviously this is not code you'd want to maintain at scale; but you would never need to. As I've said, tools like Lit-html are designed to make this simpler.
 
@@ -148,7 +150,7 @@ Here's a full [working example](https://stackblitz.com/edit/vitejs-vite-7f6brw?f
 
 ## Adding some more functionality 
 
-This post is not a deep dive into web components. We won't cover all the api's and lifecycles; we won't even cover shadow roots or slots; there's endless content on those topics. My goal here is to provide a decent enough introduction to spark some interest, along with some useful guidance on actually *using* web components with the popular JavaScript frameworks you already know and love.
+This post is not a deep dive into web components. We won't cover all the api's and lifecycles; we won't even cover shadow roots or slots. There's endless content on those topics. My goal here is to provide a decent enough introduction to spark some interest, along with some useful guidance on actually *using* web components with the popular JavaScript frameworks you already know and love.
 
 To that end, let's enhance our counter web component a bit. Let's have it accept a `color` attribute, to control the color of the value that's displayed. And let's also have it accept an `increment` property, so consumers of this web component can have it increment by 2, 3, 4 at a time.
 
@@ -179,11 +181,13 @@ and now we update our `update` method to actually use it.
   }
 ```
 
-lastly, let's add our `increment` property. Simple and humble.
+lastly, let's add our `increment` property. 
 
 ```js
   increment = 1;
 ```
+
+Simple and humble.
 
 ### Using our counter in Svelte
 
@@ -211,7 +215,7 @@ Let's use it. We'll go into our Svelte App component, and add something like thi
 </main>
 ```
 
-and it works. Our counter renders, increments, and the dropdown updates the color. As you can see, we render the color attribute in our Svelte template and, when the value changes, handles the legwork of calling `setAttribute` on our underlying web component instance. There's nothing special here: this is the same thing it already does for *any* html element's attributes. 
+and it works. Our counter renders, increments, and the dropdown updates the color. As you can see, we render the color attribute in our Svelte template and, when the value changes, Svelte handles the legwork of calling `setAttribute` on our underlying web component instance. There's nothing special here: this is the same thing it already does for *any* html element's attributes. 
 
 Now let's set the `incrementAmount` prop. Things get a little bit interesting here. This is *not* an attribute on our web component; it's a prop on the web component's class. That means it needs to be set on the web component's instance. Let's see what this means, but bear with me; things will wind up much simpler in a bit.
 
@@ -544,8 +548,16 @@ export function clearContainer(el) {
 
 It's a little bit more boilerplate than we'd need if we build this in a Framework, but the upside is that we can re-use this in any framework we'd like (although React will need a wrapper, for now, as we discussed).
 
+## Odds and ends
+
+I've already mentioned Lit's React wrapper. But if you find yourself using Stencil, it actually supports a serparate output pipeline just for react. Check it out [here](https://stenciljs.com/docs/react).
+
+And the good folks at Microsoft have also created something similar to Lit's wrapper, attached to the Fast web component library. Check it out [here](https://www.npmjs.com/package/@microsoft/fast-react-wrapper)
+
+As I mentioned, all frameworks (besides React) will handle setting web component properties for you. Just note that some have some special flavors of syntax. For example, with Solid.js, `<your-wc value={12}>` will always assume `value` is a property, which you can override with an `attr` prefix, ie `<your-wc attr:value={12}>`
+
 ## Wrapping up
 
-Web components are an interested, often underused part of the web development landscape. They can help reduce your dependence on any single JavaScript framework by managing your ui, or "leaf" components. While creating these components as web components, as opposed to Svelte, or React components won't be as ergonomic, the upside is that they'll be widely reusable. 
+Web components are an interesting, often underused part of the web development landscape. They can help reduce your dependence on any single JavaScript framework by managing your ui, or "leaf" components. While creating these components as web components, as opposed to Svelte, or React components won't be as ergonomic, the upside is that they'll be widely reusable. 
 
 Happy coding!
