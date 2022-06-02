@@ -14,15 +14,15 @@ Wouldn't it be better if we could define these low-level <abbr>UI</abbr> compone
 
 ### First, some context
 
-Web Components are essentially HTML elements that you define yourself, like say `<yummy-pizza>` or whatever, from the ground up. They're covered all over here at CSS-Tricks (including [an extensive series by Caleb Williams](https://css-tricks.com/an-introduction-to-web-components/) and <a href="https://css-tricks.com/web-components-are-easier-than-you-think/">one by John Rhea</a>) but we'll briefly walk through the process. Essentially, you define a JavaScript class, inherit it from `HTMLElement`, and then define whatever properties, attributes and styles the web component has and, of course, the markup it will ultimately render to your users.
+Web Components are essentially HTML elements that you define yourself, like `<yummy-pizza>` or whatever, from the ground up. They're covered all over here at CSS-Tricks (including [an extensive series by Caleb Williams](https://css-tricks.com/an-introduction-to-web-components/) and <a href="https://css-tricks.com/web-components-are-easier-than-you-think/">one by John Rhea</a>) but we'll briefly walk through the process. Essentially, you define a JavaScript class, inherit it from `HTMLElement`, and then define whatever properties, attributes and styles the web component has and, of course, the markup it will ultimately render to your users.
 
-Being able to define custom HTML elements that aren't bound to any particular component is exciting. But this freedom can also a limitation. Existing independently of any JavaScript framework means you can't really interact with those JavaScript frameworks. Think of a React component which fetches some data and then renders some *other* React component, passing along the data. This wouldn't really work as a web component, since a web component doesn't really know how to render a React component.
+Being able to define custom HTML elements that aren't bound to any particular component is exciting. But this freedom is also a limitation. Existing independently of any JavaScript framework means you can't really interact with those JavaScript frameworks. Think of a React component which fetches some data and then renders some *other* React component, passing along the data. This wouldn't really work as a web component, since a web component doesn't know how to render a React component.
 
 Web components particularly excel as **leaf components**. <dfn id="leaf">Leaf components<dfn> are the last thing to be rendered in a component tree. These are the components which receive some props, and render some <abbr>UI</abbr>. These are *not* the components sitting in the middle of your component tree, passing data along, setting context, etc. — just pure pieces of <abbr>UI</abbr> that will look the same, no matter which JavaScript framework is powering the rest of the app.
 
 ### The web component we're building
 
-Rather than building something boring (and common), like a button, let's build something a little bit different. In my [last post](https://css-tricks.com/inline-image-previews-with-sharp-blurhash-and-lambda-functions/) we looked at using blurry image previews to prevent content reflow, and provide a decent <abbr>UI</abbr> for users while our images load. We looked at base64 encoding a blurry, degraded versions of our images, and showing that in our <abbr>UI</abbr> while the real image loaded. We also looked at generating incredibly compact, blurry previews using a tool called [Blurhash](https://blurha.sh/).
+Rather than build something boring (and common), like a button, let's build something a little bit different. In my [last post](https://css-tricks.com/inline-image-previews-with-sharp-blurhash-and-lambda-functions/) we looked at using blurry image previews to prevent content reflow, and provide a decent <abbr>UI</abbr> for users while our images load. We looked at base64 encoding a blurry, degraded versions of our images, and showing that in our <abbr>UI</abbr> while the real image loaded. We also looked at generating incredibly compact, blurry previews using a tool called [Blurhash](https://blurha.sh/).
 
 That post showed you how to generate those previews and use them in a React project. This post will show you how to use those previews from a native web component so they can be used by *any* JavaScript framework.
 
@@ -95,7 +95,7 @@ Let's add some useful, interactive content. We need a `<span>` to hold the curre
       this.update();
     }
 
-If you're really grossed out by the manual DOM creation, remember you can set `innerHTML`, create a template element once, set it as a static property of your web component class, clone it, and insert the contents for new web components instances if you prefer. There's probably some other options I'm not thinking of, or you can always use a web component framework like [Lit])(https://lit.dev) or [Stencil](https://stenciljs.com). But for this post, we'll continue to keep it simple. 
+If you're really grossed out by the manual DOM creation, remember you can set `innerHTML`, or even create a template element once as a static property of your web component class, clone it, and insert the contents for new web components instances. There's probably some other options I'm not thinking of, or you can always use a web component framework like [Lit])(https://lit.dev) or [Stencil](https://stenciljs.com). But for this post, we'll continue to keep it simple. 
 
 Moving on, we need a settable JavaScript class property named `value`
 
@@ -106,7 +106,7 @@ Moving on, we need a settable JavaScript class property named `value`
       this.update();
     }
 
-It's just a standard class property with a setter, along with a second property to hold the value. One fun twist is that I'm using a private JavaScript class property syntax for these values. That means nobody outside our web component can ever touch these values. This is standard JavaScript that's supported in all modern browsers, so don't be afraid to use it. 
+It's just a standard class property with a setter, along with a second property to hold the value. One fun twist is that I'm using the private JavaScript class property syntax for these values. That means nobody outside our web component can ever touch these values. This is standard JavaScript that's supported in all modern browsers, so don't be afraid to use it. 
   
 ![CanIUse private class properties](./img2.jpg)
 
@@ -163,7 +163,7 @@ Lastly, let's add our `increment` property:
 
 Simple and humble.
 
-### Use the counter component in Svelte
+### Using the counter component in Svelte
 
 Let's use what we just made. We'll go into our Svelte app component and add something like this:
 
@@ -189,7 +189,7 @@ Let's use what we just made. We'll go into our Svelte app component and add some
 
 And it works! Our counter renders, increments, and the dropdown updates the color. As you can see, we render the color attribute in our Svelte template and, when the value changes, Svelte handles the legwork of calling `setAttribute` on our underlying web component instance. There's nothing special here: this is the same thing it already does for the attributes of *any* HTML element. 
 
-Things get a little bit interesting with the `incrementAmount` prop. This is *not* an attribute on our web component; it's a prop on the web component's class. That means it needs to be set on the web component's instance. Bear with me, as things will wind up much simpler in a bit.
+Things get a little bit interesting with the `increment` prop. This is *not* an attribute on our web component; it's a prop on the web component's class. That means it needs to be set on the web component's instance. Bear with me, as things will wind up much simpler in a bit.
 
 First, we'll add some variables to our Svelte component:
 
@@ -219,7 +219,7 @@ We obviously don't want to do this for every web component or prop we need to ma
 
   <counter-wc increment={increment} color={color}></counter-wc>
 
-Svelte handles that legwork for us. [Check it out in this demo.](https://stackblitz.com/edit/vitejs-vite-ucexzq?file=src/App.svelte) This is standard behavior for pretty much all JavaScript frameworks.
+It turns out we can. This code works; Svelte handles all that legwork for us. [Check it out in this demo.](https://stackblitz.com/edit/vitejs-vite-ucexzq?file=src/App.svelte) This is standard behavior for pretty much all JavaScript frameworks.
 
 So why did I show you the manual way of setting the web component's prop? Two reasons: it's useful to understand how these things work and, a moment ago, I said this works for "pretty much" all JavaScript frameworks. But there's one framework which, maddeningly, does not support web component prop setting like we just saw.
 
@@ -272,9 +272,9 @@ We have attributes. If you clicked the React demo above, the `increment` prop wa
 
 #### Option 2: Wrap it
 
-There's an old saying that you can solve any problem in computer science by adding a level of indirection (except the problem of too many levels of indirection). The code to set these props is pretty predictable and simple. What if we hide it in a library? The smart folks behind Lit [have one solution](https://www.npmjs.com/package/@lit-labs/react). This library creates a new React component for you after you give it a web component, then lists out the properties it needs. While it is clever, I'm not a fan of this approach.
+There's an old saying that you can solve any problem in computer science by adding a level of indirection (except the problem of too many levels of indirection). The code to set these props is pretty predictable and simple. What if we hide it in a library? The smart folks behind Lit [have one solution](https://www.npmjs.com/package/@lit-labs/react). This library creates a new React component for you after you give it a web component, and list out the properties it needs. While clever, I'm not a fan of this approach.
 
-Rather than have a one-to-one mapping of web components to manually-created React components, what we want is just *one* React component that we pass our web component *tag name* to (`counter-wc` in our case) — along with all the attributes and properties — and for this component to render our web component, add the `ref`, then figure out what is a prop and what is an attribute. That's the ideal solution in my opinion. I don't know of a library that does this, but it should be straightforward to create. Let's give it a shot!
+Rather than have a one-to-one mapping of web components to manually-created React components, what I prefer is just *one* React component that we pass our web component *tag name* to (`counter-wc` in our case) — along with all the attributes and properties — and for this component to render our web component, add the `ref`, then figure out what is a prop and what is an attribute. That's the ideal solution in my opinion. I don't know of a library that does this, but it should be straightforward to create. Let's give it a shot!
 
 This is the *usage* we're looking for:
 
@@ -344,7 +344,7 @@ You could probably even write a single codemod to do that everywhere, and then d
 
 I know, it seems like it took a journey to get here. If you recall, our original goal was to take the image preview code we looked at in my [last post](https://css-tricks.com/inline-image-previews-with-sharp-blurhash-and-lambda-functions/), and move it to a web component so it can be used in any JavaScript framework. React's lack of proper interop added a lot of detail to the mix. But now that we have a decent handle on how to create a web component, and use it, the implementation will almost be anti-climactic.
 
-I'll merely drop the entire web component here and call out some of the interesting bits. If you'd like to see it in action, here's a [working demo](https://stackblitz.com/edit/vitejs-vite-tt8yns?file=src/book-cover-wc.js). It'll switch between my three favorite books on my three favorite programming languages. The URL for each book will be unique each time, so you can see the preview, though you'll likely want to throttle things in your DevTools Network tab to really see things taking place.
+I'll drop the entire web component here and call out some of the interesting bits. If you'd like to see it in action, here's a [working demo](https://stackblitz.com/edit/vitejs-vite-tt8yns?file=src/book-cover-wc.js). It'll switch between my three favorite books on my three favorite programming languages. The URL for each book will be unique each time, so you can see the preview, though you'll likely want to throttle things in your DevTools Network tab to really see things taking place.
 
 /details
 
