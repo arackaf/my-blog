@@ -122,10 +122,59 @@ struct JSON: Codable {
 
 This compiles and "works," in so far as the value of our JSON field will always be zero, and we won't ever be able to turn it back into a JSON string (ie the encode method).
 
-> { "title": "jackass the movie", "year": 2002, "metadata": { "genre": "Immature" } }
+> { "title": "jackass the movie", "year": 2002, "metadata": "Immature" }
 
 now decodes into 
 
-> Movie(title: "jackass the movie", year: 2002, metadata: Optional(main.JSON(value: 0)))
+> Movie(title: "jackass the movie", year: 2002, metadata: main.JSON(value: Optional(0)))
 
 So how do we get appropriate values into JSON's value field?
+
+#### Decoding single values
+
+Let's assume, for now, that our metadata field will always be a single value, which for json means a string or a number. Decoder has a `singleValueContainer` method which returns a `SingleValueDecodingContainer` instance. *That* type has decode methods which handle every scalar type there is: String, Int, Double, etc.
+
+Let's put those pieces together
+
+```swift
+func decode(fromSingleValue container: SingleValueDecodingContainer) -> Any? {
+    if let result = try? container.decode(Int.self) { return result }
+    if let result = try? container.decode(Double.self) { return result }
+    if let result = try? container.decode(String.self) { return result }
+
+    return nil
+}
+
+struct JSON: Codable {
+  var value: Any?
+
+  public init(from decoder: Decoder) throws {
+    if let value = try? decoder.singleValueContainer() {
+      self.value = decode(fromSingleValue: value)
+    } else {
+      self.value = nil
+    }
+  }
+
+  public func encode(to encoder: Encoder) throws {
+  }  
+}
+```
+
+Which works
+
+The metadata above decodes into 
+
+> Movie(title: "jackass the movie", year: 2002, metadata: main.JSON(value: Optional("Immature")))
+
+#### Decoding nested objects
+
+We alread have 
+
+> { "title": "jackass the movie", "year": 2002, "metadata": "Immature" }
+
+working, but that's not very realistic, or useful. What we really want is for this to work
+
+> { "title": "jackass the movie", "year": 2002, "metadata": { "genre": "Immature" } }
+
+We want metadata here to be turned into a Map, with a single entry for "genre" (with the prior example, with a raw string to continue working)
