@@ -352,6 +352,6 @@ else if var nestedArray = try? container.nestedUnkeyedContainer(forKey: key) {
 
 #### Wrapping up decoding
 
-That was a lot. If you found it hard to follow the various code snippets, there's a [live demo](https://replit.com/@arackaf/fulljsondecoding#main.swift) of everything in action, at the end.
+That was a lot. If you found it hard to follow the various code snippets, there's a [live demo]( wip ) of everything in action, at the end.
 
 ### Encoding
