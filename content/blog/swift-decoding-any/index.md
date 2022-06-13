@@ -4,13 +4,13 @@ date: "2022-06-11T10:00:00.000Z"
 description: How to decode dynamic, nested json into Any
 ---
 
-Swift has some nice facilities for working with json. In the truly general case, you can throw in some JSON, and get back a generic dictionary of [String: Any], and cast as needed. You can also decode into concrete types you know the shape of. Unfortunately, mixing these approaches can be tricky. The minute you want to decode a piece of dynamic data into Any, the compiler starts yelling at you, and before you know it you have 5 Stack Overflow tabs open, somehow less close than you were before.
+Swift has some nice facilities for working with json. In the truly general case, you can throw in some json, and get back a generic dictionary of [String: Any], and cast as needed. You can also decode into concrete types you know the shape of. Unfortunately, mixing these approaches can be tricky. The minute you want to decode a piece of dynamic data into Any, the compiler starts yelling at you, and before you know it you have 5 Stack Overflow tabs open, somehow less close than you were before.
 
 This post will cut through the noise and show you how to truly, honestly encode and decode to, and from Any.
 
-The work here is adapted from [this gist](https://gist.github.com/mikebuss/17142624da4baf9cdcc337861e256533). I had searched pretty extensively for how to do this, and this had the pieces I was missing, from which I was able to work out how this all works.
+The work here is adapted from [this gist](https://gist.github.com/mikebuss/17142624da4baf9cdcc337861e256533). I had searched pretty extensively for how to do this, and this had the pieces I was missing, from which I was able to work out how the rest of this works.
 
-We'll start with decoding, and walk through everything step by step, from the ground up. Encoding is a straightforward inversion of decoding, so we'll close by quickly going over the encoding solution, along with a full demo showing everything.  
+We'll start with decoding, walking through everything step by step, from the ground up. Encoding is a straightforward inversion of decoding, so we'll close by quickly going over the encoding solution, along with a full demo showing everything.  
 
 ## Getting started: generic decoding
 
@@ -55,7 +55,7 @@ then we can easily decode it with a JSONDecoder, like this
 
 ```swift
 let json = """
-    { "title": "jackass the movie", "year": 2002 }
+    { "title": "Super Troopers", "year": 2001 }
 """.data(using: .utf8)!
 
 let jsonDecoder = JSONDecoder();
@@ -67,13 +67,13 @@ if let movie = try? jsonDecoder.decode(Movie.self, from: json) {
 
 which works just fine 
 
-> jackass the movie 2002
+> Super Troopers 2001
 
 Here's [a live demo](https://replit.com/@arackaf/decodingjsonconcretetypes#main.swift).
 
 ## Best of both worlds
 
-Let's say movies can have arbitrary metadata associated with them. Should be easy, right? We'll add a field, and that'll be that. 
+Let's say movies can have arbitrary metadata. Should be easy, right? We'll add a field, and that'll be that. 
 
 ```swift
 struct Movie: Codable {
@@ -107,7 +107,7 @@ struct Movie: Codable {
 }
 ```
 
-We moved out dynamic value to its own struct, and put that dynamic value in a field. This doesn't affect our solution, and while it may seem inconvenient to now have to go through a `value` field to get our metadata, the upside is this will make our solution more generalizable. Once we make `JSON` codable, all of Movie's fields will be Codable, and Swift will be able to synthesize everything it needs for `Movie`: best of all, we'll be able to reuse this JSON struct anywhere we'd like.
+We moved our dynamic value to its own struct, and put that dynamic value in a field. This doesn't affect our solution, and while it may seem inconvenient to now have to go through a `value` field to get our metadata, the upside is this will make our solution more generalizable. Once we make `JSON` codable, all of Movie's fields will be Codable, and Swift will be able to synthesize everything it needs for `Movie`: best of all, we'll be able to reuse this `JSON` struct anywhere we'd like.
 
 ### Getting started 
 
@@ -128,17 +128,17 @@ struct JSON: Codable {
 
 This compiles and "works," in so far as the value of our JSON field will always be zero, and we won't ever be able to turn it back into a JSON string (ie the encode method).
 
-> { "title": "jackass the movie", "year": 2002, "metadata": "Immature" }
+> { "title": "Super Troopers", "year": 2001, "metadata": "Comedy" }
 
 now decodes into 
 
-> Movie(title: "jackass the movie", year: 2002, metadata: main.JSON(value: Optional(0)))
+> Movie(title: "Super Troopers", year: 2001, metadata: main.JSON(value: Optional(0)))
 
 So how do we get appropriate values into JSON's `value` field?
 
 #### Decoding single values
 
-Let's assume, for now, that our metadata field will always be a single value, which for json means a string, boolean, number or null. `Decoder` has a `singleValueContainer` method which returns a `SingleValueDecodingContainer` instance. *That* type has decode methods which handle every scalar type there is: String, Int, Double, Bool, etc., as well as a `decodeNil` method to check for `nil`.
+Let's assume, for now, that our metadata field will always be a single value, which for json means a string, boolean, number or null. `Decoder` has a `singleValueContainer` method which returns a `SingleValueDecodingContainer` instance. *That* type has decode methods which handle every scalar type there is: String, Int, Double, Float, Bool, etc., as well as a `decodeNil` method to check for `nil`.
 
 Let's put those pieces together
 
@@ -168,17 +168,17 @@ Our init method grabs a `singleValueContainer`, checks for nil, or decodes the r
 
 The metadata above now decodes into 
 
-> Movie(title: "jackass the movie", year: 2002, metadata: main.JSON(value: Optional("Immature")))
+> Movie(title: "Super Troopers", year: 2001, metadata: main.JSON(value: Optional("Comedy")))
 
 #### Decoding nested objects
 
 We already have 
 
-> { "title": "jackass the movie", "year": 2002, "metadata": "Immature" }
+> { "title": "Super Troopers", "year": 2001, "metadata": "Comedy" }
 
 working, but that's not very realistic, or useful. What we really want is for this to work
 
-> { "title": "jackass the movie", "year": 2002, "metadata": { "genre": "Immature" } }
+> { "title": "Super Troopers", "year": 2001, "metadata": { "genre": "Comedy" } }
 
 We want metadata here to be turned into a dictionary, with a single entry for "genre" (and any other entries it might have). You might be hoping you can do
 
@@ -186,13 +186,13 @@ We want metadata here to be turned into a dictionary, with a single entry for "g
 container.decode([String: Any].self)
 ```
 
-but alas, no, you cannot. But what you can do is 
+but alas, no, you cannot. But what you *can* do is 
 
 ```swift
 container.nestedContainer(keyedBy:)
 ```
 
-The `keyedBy` was sticking point for me, initially. Most decoding examples you see create an enum, listing out all possible keys in the container, for example
+The `keyedBy` was sticking point for me, initially. Most decoding examples you see create an enum, listing all possible keys in the container, for example
 
 ```swift
 enum CodingKeys: String, CodingKey {
@@ -250,7 +250,7 @@ public init(from decoder: Decoder) throws {
 
 Notice how we check for the container *first*. A container will happily decode into the singleValueContainer method, but we don't want that; we want to pick up the `decoder.container` method instead, if it's a match, which is why we test for that first.
 
-From there we pass our container to a `decode(fromObject:)` method: let's have a look at that
+From there we pass our container to a new `decode(fromObject:)` method: let's have a look at that
 
 ```swift
 func decode(fromObject container: KeyedDecodingContainer<JSONCodingKeys>) -> [String: Any] {
@@ -313,7 +313,7 @@ public init(from decoder: Decoder) throws {
 }
 ```
 
-The `unkeyedContainer` method returns an instance of `UnkeyedDecodingContainer` if there's an array. This is processed a bit differently. There's a `isAtEnd` method we can test for, while repeatedly trying to decode the next value. Decoding the next value mutates the container, and advances to the next item, so we need to declare with `var` and pass it as `inout`. 
+The `unkeyedContainer` method returns an instance of `UnkeyedDecodingContainer` if there's an array. This is processed a bit differently. There's an `isAtEnd` property we can test for, while repeatedly trying to decode the next value. Decoding the next value mutates the container, and advances to the next item, so we need to declare with `var` and pass it as `inout`. 
 
 Let's see our decode method for arrays
 
@@ -321,7 +321,7 @@ Let's see our decode method for arrays
 func decode(fromArray container: inout UnkeyedDecodingContainer) -> [Any] {
     var result: [Any] = []
 
-    while container.isAtEnd == false {
+    while !container.isAtEnd {
         if let value = try? container.decode(String.self) { result.append(value) }
         else if let value = try? container.decode(Int.self) { result.append(value) }
         else if let value = try? container.decode(Double.self) { result.append(value) }
@@ -340,7 +340,7 @@ func decode(fromArray container: inout UnkeyedDecodingContainer) -> [Any] {
 }
 ```
 
-Very familiar, except this time we're appending to an array, rather than a dictionary. And of course we check each nested item for arrays or objects, and call the same decode methods we've already seen. This will seamlessly handle arrays within objects, within objects, within arrays, etc.
+Very familiar, except this time we're appending to an array, rather than a dictionary. And of course we check each nested item for arrays or objects, and call the same decode methods we've already seen. This will seamlessly handle arrays within objects, arrays within objects within objects, etc.
 
 And of course our prior method, `func decode(fromObject:)` is also updated to handle arrays
 
