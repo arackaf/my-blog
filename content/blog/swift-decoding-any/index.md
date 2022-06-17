@@ -364,10 +364,10 @@ Let's take a look at the `encode` method on our `JSON` type.
 public func encode(to encoder: Encoder) throws {
     if let map = self.value as? [String: Any] {
         var container = encoder.container(keyedBy: JSONCodingKeys.self)
-        encodeValue(fromObjectContainer: &container, map: map)
+        try encodeValue(fromObjectContainer: &container, map: map)
     } else if let arr = self.value as? [Any] {
         var container = encoder.unkeyedContainer()
-        encodeValue(fromArrayContainer: &container, arr: arr)
+        try encodeValue(fromArrayContainer: &container, arr: arr)
     } else {
         var container = encoder.singleValueContainer()
         
@@ -390,32 +390,32 @@ We check to see if our value is a dictionary, and if so, create an encoding cont
 
 If our value is scalar, we figure out the type, and call the relevant method.
 
-Lastly, note that we're using `try!` here, rather than `try?`. With decoding, we needed to try the various decoding methods, and see which one succeeded. We did this by using `try?`, and then discarding the nil values of anything that didn't succeed. With encoding, we check the types of *our own* values, and then *know* the correct encoding method to call. At that point, we expect it to succeed, and if it doesn't, something has gone wrong, and we *want* the exception to throw, and be processed by the relevant application code. 
+Lastly, note that we're using `try` here, rather than `try?`. With decoding, we needed to try the various decoding methods, and see which one succeeded. We did this by using `try?`, and then discarding the nil values of anything that didn't succeed. With encoding, we check the types of *our own* values, and then *know* the correct encoding method to call. At that point, we expect it to succeed, and if it doesn't, something has gone wrong, and we *want* the exception to throw, and be processed by the relevant application code. 
 
 Let's see the encoding method for dictionaries. 
 
 ```swift
-func encodeValue(fromObjectContainer container: inout KeyedEncodingContainer<JSONCodingKeys>, map: [String:Any?]) {
+func encodeValue(fromObjectContainer container: inout KeyedEncodingContainer<JSONCodingKeys>, map: [String:Any]) throws {
     for k in map.keys {
         let value = map[k]
         let encodingKey = JSONCodingKeys(stringValue: k)
         
         if let value = value as? String {
-            try! container.encode(value, forKey: encodingKey)
+            try container.encode(value, forKey: encodingKey)
         } else if let value = value as? Int {
-            try! container.encode(value, forKey: encodingKey)
+            try container.encode(value, forKey: encodingKey)
         } else if let value = value as? Double {
-            try! container.encode(value, forKey: encodingKey)
+            try container.encode(value, forKey: encodingKey)
         } else if let value = value as? Bool {
-            try! container.encode(value, forKey: encodingKey)
-        } else if let value = value as? [String: Any?] {
+            try container.encode(value, forKey: encodingKey)
+        } else if let value = value as? [String: Any] {
             var keyedContainer = container.nestedContainer(keyedBy: JSONCodingKeys.self, forKey: encodingKey)
-            encodeValue(fromObjectContainer: &keyedContainer, map: value)
-        } else if let value = value as? [Any?] {
+            try encodeValue(fromObjectContainer: &keyedContainer, map: value)
+        } else if let value = value as? [Any] {
             var unkeyedContainer = container.nestedUnkeyedContainer(forKey: encodingKey)
-            encodeValue(fromArrayContainer: &unkeyedContainer, arr: value)
+            try encodeValue(fromArrayContainer: &unkeyedContainer, arr: value)
         } else {
-            try! container.encodeNil(forKey: encodingKey)
+            try container.encodeNil(forKey: encodingKey)
         }
     }
 }
@@ -426,24 +426,24 @@ We loop the keys, and as before, we figure out the right encoding method to call
 The array version is similar 
 
 ```swift
-func encodeValue(fromArrayContainer container: inout UnkeyedEncodingContainer, arr: [Any?]) {
+func encodeValue(fromArrayContainer container: inout UnkeyedEncodingContainer, arr: [Any]) throws {
     for value in arr {
         if let value = value as? String {
-            try! container.encode(value)
+            try container.encode(value)
         } else if let value = value as? Int {
-            try! container.encode(value)
+            try container.encode(value)
         } else if let value = value as? Double {
-            try! container.encode(value)
+            try container.encode(value)
         } else if let value = value as? Bool {
-            try! container.encode(value)
+            try container.encode(value)
         } else if let value = value as? [String: Any] {
             var keyedContainer = container.nestedContainer(keyedBy: JSONCodingKeys.self)
-            encodeValue(fromObjectContainer: &keyedContainer, map: value)
+            try encodeValue(fromObjectContainer: &keyedContainer, map: value)
         } else if let value = value as? [Any] {
             var unkeyedContainer = container.nestedUnkeyedContainer()
-            encodeValue(fromArrayContainer: &unkeyedContainer, arr: value)
+            try encodeValue(fromArrayContainer: &unkeyedContainer, arr: value)
         } else {
-            try! container.encodeNil()
+            try container.encodeNil()
         }
     }
 }
