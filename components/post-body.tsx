@@ -75,9 +75,9 @@ export default function PostBody({ content }) {
   }, []);
 
   return (
-    <div ref={rootRef} className="max-w-2xl mx-auto">
-      <div style={{ width: "50%" }}>
-        <div className={""} dangerouslySetInnerHTML={{ __html: content }} />
+    <div ref={rootRef}>
+      <div>
+        <div dangerouslySetInnerHTML={{ __html: content }} />
       </div>
     </div>
   );

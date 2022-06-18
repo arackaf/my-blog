@@ -5,8 +5,14 @@ export default function Layout({ children }) {
   return (
     <>
       <Meta />
-      <Nav />
-      <main>{children}</main>
+      <main>
+        <Nav />
+        <article>
+          {/* <div style={{ backgroundColor: "blue" }}></div> */}
+          <section>{children}</section>
+          {/* <div style={{ backgroundColor: "red" }}></div> */}
+        </article>
+      </main>
     </>
   );
 }

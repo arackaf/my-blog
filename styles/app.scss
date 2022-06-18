@@ -1,0 +1,33 @@
+main {
+  --main-content-width: 800px;
+
+  display: grid;
+  grid-template-rows: auto auto;
+  grid-template-columns: 1fr;
+
+  grid-template-areas: 
+    'header'
+    'main';
+
+  header {
+    grid-area: header;
+  }
+
+  article { 
+    grid-area: main;
+  }
+
+  header, article {
+    display: grid;
+
+    grid-template-rows: 1fr;
+    grid-template-columns: 1fr minmax(0, var(--main-content-width)) 1fr;
+    grid-template-areas: 'gutter1 main gutter2';
+
+    nav, section { 
+      grid-area: main;
+    }
+  }
+
+
+}
