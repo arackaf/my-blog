@@ -1,10 +1,9 @@
 import DateFormatter from "../components/date-formatter";
-import PostTitle from "../components/post-title";
 
 export default function PostHeader({ title, coverImage, date, author }) {
   return (
     <>
-      <PostTitle>{title}</PostTitle>
+      <h1>XX{title}</h1>
       <div>
         <div>
           <DateFormatter dateString={date} />
