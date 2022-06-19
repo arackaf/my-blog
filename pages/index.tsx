@@ -2,10 +2,9 @@ import Container from "../components/container";
 import Layout from "../components/layout";
 import { getAllPosts } from "../lib/api";
 import Head from "next/head";
+import Link from "next/link";
 
 export default function Index({ allPosts }) {
-  const heroPost = allPosts[0];
-  const morePosts = allPosts.slice(1);
   return (
     <>
       <Layout>
@@ -17,6 +16,16 @@ export default function Index({ allPosts }) {
           <div>Hello</div>
 
           <div>
+            {allPosts.map(post => (
+              <div>
+                <h3>
+                  <Link href={post.slug}>
+                    <a>{post.title}</a>
+                  </Link>
+                </h3>
+              </div>
+            ))}
+
             <pre>{JSON.stringify(allPosts, null, 2)}</pre>
           </div>
         </Container>
@@ -26,7 +35,7 @@ export default function Index({ allPosts }) {
 }
 
 export async function getStaticProps() {
-  const allPosts = getAllPosts(["title", "date", "description"]);
+  const allPosts = getAllPosts(["title", "slug", "date", "description"]);
 
   return {
     props: { allPosts },
