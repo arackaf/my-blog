@@ -19,7 +19,7 @@ export default function Index({ allPosts }) {
             {allPosts.map(post => (
               <div>
                 <h3>
-                  <Link href={post.slug}>
+                  <Link href={`blog/${post.slug}`}>
                     <a>{post.title}</a>
                   </Link>
                 </h3>
