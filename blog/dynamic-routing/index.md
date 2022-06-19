@@ -12,6 +12,8 @@ ogImage:
 
 # My first post
 
+![Query results](/dynamic-routing/img1.png)
+
 ```js[class="line-numbers"][data-line="2,4-6"]
 class Foo {
   x = 13;
