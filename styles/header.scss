@@ -1,16 +1,17 @@
 header {
   
-  //display: flex;
-  //flex-direction: row;
-  //align-items: center;
-  //justify-content: center;
+  display: none;
+  // display: flex;
+  // flex-direction: row;
+  // align-items: center;
+  // justify-content: center;
 
   // padding: 15px 0;
   padding: 0;
   color: var(--neutral-text);
 
   nav {
-    display: none;
+    // display: none;
     ul {
       display: flex;
       flex-direction: row;
