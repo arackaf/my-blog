@@ -1,5 +1,10 @@
+body {
+  font-family: 'Georgia', serif;
+  color: rgba(0, 0, 0, 0.8);
+}
+
 main {
-  --main-content-width: 800px;
+  --main-content-width: 676px;
 
   display: grid;
   grid-template-rows: auto auto;
@@ -24,28 +29,6 @@ a {
   text-decoration: none;
 }
 
-h1 {
-  font-size: 24px;
-  &.post-title {
-    font-size: 26px;
-  }
-}
-h2 {
-  font-size: 20px;
-}
-h3 {
-  font-size: 18px;
-}
-h4 {
-  font-size: 16px;
-}
-h5 {
-  font-size: 14px;
-}
-h6 {
-  font-size: 13px;
-}
-
 strong {
   font-weight: bold;
 }
@@ -56,4 +39,30 @@ em {
 
 p {
   margin-bottom: 1.6rem;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Segoe UI','Avenir Next','Helvetica Neue','Helvetica','Arial',sans-serif;
+  font-weight: bold;
+  line-height: 1.1;
+  margin-bottom: var(--header-margin-bottom);
+}
+
+h1 {
+  font-size: 2rem;
+}
+h2 {
+  font-size: 1.51572rem;
+}
+h3 {
+  font-size: 1.31951rem;
+}
+h4 {
+  font-size: 1rem;
+}
+h5 {
+  font-size: 0.87055rem;
+}
+h6 {
+  font-size: 0.81225rem;
 }

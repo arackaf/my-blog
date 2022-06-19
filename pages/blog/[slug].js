@@ -39,7 +39,7 @@ export default function Post({ post, morePosts, preview }) {
               <meta property="og:image" content={post.ogImage.url} />
             </Head>
 
-            <h1 className="post-title">{title}</h1>
+            <h1>{title}</h1>
             <div>
               <DateFormatter dateString={date} />
             </div>

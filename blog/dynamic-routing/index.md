@@ -10,6 +10,16 @@ ogImage:
   url: "/assets/blog/dynamic-routing/cover.jpg"
 ---
 
+<br/>
+<br/>
+<br/>
+
+DynamoDB is an incredible database whose popularity is quickly rising. Unfortunately, it can be difficult to wrap your head around how it works, and why. It’s designed to have some very ambitious performance characteristics, and for this reason its api is rather different, and much more limited compared to what developers might be used to with other databases.
+
+<br/>
+<br/>
+<br/>
+
 # Markdown Header 1
 a
 
