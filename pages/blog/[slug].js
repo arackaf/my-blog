@@ -1,3 +1,5 @@
+import React, { useEffect } from "react";
+
 import { useRouter } from "next/router";
 import Link from "next/link";
 import Head from "next/head";
@@ -19,6 +21,23 @@ export default function Post({ post, morePosts, preview }) {
     return <ErrorPage statusCode={404} />;
   }
 
+  useEffect(() => {
+    for (const img of document.querySelectorAll("img")) {
+      if (img.parentElement.tagName === "A") {
+        continue;
+      }
+
+      const referenceParent = img.parentElement;
+
+      const anchor = document.createElement("a");
+      anchor.href = img.src;
+      anchor.target = "_blank";
+
+      referenceParent.insertBefore(anchor, img);
+      anchor.appendChild(img);
+    }
+  }, []);
+
   const { title, date } = post;
 
   return (
@@ -38,7 +57,7 @@ export default function Post({ post, morePosts, preview }) {
           <>
             <Head>
               <title>{post.title} | Next.js Blog Example with</title>
-              <meta property="og:image" content={post.ogImage.url} />
+              <meta property="og:image" content="/assets/home/avatar.jpeg" />
             </Head>
 
             <h1>{title}</h1>
