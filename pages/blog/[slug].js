@@ -24,11 +24,13 @@ export default function Post({ post, morePosts, preview }) {
   return (
     <Layout preview={preview} className={postCssClass}>
       <Container>
-        <Link href="/">
-          <a className="back-link">
-            <i className="fas fa-reply"></i> Adam's Blog
-          </a>
-        </Link>
+        <h4>
+          <Link href="/">
+            <a className="back-link">
+              <i className="fas fa-reply"></i> Adam's Blog
+            </a>
+          </Link>
+        </h4>
 
         {router.isFallback ? (
           <h1>Loading…</h1>
@@ -40,7 +42,7 @@ export default function Post({ post, morePosts, preview }) {
             </Head>
 
             <h1>{title}</h1>
-            <div>
+            <div className="post-date">
               <DateFormatter dateString={date} />
             </div>
 
