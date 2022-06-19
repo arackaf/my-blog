@@ -3,25 +3,33 @@ import Link from "next/link";
 import Head from "next/head";
 import ErrorPage from "next/error";
 
+import { post as postCssClass } from "../../styles/blog-styles.module.scss";
+
 import markdownToHtml from "../../lib/markdownToHtml";
 import { getPostBySlug, getAllPosts } from "../../lib/api";
 
 import Container from "../../components/container";
 import Layout from "../../components/layout";
 import PostBody from "../../components/post-body";
-import PostHeader from "../../components/post-header";
+import DateFormatter from "../../components/date-formatter";
 
 export default function Post({ post, morePosts, preview }) {
   const router = useRouter();
   if (!router.isFallback && !post?.slug) {
     return <ErrorPage statusCode={404} />;
   }
+
+  const { title, date } = post;
+
   return (
-    <Layout preview={preview}>
+    <Layout preview={preview} className={postCssClass}>
       <Container>
         <Link href="/">
-          <a>Bloggggxa</a>
+          <a className="back-link">
+            <i className="fas fa-reply"></i> Adam's Blog
+          </a>
         </Link>
+
         {router.isFallback ? (
           <h1>Loading…</h1>
         ) : (
@@ -30,7 +38,12 @@ export default function Post({ post, morePosts, preview }) {
               <title>{post.title} | Next.js Blog Example with</title>
               <meta property="og:image" content={post.ogImage.url} />
             </Head>
-            <PostHeader title={post.title} coverImage={post.coverImage} date={post.date} author={post.author} />
+
+            <h1 className="post-title">{title}</h1>
+            <div>
+              <DateFormatter dateString={date} />
+            </div>
+
             <PostBody content={post.content} />
           </>
         )}

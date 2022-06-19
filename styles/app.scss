@@ -17,3 +17,31 @@ main {
     grid-area: main;
   }
 }
+
+a {
+  color: #007acc;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+h1 {
+  font-size: 24px;
+  &.post-title {
+    font-size: 26px;
+  }
+}
+h2 {
+  font-size: 20px;
+}
+h3 {
+  font-size: 18px;
+}
+h4 {
+  font-size: 16px;
+}
+h5 {
+  font-size: 14px;
+}
+h6 {
+  font-size: 13px;
+}

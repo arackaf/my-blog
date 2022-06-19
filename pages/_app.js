@@ -5,6 +5,7 @@ import "../styles/reset.css";
 import "../styles/index.css";
 import "../styles/app.scss";
 import "../styles/header.scss";
+import "../styles/fontawesome/css/all.min.css";
 
 export default function MyApp({ Component, pageProps }) {
   return <Component {...pageProps} />;
