@@ -16,7 +16,7 @@ export default function Index({ allPosts }) {
         </Head>
         <Container>
           <section className={titleStyles}>
-            <div className="blog-name">
+            <div className="blog-header">
               <img src="../assets/home/avatar.jpeg" />
               <div className="titles">
                 <h1>Strangely Typed</h1>
@@ -35,11 +35,13 @@ export default function Index({ allPosts }) {
                 </div>
               </div>
             </div>
-            <p>Hi, I'm Adam 👋</p>
-            <p>
-              Welcome to my blog. I usually write about web development—the React or Svelte stacks in particular—or occasionally GraphQL, databases,
-              or anything else I'm interested in at the time.
-            </p>
+            <div className="blog-intro">
+              <p>Hi, I'm Adam 👋</p>
+              <p>
+                Welcome to my blog. I usually write about web development—the React or Svelte stacks in particular—or occasionally GraphQL, databases,
+                or anything else I'm interested in at the time.
+              </p>
+            </div>
           </section>
 
           <div>

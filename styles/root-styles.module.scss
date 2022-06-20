@@ -8,9 +8,10 @@
 
   margin-bottom: 24px;
 
-  :global(.blog-name) {
+  :global(.blog-header) {
     display: flex;
     flex-direction: row;
+    margin-bottom: 1.6rem;
 
     :global(.titles) {
       display: flex;
@@ -39,6 +40,10 @@
         }
       }
     }
+  }
+
+  :global(.blog-intro) {
+    margin-bottom: 1.6rem;
   }
 
   img {
