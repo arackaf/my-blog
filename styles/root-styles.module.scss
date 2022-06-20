@@ -1,0 +1,26 @@
+.title { 
+  display: flex;
+  flex-direction: column;
+
+  & > * + * {
+    margin-top: 10px;
+  }
+
+  margin-bottom: 24px;
+
+  :global(.blog-name) {
+    display: flex;
+    flex-direction: row;
+  }
+
+  img {
+    max-width: 100px;
+    max-height: 100px;
+    border-radius: 50%;
+    display: block;
+    margin-right: 10px;
+  }
+  h1 {
+    margin-bottom: 0px;
+  }
+}

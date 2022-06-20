@@ -3,6 +3,10 @@ body {
   color: rgba(0, 0, 0, 0.8);
 }
 
+.root-container {
+  margin-top: 42px;
+}
+
 main {
   --main-content-width: 676px;
 
@@ -38,7 +42,7 @@ em {
 }
 
 p {
-  margin-bottom: 1.6rem;
+  line-height: 1.2;
 }
 
 h1, h2, h3, h4, h5, h6 {

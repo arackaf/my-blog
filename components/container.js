@@ -1,3 +1,3 @@
 export default function Container({ children }) {
-  return <div>{children}</div>;
+  return <div className="root-container">{children}</div>;
 }

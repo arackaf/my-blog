@@ -4,6 +4,9 @@ import { getAllPosts } from "../lib/api";
 import Head from "next/head";
 import Link from "next/link";
 
+import styles from "../styles/root-styles.module.scss";
+const { title: titleStyles } = styles;
+
 export default function Index({ allPosts }) {
   return (
     <>
@@ -12,8 +15,20 @@ export default function Index({ allPosts }) {
           <title>Adam Rackis's personal site and blog</title>
         </Head>
         <Container>
-          <img src="../assets/home/avatar.jpeg" />
-          <div>Hello</div>
+          <section className={titleStyles}>
+            <div className="blog-name">
+              <img src="../assets/home/avatar.jpeg" />
+              <div>
+                <h1>Adam's Blog</h1>
+                <h3>(workshopping the name)</h3>
+              </div>
+            </div>
+            <p>Hi, I'm Adam 👋</p>
+            <p>
+              Welcome to my blog. I usually write about web development—the React or Svelte stacks in particular—or occasionally GraphQL, databases,
+              or anything else I'm interested in at the time.
+            </p>
+          </section>
 
           <div>
             {allPosts.map(post => (
@@ -25,8 +40,6 @@ export default function Index({ allPosts }) {
                 </h3>
               </div>
             ))}
-
-            <pre>{JSON.stringify(allPosts, null, 2)}</pre>
           </div>
         </Container>
       </Layout>
