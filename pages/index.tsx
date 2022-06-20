@@ -18,9 +18,21 @@ export default function Index({ allPosts }) {
           <section className={titleStyles}>
             <div className="blog-name">
               <img src="../assets/home/avatar.jpeg" />
-              <div>
-                <h1>Adam's Blog</h1>
-                <h3>(workshopping the name)</h3>
+              <div className="titles">
+                <h1>Strangely Typed</h1>
+                <h3>Software engineering blog by Adam Rackis</h3>
+                <div>
+                  <h4>
+                    <a href="https://github.com/arackaf">
+                      <i className="fab fa-twitter"></i> adamrackis
+                    </a>
+                  </h4>
+                  <h4>
+                    <a href="https://twitter.com/AdamRackis">
+                      <i className="fab fa-github"></i> arackaf
+                    </a>
+                  </h4>
+                </div>
               </div>
             </div>
             <p>Hi, I'm Adam 👋</p>

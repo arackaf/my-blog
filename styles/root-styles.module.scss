@@ -11,16 +11,41 @@
   :global(.blog-name) {
     display: flex;
     flex-direction: row;
+
+    :global(.titles) {
+      display: flex;
+      flex-direction: column;
+
+      & > :not(:first-child) {
+        margin-left: 5px;
+      }
+
+      & > * {
+        margin-bottom: 0;
+      }
+      
+      & > :first-child {
+        margin-bottom: 5px;
+      }
+
+      & > :last-child {
+        display: flex;
+        flex-direction: column;
+        margin-top: auto;
+
+        & > * {
+          margin-bottom: 0;
+          font-weight: 600;
+        }
+      }
+    }
   }
 
   img {
-    max-width: 100px;
-    max-height: 100px;
+    max-width: 125px;
+    max-height: 125px;
     border-radius: 50%;
     display: block;
     margin-right: 10px;
-  }
-  h1 {
-    margin-bottom: 0px;
   }
 }
