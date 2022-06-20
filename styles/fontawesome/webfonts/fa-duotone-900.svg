@@ -1,0 +1,32 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd" >
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">
+<metadata>
+Created by FontForge 20201107 at Mon Jun 20 00:25:28 2022
+ By root
+Copyright (c) Font Awesome
+</metadata>
+<!-- Font Awesome Pro 5.15.4 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) --><defs>
+<font id="FontAwesome5Duotone-Solid" horiz-adv-x="512" >
+  <font-face 
+    font-family="Font Awesome 5 Duotone Solid"
+    font-weight="900"
+    font-stretch="normal"
+    units-per-em="512"
+    panose-1="2 0 5 3 0 0 0 0 0 0"
+    ascent="448"
+    descent="-64"
+    bbox="0 -64 512 448"
+    underline-thickness="25"
+    underline-position="-50"
+    unicode-range="U+0020-10F35D"
+  />
+    <missing-glyph />
+    <glyph glyph-name="external-link-alt-primary" unicode="&#xf35d;" 
+d="M512 424v-128c0 -21.4697 -26 -32 -41 -17l-35.71 35.71l-243.49 -243.479c-4.34375 -4.34473 -10.3438 -7.03223 -16.9668 -7.03223c-6.62207 0 -12.6289 2.6875 -16.9727 7.03223l-22.6299 22.6299c-4.34473 4.34375 -7.03223 10.3438 -7.03223 16.9668
+c0 6.62207 2.6875 12.6289 7.03223 16.9727l243.529 243.521l-35.71 35.6797c-15.0498 15.0996 -4.38965 41 16.9502 41h128c13.2461 0 24 -10.7539 24 -24z" />
+    <glyph glyph-name="external-link-alt-secondary" unicode="&#x10f35d;" 
+d="M400 128h32c8.83105 0 16 -7.16895 16 -16v-128c0 -26.4922 -21.5078 -48 -48 -48h-352c-26.4922 0 -48 21.5078 -48 48v352c0 26.4922 21.5078 48 48 48h160c8.83105 0 16 -7.16895 16 -16v-32c0 -8.83105 -7.16895 -16 -16 -16h-144v-320h320v112
+c0 8.83105 7.16895 16 16 16z" />
+  </font>
+</defs></svg>
