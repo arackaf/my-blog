@@ -1,11 +1,12 @@
 import Container from "../components/container";
+import { DateFormatter } from "../components/date-formatter";
 import Layout from "../components/layout";
 import { getAllPosts } from "../lib/api";
 import Head from "next/head";
 import Link from "next/link";
 
 import styles from "../styles/root-styles.module.scss";
-const { title: titleStyles } = styles;
+const { title: titleStyles, list: listStyles } = styles;
 
 export default function Index({ allPosts }) {
   return (
@@ -44,14 +45,18 @@ export default function Index({ allPosts }) {
             </div>
           </section>
 
-          <div>
+          <div className={listStyles}>
             {allPosts.map(post => (
-              <div>
+              <div className="blog-list-item">
                 <h3>
                   <Link href={`blog/${post.slug}`}>
                     <a>{post.title}</a>
                   </Link>
                 </h3>
+                <small>
+                  <DateFormatter dateString={post.date}></DateFormatter>{" "}
+                </small>
+                <p>{post.description}</p>
               </div>
             ))}
           </div>
