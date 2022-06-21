@@ -167,7 +167,7 @@ class BlogIndex extends React.Component {
                 external: true,
                 frontmatter: {
                   title: "Demystifying TypeScript Discriminated Unions",
-                  date: "Jan 17, 2022",
+                  date: "Jan 27, 2022",
                   description: "Explaining TypeScript unions, and discriminated unions"
                 },
                 fields: {
