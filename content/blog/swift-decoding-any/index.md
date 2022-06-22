@@ -4,11 +4,11 @@ date: "2022-06-11T10:00:00.000Z"
 description: How to decode dynamic, nested json into Any
 ---
 
-Swift has some nice facilities for working with json. In the truly general case, you can throw in some json, and get back a generic dictionary of [String: Any], and cast as needed. You can also decode into concrete types you know the shape of. Unfortunately, mixing these approaches can be tricky. The minute you want to decode a piece of dynamic data into Any, the compiler starts yelling at you, and before you know it you have 5 Stack Overflow tabs open, somehow less close than you were before.
+Swift has some nice facilities for working with json. In the truly general case, you can throw in some json, get back a generic dictionary of `[String: Any]`, and cast as needed. You can also decode into concrete types you know the shape of. Unfortunately, mixing these approaches can be tricky. The minute you want to decode a piece of dynamic data into `Any`, the compiler starts yelling at you, and before you know it you have 5 Stack Overflow tabs open, somehow less close than you were before.
 
-This post will cut through the noise and show you how to truly, honestly encode and decode to, and from Any.
+This post will cut through the noise and show you how to truly, honestly encode and decode to, and from `Any`.
 
-The work here is adapted from [this gist](https://gist.github.com/mikebuss/17142624da4baf9cdcc337861e256533). I had searched pretty extensively for how to do this, and this had the pieces I was missing, from which I was able to work out how the rest of this works.
+This work is adapted from [this gist](https://gist.github.com/mikebuss/17142624da4baf9cdcc337861e256533). I had searched pretty extensively for how to do this, and this had the pieces I was missing, from which I was able to work out the rest.
 
 We'll start with decoding, walking through everything step by step, from the ground up. Encoding is a straightforward inversion of decoding, so we'll close by quickly going over the encoding solution, along with a full demo showing everything.  
 
@@ -51,7 +51,7 @@ struct Movie: Codable {
 }
 ```
 
-then we can easily decode it with a JSONDecoder, like this 
+then we can easily decode into it with a JSONDecoder, like this 
 
 ```swift
 let json = """
