@@ -13,7 +13,7 @@ import { getPostBySlug, getAllPosts } from "../../lib/api";
 import Container from "../../components/container";
 import Layout from "../../components/layout";
 import PostBody from "../../components/post-body";
-import DateFormatter from "../../components/date-formatter";
+import { DateFormatter } from "../../components/date-formatter";
 
 export default function Post({ post, morePosts, preview }) {
   const router = useRouter();

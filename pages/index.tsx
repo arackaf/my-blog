@@ -50,7 +50,9 @@ export default function Index({ allPosts }) {
               <div className="blog-list-item">
                 <h3>
                   {post.url ? (
-                    <a>{post.title}</a>
+                    <a href={post.url}>
+                      {post.title} &nbsp;<i className="fad fa-external-link-alt"></i>
+                    </a>
                   ) : (
                     <Link href={`blog/${post.slug}`}>
                       <a>{post.title}</a>
@@ -58,7 +60,8 @@ export default function Index({ allPosts }) {
                   )}
                 </h3>
                 <small>
-                  <DateFormatter dateString={post.date}></DateFormatter>{" "}
+                  <DateFormatter dateString={post.date}></DateFormatter>
+                  {post.url ? <span> on css-tricks.com</span> : ""}
                 </small>
                 <p>{post.description}</p>
               </div>
