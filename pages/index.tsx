@@ -49,9 +49,13 @@ export default function Index({ allPosts }) {
             {allPosts.map(post => (
               <div className="blog-list-item">
                 <h3>
-                  <Link href={`blog/${post.slug}`}>
+                  {post.url ? (
                     <a>{post.title}</a>
-                  </Link>
+                  ) : (
+                    <Link href={`blog/${post.slug}`}>
+                      <a>{post.title}</a>
+                    </Link>
+                  )}
                 </h3>
                 <small>
                   <DateFormatter dateString={post.date}></DateFormatter>{" "}

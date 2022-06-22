@@ -91,13 +91,15 @@ export async function getStaticPaths() {
   const posts = getAllPosts(["slug"]);
 
   return {
-    paths: posts.map(post => {
-      return {
-        params: {
-          slug: post.slug,
-        },
-      };
-    }),
+    paths: posts
+      .filter(post => post.slug)
+      .map(post => {
+        return {
+          params: {
+            slug: post.slug,
+          },
+        };
+      }),
     fallback: false,
   };
 }

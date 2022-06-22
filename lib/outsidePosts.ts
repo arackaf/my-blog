@@ -27,13 +27,13 @@ export const externalPosts = [
     title: "Integrating TypeScript with Svelte",
     date: "2020-12-28T10:00:00.000Z",
     description: "Manually adding TypeScript to a non-greenfield Svelte project",
-    slug: "https://css-tricks.com/integrating-typescript-with-svelte/",
+    url: "https://css-tricks.com/integrating-typescript-with-svelte/",
   },
   {
     title: "Pre-Caching Images with React Suspense",
     date: "2020-09-21T10:00:00.000Z",
     description: "Using Suspense to block a component's rendering until its images have loaded",
-    slug: "https://css-tricks.com/pre-caching-image-with-react-suspense/",
+    url: "https://css-tricks.com/pre-caching-image-with-react-suspense/",
   },
   {
     title: "How to Use CSS Grid for Sticky Headers and Footers",
