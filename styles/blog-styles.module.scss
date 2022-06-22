@@ -1,0 +1,32 @@
+.post {
+  :global(.back-link) {
+    color: inherit;
+  }
+
+  // force prisma <pre> elements to be position: relative for the copy button 
+  pre { 
+    position: relative;
+  }
+
+  p {
+    margin-bottom: 1.6rem;
+    line-height: 1.666;
+  }
+
+  img { 
+    display: block;
+    max-width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: var(--heading-margin-bottom);
+    margin-bottom: var(--heading-margin-bottom);
+  }
+
+  :global(.post-date) { 
+    margin-top: calc(-1 * var(--heading-margin-bottom));
+    font-size: 0.87055rem;
+    line-height: 1.666rem;
+    margin-bottom: var(--heading-margin-bottom);
+  }
+
+}

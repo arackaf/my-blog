@@ -1,0 +1,38 @@
+header {
+  
+  display: none;
+  // display: flex;
+  // flex-direction: row;
+  // align-items: center;
+  // justify-content: center;
+
+  // padding: 15px 0;
+  padding: 0;
+  color: var(--neutral-text);
+
+  nav {
+    // display: none;
+    ul {
+      display: flex;
+      flex-direction: row;
+
+      li {
+        padding: 0 10px;
+
+        a,
+        span {
+          color: var(--neutral-text);
+          text-decoration: none;
+
+          &::after {
+            content: attr(data-text);
+            font-weight: bold;
+          }
+        }
+        span {
+          font-weight: bold;
+        }
+      }
+    }
+  }
+}

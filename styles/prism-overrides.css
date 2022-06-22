@@ -1,0 +1,48 @@
+:root {
+  --highlight-background: rgba(0, 0, 0, 0);
+  --highlight-width: 0;
+}
+
+.line-numbers span.line-numbers-rows {
+  margin-top: -1px;
+}
+
+.line-numbers span.line-numbers-rows > span {
+  position: relative;
+}
+
+.line-numbers span.line-numbers-rows > span::after {
+  content: " ";
+  background: var(--highlight-background);
+  width: var(--highlight-width);
+  position: absolute;
+  top: 0;
+}
+
+.line-numbers.hide-numbers {
+  padding: 1em !important;
+}
+.hide-numbers .line-numbers-rows {
+  width: 0;
+}
+.hide-numbers .line-numbers-rows > span::before {
+  content: " ";
+}
+.hide-numbers .line-numbers-rows > span {
+  padding-left: 2.8em;
+}
+
+.prism-copy-button {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 10ch;
+  background-color: rgba(100, 100, 100, 0.5);
+  border-width: 0;
+  color: rgb(0, 0, 0);
+  cursor: pointer;
+}
+
+.prism-copy-button[disabled] {
+  cursor: default;
+}
