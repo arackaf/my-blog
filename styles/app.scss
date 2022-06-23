@@ -25,6 +25,11 @@ main {
   article { 
     grid-area: main;
   }
+
+  @media (max-width: 700px) {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
 }
 
 a {
