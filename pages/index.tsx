@@ -40,7 +40,7 @@ export default function Index({ allPosts }) {
               <p>Hi, I'm Adam 👋</p>
               <p>
                 Welcome to my blog. I usually write about web development—the React or Svelte stacks in particular—or occasionally GraphQL, databases,
-                or anything else I'm interested in at the time.
+                or anything else I'm interested in.
               </p>
             </div>
           </section>
