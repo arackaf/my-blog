@@ -9,6 +9,17 @@
     flex-direction: row;
     margin-bottom: var(--root-section-spacing);
 
+    :global(.personal-links) {
+      a {
+        display: flex;
+        align-items: start;
+        svg {
+          fill: var(--link-color);
+          margin-right: 3px;
+        }
+      }
+    }
+
     :global(.titles) {
       display: flex;
       flex-direction: column;

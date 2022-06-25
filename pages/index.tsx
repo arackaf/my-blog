@@ -5,6 +5,9 @@ import { getAllPosts } from "../lib/api";
 import Head from "next/head";
 import Link from "next/link";
 
+import { GithubIcon } from "../components/svg/githubIcon";
+import { TwitterIcon } from "../components/svg/twitterIcon";
+
 import styles from "../styles/root-styles.module.scss";
 const { title: titleStyles, list: listStyles } = styles;
 
@@ -22,15 +25,16 @@ export default function Index({ allPosts }) {
               <div className="titles">
                 <h1>Strangely Typed</h1>
                 <h3>Software engineering blog by Adam Rackis</h3>
-                <div>
+                <div className="personal-links">
                   <h4>
                     <a href="https://github.com/arackaf">
-                      <i className="fab fa-twitter"></i> adamrackis
+                      <TwitterIcon width="18" />
+                      <span>adamrackis</span>
                     </a>
                   </h4>
                   <h4>
                     <a href="https://twitter.com/AdamRackis">
-                      <i className="fab fa-github"></i> arackaf
+                      <GithubIcon width="18" /> <span>arackaf</span>
                     </a>
                   </h4>
                 </div>

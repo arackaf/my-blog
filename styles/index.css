@@ -5,6 +5,8 @@
   --default-border-width: 1px;
   --default-border-radius: 5px;
 
+  --link-color: #007acc;
+
   --neutral-1: hsl(42, 15%, 13%);
   --neutral-2: hsl(40, 13%, 23%);
   --neutral-3: hsl(37, 11%, 28%);

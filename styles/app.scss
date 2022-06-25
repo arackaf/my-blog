@@ -37,7 +37,7 @@ main {
 }
 
 a {
-  color: #007acc;
+  color: var(--link-color);
   cursor: pointer;
   text-decoration: none;
 }
