@@ -5,6 +5,10 @@ body {
 
 .root-container {
   margin-top: 42px;
+  
+  @media (max-width: 700px) {
+    margin-top: 15px;
+  }
 }
 
 main {
