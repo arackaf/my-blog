@@ -1,6 +1,14 @@
 .post {
   :global(.back-link) {
     color: inherit;
+
+    display: flex;
+    & > * + * { 
+      margin-left: 5px;
+    }
+    svg {
+      fill: rgba(0, 0, 0, 0.8);
+    }
   }
 
   // force prisma <pre> elements to be position: relative for the copy button 

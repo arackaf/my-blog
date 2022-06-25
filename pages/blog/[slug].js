@@ -14,6 +14,7 @@ import Container from "../../components/container";
 import Layout from "../../components/layout";
 import PostBody from "../../components/post-body";
 import { DateFormatter } from "../../components/date-formatter";
+import { BackArrow } from "../../components/backArrow";
 
 export default function Post({ post, morePosts, preview }) {
   const router = useRouter();
@@ -46,7 +47,8 @@ export default function Post({ post, morePosts, preview }) {
         <h4>
           <Link href="/">
             <a className="back-link">
-              <i className="fas fa-reply"></i> Adam's Blog
+              <BackArrow height="18" />
+              <span>Adam's Blog</span>
             </a>
           </Link>
         </h4>
