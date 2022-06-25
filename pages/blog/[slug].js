@@ -14,7 +14,7 @@ import Container from "../../components/container";
 import Layout from "../../components/layout";
 import PostBody from "../../components/post-body";
 import { DateFormatter } from "../../components/date-formatter";
-import { BackArrow } from "../../components/backArrow";
+import { BackArrow } from "../../components/svg/backArrow";
 
 export default function Post({ post, morePosts, preview }) {
   const router = useRouter();
