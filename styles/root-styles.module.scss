@@ -31,17 +31,11 @@
 
 
       @media (max-width: 700px) {
-        h1 {
-          font-size: 1.51572rem; 
-        }
-        h3 {
-          font-size: 1rem;
-        }
+        --h1-font-size: 1.51572rem;
+        --h3-font-size: 1rem;
       }
       @media (max-width: 500px) {
-        h1 {
-          --h1-font-size: 1.31951rem;
-        }
+        --h1-font-size: 1.31951rem;
         --h3-font-size: 0.87055rem;
         --h4-font-size: 0.87055rem;
       }
