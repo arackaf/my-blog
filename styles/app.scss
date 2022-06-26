@@ -62,20 +62,20 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 h1 {
-  font-size: 2rem;
+  font-size: var(--h1-font-size);
 }
 h2 {
-  font-size: 1.51572rem;
+  font-size: var(--h2-font-size);
 }
 h3 {
-  font-size: 1.31951rem;
+  font-size: var(--h3-font-size);
 }
 h4 {
-  font-size: 1rem;
+  font-size: var(--h4-font-size);
 }
 h5 {
-  font-size: 0.87055rem;
+  font-size: var(--h5-font-size);
 }
 h6 {
-  font-size: 0.81225rem;
+  font-size: var(--h6-font-size);
 }

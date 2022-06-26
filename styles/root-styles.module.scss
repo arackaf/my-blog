@@ -13,9 +13,14 @@
       a {
         display: flex;
         align-items: start;
-        svg {
-          fill: var(--link-color);
+
+        span:first-child {
+          width: 18px;
           margin-right: 3px;
+        }
+        svg {
+          height: var(--h4-font-size);
+          fill: var(--link-color);
         }
       }
     }
@@ -35,11 +40,10 @@
       }
       @media (max-width: 500px) {
         h1 {
-          font-size: 1.31951rem; 
+          --h1-font-size: 1.31951rem;
         }
-        h3, h4 {
-          font-size: 0.87055rem;
-        }
+        --h3-font-size: 0.87055rem;
+        --h4-font-size: 0.87055rem;
       }
 
 

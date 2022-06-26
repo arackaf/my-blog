@@ -28,13 +28,18 @@ export default function Index({ allPosts }) {
                 <div className="personal-links">
                   <h4>
                     <a href="https://github.com/arackaf">
-                      <TwitterIcon width="18" />
+                      <span>
+                        <TwitterIcon />
+                      </span>
                       <span>adamrackis</span>
                     </a>
                   </h4>
                   <h4>
                     <a href="https://twitter.com/AdamRackis">
-                      <GithubIcon width="18" /> <span>arackaf</span>
+                      <span>
+                        <GithubIcon />
+                      </span>
+                      <span>arackaf</span>
                     </a>
                   </h4>
                 </div>

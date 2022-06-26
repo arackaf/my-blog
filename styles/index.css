@@ -7,6 +7,13 @@
 
   --link-color: #007acc;
 
+  --h1-font-size: 2rem;
+  --h2-font-size: 1.51572rem;
+  --h3-font-size: 1.31951rem;
+  --h4-font-size: 1rem;
+  --h5-font-size: 0.87055rem;
+  --h6-font-size: 0.81225rem;
+
   --neutral-1: hsl(42, 15%, 13%);
   --neutral-2: hsl(40, 13%, 23%);
   --neutral-3: hsl(37, 11%, 28%);
