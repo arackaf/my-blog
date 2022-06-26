@@ -21,7 +21,7 @@ export default function Index({ allPosts }) {
         <Container>
           <section className={titleStyles}>
             <div className="blog-header">
-              <img src="../assets/home/avatar.jpeg" />
+              <img src="../assets/home/avatar.jpg" />
               <div className="titles">
                 <h1>Strangely Typed</h1>
                 <h3>Software engineering blog by Adam Rackis</h3>
