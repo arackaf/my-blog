@@ -1,62 +1,100 @@
-import { FunctionComponent, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { decode } from "blurhash";
+import { decode } from "../node_modules/blurhash/dist/esm/index";
 
-export const ImageWithPreview = ({ url, preview = "" }) => {
-  const [loaded, setLoaded] = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null);
+type blurhash = { w: number; h: number; blurhash: string };
 
-  useEffect(() => {
-    setLoaded(false);
-  }, [url]);
+if (typeof HTMLElement !== "undefined") {
+  class ImageWithPreview extends HTMLElement {
+    loaded: boolean = false;
+    imageEl?: HTMLImageElement;
+    previewEl?: HTMLElement;
+    noCoverElement: HTMLElement;
+    #_url = "";
 
-  useEffect(() => {
-    // make sure the image src is added after the onload handler
-    if (imgRef.current) {
-      imgRef.current.src = url;
+    set preview(val: blurhash) {
+      this.previewEl = this.createPreview(val);
+      this.render();
     }
-  }, [url, imgRef, preview]);
 
-  if (preview) {
-    return (
-      <>
-        <Preview loaded={loaded} preview={preview} />
-        <img
-          key={`book-preview-real-${url}`}
-          alt="Image"
-          ref={imgRef}
-          onLoad={() => setLoaded(true)}
-          style={{ display: loaded ? "block" : "none" }}
-        />
-      </>
-    );
-  } else {
-    return <img key="book-real" alt="Image" style={{ display: "block" }} src={url} />;
+    set url(val: string) {
+      this.loaded = false;
+      this.#_url = val;
+      this.createMainImage(val);
+      this.render();
+    }
+
+    set nocover(val: string) {
+      this.noCoverElement = document.createElement(val);
+      this.render();
+    }
+
+    createPreview(val: blurhash): HTMLElement {
+      return blurHashPreview(val);
+    }
+
+    createMainImage(url: string) {
+      this.loaded = false;
+      if (!url) {
+        this.imageEl = null;
+        return;
+      }
+
+      const img = document.createElement("img");
+      img.alt = "Image";
+      img.addEventListener("load", () => {
+        if (img === this.imageEl) {
+          setTimeout(() => {
+            this.loaded = true;
+            this.render();
+          }, 3000);
+        }
+      });
+      this.imageEl = img;
+      img.src = url;
+    }
+
+    render() {
+      const elementMaybe = this.loaded ? this.imageEl : this.#_url ? this.previewEl : this.noCoverElement;
+      if (elementMaybe) {
+        syncSingleChild(this, elementMaybe);
+      }
+    }
   }
-};
 
-type ImagePreviewProps = { preview: string | { blurhash: string; w: number; h: number }; loaded: boolean };
-type CanvasPreviewProps = { preview: { blurhash: string; w: number; h: number }; loaded: boolean };
-
-const Preview: FunctionComponent<ImagePreviewProps> = ({ preview, loaded }) => {
-  if (loaded) {
-    return null;
-  } else if (typeof preview === "string") {
-    return <img key="book-preview" alt="Image preview" src={preview} style={{ display: "block" }} />;
-  } else {
-    return <PreviewCanvas preview={preview} loaded={loaded} />;
+  if (!customElements.get("uikit-image")) {
+    customElements.define("uikit-image", ImageWithPreview);
   }
-};
+}
 
-const PreviewCanvas: FunctionComponent<CanvasPreviewProps> = ({ preview }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+function blurHashPreview(preview: blurhash): HTMLCanvasElement {
+  const canvasEl = document.createElement("canvas");
+  const { w: width, h: height } = preview;
 
-  useLayoutEffect(() => {
-    const pixels = decode(preview.blurhash, preview.w, preview.h);
-    const ctx = canvasRef.current.getContext("2d");
-    const imageData = ctx.createImageData(preview.w, preview.h);
-    imageData.data.set(pixels);
-    ctx.putImageData(imageData, 0, 0);
-  }, [preview]);
+  canvasEl.width = width;
+  canvasEl.height = height;
 
-  return <canvas className="book-preview" ref={canvasRef} width={preview.w} height={preview.h} />;
-};
+  const pixels = decode(preview.blurhash, width, height);
+  const ctx = canvasEl.getContext("2d");
+  const imageData = ctx.createImageData(width, height);
+  imageData.data.set(pixels);
+  ctx.putImageData(imageData, 0, 0);
+
+  return canvasEl;
+}
+
+function syncSingleChild(container: HTMLElement, child: HTMLElement) {
+  const currentChild = container.firstElementChild;
+  if (currentChild !== child) {
+    clearContainer(container);
+    if (child) {
+      container.appendChild(child);
+    }
+  }
+}
+
+function clearContainer(el: HTMLElement) {
+  let child: Element;
+
+  while ((child = el.firstElementChild)) {
+    el.removeChild(child);
+  }
+}

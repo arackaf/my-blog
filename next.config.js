@@ -10,6 +10,10 @@ const slugs = [
 ];
 
 module.exports = {
+  experimental: {
+    legacyBrowsers: false,
+    browsersListForSwc: true,
+  },
   redirects() {
     return slugs.flatMap(s => {
       return [

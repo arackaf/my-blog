@@ -8,6 +8,8 @@ import Link from "next/link";
 import { GithubIcon } from "../components/svg/githubIcon";
 import { TwitterIcon } from "../components/svg/twitterIcon";
 
+import { WcWrapper } from "../components/util/WcWrapper";
+
 import styles from "../styles/root-styles.module.scss";
 const { title: titleStyles, list: listStyles } = styles;
 
@@ -21,7 +23,12 @@ export default function Index({ allPosts }) {
         <Container>
           <section className={titleStyles}>
             <div className="blog-header">
-              <img src="assets/home/avatar.jpg" />
+              <WcWrapper
+                wcTag="uikit-image"
+                url="assets/home/avatar.jpg"
+                preview={{ w: 125, h: 125, blurhash: "L9Fh#84T144o5Q01~p-5lVD%x[tl" }}
+              ></WcWrapper>
+
               <div className="titles">
                 <h1>Strangely Typed</h1>
                 <h3>Software engineering blog by Adam Rackis</h3>
