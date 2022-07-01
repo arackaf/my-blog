@@ -10,16 +10,19 @@ if (typeof HTMLElement !== "undefined") {
     noCoverElement: HTMLElement;
     #_url = "";
 
-    set preview(val: blurhash) {
-      this.previewEl = this.createPreview(val);
-      this.render();
-    }
+    static observedAttributes = ["preview", "url"];
 
-    set url(val: string) {
-      this.loaded = false;
-      this.#_url = val;
-      this.createMainImage(val);
-      this.render();
+    attributeChangedCallback(name, oldValue, newValue) {
+      if (name === "preview") {
+        const previewObj = JSON.parse(newValue);
+        this.previewEl = this.createPreview(previewObj);
+        this.render();
+      } else if (name === "url") {
+        this.loaded = false;
+        this.#_url = newValue;
+        this.createMainImage(newValue);
+        this.render();
+      }
     }
 
     set nocover(val: string) {
@@ -81,11 +84,22 @@ function blurHashPreview(preview: blurhash): HTMLCanvasElement {
 
 function syncSingleChild(container: HTMLElement, child: HTMLElement) {
   const currentChild = container.firstElementChild;
+  console.log("A attempting", { child, currentChild });
   if (currentChild !== child) {
+    console.log("B is stale");
     clearContainer(container);
+    console.log("C cleared");
     if (child) {
-      container.appendChild(child);
+      console.log("Ca child", child, "exists to be inserted");
+      setTimeout(() => {
+        container.appendChild(child);
+      }, 1000);
+      console.log("D inserted", container.firstElementChild);
+    } else {
+      console.log("Cd No child");
     }
+  } else {
+    console.log("XXX Up to date");
   }
 }
 

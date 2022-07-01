@@ -12,3 +12,11 @@ import "../components/ImageWithPreview";
 export default function MyApp({ Component, pageProps }) {
   return <Component {...pageProps} />;
 }
+
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      ["uikit-image"]: any;
+    }
+  }
+}
