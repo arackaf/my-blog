@@ -42,10 +42,8 @@ if (typeof HTMLElement !== "undefined") {
       img.alt = "Image";
       img.addEventListener("load", () => {
         if (img === this.imageEl) {
-          setTimeout(() => {
-            this.loaded = true;
-            this.render();
-          }, 3000);
+          this.loaded = true;
+          this.render();
         }
       });
       this.imageEl = img;
