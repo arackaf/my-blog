@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { decode } from "../node_modules/blurhash/dist/esm/index";
 
 type blurhash = { w: number; h: number; blurhash: string };
@@ -5,8 +6,8 @@ type blurhash = { w: number; h: number; blurhash: string };
 if (typeof HTMLElement !== "undefined") {
   class ImageWithPreview extends HTMLElement {
     active: boolean = false;
+    connected: boolean = false;
     loaded: boolean = false;
-    dirty: boolean = false;
 
     static observedAttributes = ["preview", "url"];
 
@@ -18,19 +19,18 @@ if (typeof HTMLElement !== "undefined") {
     }
 
     connectedCallback() {
+      this.connected = true;
+      this.syncPreview();
+    }
+
+    activate() {
       this.active = true;
-      if (this.dirty) {
-        this.sync();
-        this.dirty = false;
-      }
+
+      this.syncImage();
+      this.render();
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
-      if (!this.active) {
-        this.dirty = true;
-        return;
-      }
-
       if (name === "preview") {
         this.syncPreview();
       } else if (name === "url") {
@@ -39,17 +39,11 @@ if (typeof HTMLElement !== "undefined") {
       this.render();
     }
 
-    sync() {
-      if (this.getAttribute("preview") && this.getAttribute("url")) {
-        this.syncPreview();
-        this.syncImage();
-        this.render();
-      }
-    }
-
     syncPreview() {
-      const previewObj = JSON.parse(this.getAttribute("preview"));
-      this.setNewPreview(previewObj);
+      if (this.connected) {
+        const previewObj = JSON.parse(this.getAttribute("preview"));
+        this.setNewPreview(previewObj);
+      }
     }
     setNewPreview(val: blurhash) {
       const priorCanvas = this.currentCanvasEl;
@@ -59,8 +53,10 @@ if (typeof HTMLElement !== "undefined") {
     }
 
     syncImage() {
-      this.loaded = false;
-      this.setupMainImage(this.getAttribute("img"));
+      if (this.active) {
+        this.loaded = false;
+        this.setupMainImage(this.getAttribute("url"));
+      }
     }
     setupMainImage(url: string) {
       this.loaded = false;
@@ -112,9 +108,20 @@ function blurHashPreview(preview: blurhash): HTMLCanvasElement {
   return canvasEl;
 }
 
-export const ImageWithPreview = (props: any) => (
-  <uikit-image {...props}>
-    <img />
-    <canvas></canvas>
-  </uikit-image>
-);
+export const ImageWithPreview = (props: any) => {
+  const wcRef = useRef(null);
+
+  const { preview } = props;
+  const { w, h } = JSON.parse(preview);
+
+  useEffect(() => {
+    wcRef.current.activate();
+  }, []);
+
+  return (
+    <uikit-image ref={wcRef} {...props}>
+      <img style={{ display: "none" }} />
+      <canvas width={w} height={h}></canvas>
+    </uikit-image>
+  );
+};
