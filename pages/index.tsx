@@ -62,7 +62,7 @@ export default function Index({ allPosts }) {
 
           <div className={listStyles}>
             {allPosts.map(post => (
-              <div className="blog-list-item">
+              <div key={post.title} className="blog-list-item">
                 <h3>
                   {post.url ? (
                     <a href={post.url}>
