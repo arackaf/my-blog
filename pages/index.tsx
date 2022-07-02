@@ -24,7 +24,7 @@ export default function Index({ allPosts }) {
           <section className={titleStyles}>
             <div className="blog-header">
               <ImageWithPreview
-                url="assets/home/avatar.jpg"
+                url="/assets/home/avatar.jpg"
                 preview='{"w": 125, "h": 125, "blurhash": "L9Fh#84T144o5Q01~p-5lVD%x[tl"}'
               ></ImageWithPreview>
 
