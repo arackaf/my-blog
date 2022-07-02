@@ -10,6 +10,19 @@ const slugs = [
 ];
 
 module.exports = {
+  async headers() {
+    return [
+      {
+        source: "/(.*).(jpg|png|jpeg)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000",
+          },
+        ],
+      },
+    ];
+  },
   redirects() {
     return slugs.flatMap(s => {
       return [
