@@ -4,60 +4,90 @@ type blurhash = { w: number; h: number; blurhash: string };
 
 if (typeof HTMLElement !== "undefined") {
   class ImageWithPreview extends HTMLElement {
+    active: boolean = false;
     loaded: boolean = false;
-    imageEl?: HTMLImageElement;
-    previewEl?: HTMLElement;
-    noCoverElement: HTMLElement;
-    #_url = "";
+    dirty: boolean = false;
 
     static observedAttributes = ["preview", "url"];
 
+    get currentImageEl() {
+      return this.querySelector("img");
+    }
+    get currentCanvasEl() {
+      return this.querySelector("canvas");
+    }
+
+    connectedCallback() {
+      this.active = true;
+      if (this.dirty) {
+        this.sync();
+        this.dirty = false;
+      }
+    }
+
     attributeChangedCallback(name, oldValue, newValue) {
+      if (!this.active) {
+        this.dirty = true;
+        return;
+      }
+
       if (name === "preview") {
-        const previewObj = JSON.parse(newValue);
-        this.previewEl = this.createPreview(previewObj);
-        this.render();
+        this.syncPreview();
       } else if (name === "url") {
-        this.loaded = false;
-        this.#_url = newValue;
-        this.createMainImage(newValue);
+        this.syncImage();
+      }
+      this.render();
+    }
+
+    sync() {
+      if (this.getAttribute("preview") && this.getAttribute("url")) {
+        this.syncPreview();
+        this.syncImage();
         this.render();
       }
     }
 
-    set nocover(val: string) {
-      this.noCoverElement = document.createElement(val);
-      this.render();
+    syncPreview() {
+      const previewObj = JSON.parse(this.getAttribute("preview"));
+      this.setNewPreview(previewObj);
+    }
+    setNewPreview(val: blurhash) {
+      const priorCanvas = this.currentCanvasEl;
+      const newCanvas = blurHashPreview(val);
+
+      this.replaceChild(newCanvas, priorCanvas);
     }
 
-    createPreview(val: blurhash): HTMLElement {
-      return blurHashPreview(val);
+    syncImage() {
+      this.loaded = false;
+      this.setupMainImage(this.getAttribute("img"));
     }
-
-    createMainImage(url: string) {
+    setupMainImage(url: string) {
       this.loaded = false;
       if (!url) {
-        this.imageEl = null;
         return;
       }
 
       const img = document.createElement("img");
       img.alt = "Image";
       img.addEventListener("load", () => {
-        if (img === this.imageEl) {
+        if (img === this.currentImageEl) {
           this.loaded = true;
           this.render();
         }
       });
-      this.imageEl = img;
       img.src = url;
+
+      const oldImage = this.currentImageEl;
+      this.replaceChild(img, oldImage);
     }
 
     render() {
-      const elementMaybe = this.loaded ? this.imageEl : this.#_url ? this.previewEl : this.noCoverElement;
-      if (elementMaybe) {
-        syncSingleChild(this, elementMaybe);
-      }
+      const shown = this.loaded ? this.currentImageEl : this.currentCanvasEl;
+      const hidden = !this.loaded ? this.currentImageEl : this.currentCanvasEl;
+
+      shown.style.display = "";
+      hidden.style.display = "none";
     }
   }
 
@@ -82,31 +112,9 @@ function blurHashPreview(preview: blurhash): HTMLCanvasElement {
   return canvasEl;
 }
 
-function syncSingleChild(container: HTMLElement, child: HTMLElement) {
-  const currentChild = container.firstElementChild;
-  console.log("A attempting", { child, currentChild });
-  if (currentChild !== child) {
-    console.log("B is stale");
-    clearContainer(container);
-    console.log("C cleared");
-    if (child) {
-      console.log("Ca child", child, "exists to be inserted");
-      setTimeout(() => {
-        container.appendChild(child);
-      }, 1000);
-      console.log("D inserted", container.firstElementChild);
-    } else {
-      console.log("Cd No child");
-    }
-  } else {
-    console.log("XXX Up to date");
-  }
-}
-
-function clearContainer(el: HTMLElement) {
-  let child: Element;
-
-  while ((child = el.firstElementChild)) {
-    el.removeChild(child);
-  }
-}
+export const ImageWithPreview = (props: any) => (
+  <uikit-image {...props}>
+    <img />
+    <canvas></canvas>
+  </uikit-image>
+);

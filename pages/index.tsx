@@ -8,9 +8,9 @@ import Link from "next/link";
 import { GithubIcon } from "../components/svg/githubIcon";
 import { TwitterIcon } from "../components/svg/twitterIcon";
 
-import { WcWrapper } from "../components/util/WcWrapper";
-
 import styles from "../styles/root-styles.module.scss";
+import { ImageWithPreview } from "../components/ImageWithPreview";
+
 const { title: titleStyles, list: listStyles } = styles;
 
 export default function Index({ allPosts }) {
@@ -23,7 +23,10 @@ export default function Index({ allPosts }) {
         <Container>
           <section className={titleStyles}>
             <div className="blog-header">
-              <uikit-image url="assets/home/avatar.jpg" preview='{"w": 125, "h": 125, "blurhash": "L9Fh#84T144o5Q01~p-5lVD%x[tl"}'></uikit-image>
+              <ImageWithPreview
+                url="assets/home/avatar.jpg"
+                preview='{"w": 125, "h": 125, "blurhash": "L9Fh#84T144o5Q01~p-5lVD%x[tl"}'
+              ></ImageWithPreview>
 
               <div className="titles">
                 <h1>Strangely Typed</h1>
