@@ -4,14 +4,15 @@ import Layout from "../components/layout";
 import { getAllPosts } from "../lib/api";
 import Head from "next/head";
 import Link from "next/link";
+import Image from "next/image";
 
 import { GithubIcon } from "../components/svg/githubIcon";
 import { TwitterIcon } from "../components/svg/twitterIcon";
 
 import styles from "../styles/root-styles.module.scss";
-import { ImageWithPreview } from "../components/ImageWithPreview";
+const { title: titleStyles, list: listStyles, avatar: avatarStyles } = styles;
 
-const { title: titleStyles, list: listStyles } = styles;
+import AvatarImg from "../public/assets/home/avatar.jpg";
 
 export default function Index({ allPosts }) {
   return (
@@ -23,11 +24,7 @@ export default function Index({ allPosts }) {
         <Container>
           <section className={titleStyles}>
             <div className="blog-header">
-              <ImageWithPreview
-                url="/assets/home/avatar.jpg"
-                preview='{"w": 125, "h": 125, "blurhash": "L9Fh#84T144o5Q01~p-5lVD%x[tl"}'
-              ></ImageWithPreview>
-
+              <Image placeholder="blur" src={AvatarImg} height={125} width={125} />
               <div className="titles">
                 <h1>Strangely Typed</h1>
                 <h3>Software engineering blog by Adam Rackis</h3>
@@ -62,7 +59,7 @@ export default function Index({ allPosts }) {
 
           <div className={listStyles}>
             {allPosts.map(post => (
-              <div key={post.title} className="blog-list-item">
+              <div className="blog-list-item">
                 <h3>
                   {post.url ? (
                     <a href={post.url}>

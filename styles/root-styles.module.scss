@@ -28,7 +28,7 @@
     :global(.titles) {
       display: flex;
       flex-direction: column;
-
+      margin-left: 10px;
 
       @media (max-width: 700px) {
         --h1-font-size: 1.51572rem;
@@ -39,7 +39,6 @@
         --h3-font-size: 0.87055rem;
         --h4-font-size: 0.87055rem;
       }
-
 
       & > :nth-child(2) {
         margin-left: 5px;
@@ -64,6 +63,10 @@
         }
       }
     }
+    
+    & > :first-child {
+      border-radius: 50%;
+    }
   }
 
   :global(.blog-intro) {
@@ -72,14 +75,6 @@
     & > * + * {
       margin-top: 10px;
     }
-  }
-
-  img, canvas {
-    max-width: 125px;
-    max-height: 125px;
-    border-radius: 50%;
-    display: block;
-    margin-right: 10px;
   }
 }
 
