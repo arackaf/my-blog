@@ -10,9 +10,8 @@ import { GithubIcon } from "../components/svg/githubIcon";
 import { TwitterIcon } from "../components/svg/twitterIcon";
 
 import styles from "../styles/root-styles.module.scss";
-const { title: titleStyles, list: listStyles } = styles;
+const { title: titleStyles, list: listStyles, avatar: avatarStyles } = styles;
 
-var x = "/assets/home/avatar.jpg";
 import AvatarImg from "../public/assets/home/avatar.jpg";
 
 export default function Index({ allPosts }) {
