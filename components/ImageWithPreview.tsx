@@ -5,8 +5,6 @@ type blurhash = { w: number; h: number; blurhash: string };
 
 if (typeof HTMLElement !== "undefined") {
   class ImageWithPreview extends HTMLElement {
-    active: boolean = false;
-    connected: boolean = false;
     loaded: boolean = false;
 
     static observedAttributes = ["preview", "url"];
@@ -19,44 +17,33 @@ if (typeof HTMLElement !== "undefined") {
     }
 
     connectedCallback() {
-      this.connected = true;
-      this.syncPreview();
-    }
-
-    activate() {
-      this.active = true;
-
-      this.syncImage();
-      this.render();
+      if (this.currentImageEl.complete) {
+        this.onImageLoad();
+      } else {
+        this.currentImageEl.addEventListener("load", this.onImageLoad);
+      }
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
       if (name === "preview") {
         this.syncPreview();
       } else if (name === "url") {
-        this.syncImage();
+        if (newValue !== this.currentImageEl.getAttribute("src")) {
+          this.syncImage();
+        }
       }
       this.render();
     }
 
     syncPreview() {
-      if (this.connected) {
-        const previewObj = JSON.parse(this.getAttribute("preview"));
-        this.setNewPreview(previewObj);
-      }
-    }
-    setNewPreview(val: blurhash) {
-      const priorCanvas = this.currentCanvasEl;
-      const newCanvas = blurHashPreview(val);
-
-      this.replaceChild(newCanvas, priorCanvas);
+      const previewObj = JSON.parse(this.getAttribute("preview"));
+      const newCanvas = blurHashPreview(previewObj);
+      this.replaceChild(newCanvas, this.currentCanvasEl);
     }
 
     syncImage() {
-      if (this.active) {
-        this.loaded = false;
-        this.setupMainImage(this.getAttribute("url"));
-      }
+      this.loaded = false;
+      this.setupMainImage(this.getAttribute("url"));
     }
     setupMainImage(url: string) {
       this.loaded = false;
@@ -66,17 +53,20 @@ if (typeof HTMLElement !== "undefined") {
 
       const img = document.createElement("img");
       img.alt = "Image";
-      img.addEventListener("load", () => {
-        if (img === this.currentImageEl) {
-          this.loaded = true;
-          this.render();
-        }
-      });
+      img.addEventListener("load", this.onImageLoad);
       img.src = url;
 
-      const oldImage = this.currentImageEl;
-      this.replaceChild(img, oldImage);
+      this.replaceChild(img, this.currentImageEl);
     }
+
+    onImageLoad = () => {
+      if (this.getAttribute("url") !== this.currentImageEl.src) {
+        setTimeout(() => {
+          this.loaded = true;
+          this.render();
+        }, 3000);
+      }
+    };
 
     render() {
       const shown = this.loaded ? this.currentImageEl : this.currentCanvasEl;

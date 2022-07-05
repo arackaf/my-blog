@@ -4,6 +4,12 @@ date: "2021-07-06T10:00:00.000Z"
 description: A high-level introduction to DynamoDB
 ---
 
+<uikit-image url="/dynamo-introduction/img1.png" preview='{ "w": 364, "h": 196, "blurhash": "L8S6SsD*%gt7IVM|tRRj~qWBM{NG"}'>
+  <img src="/dynamo-introduction/img1.png" style="display: none;" />
+  <canvas width="364" height="196"></canvas>
+</uikit-image>
+
+
 DynamoDB is an incredible database whose popularity is quickly rising. Unfortunately, it can be difficult to wrap your head around how it works, and why. It's designed to have some very ambitious performance characteristics, and for this reason its api is rather different, and much more limited compared to what developers might be used to with other databases.
 
 Rather than spill out an overview of the api calls, along with some code samples to save, and update data, this post will take a step back, explain how traditional databases work, how Dynamo differs, and why. Some of this content may seem tedious at first, but it's what I wish I had read when I started poking around Dynamo. This post is **heavily** inspired by Alex DeBrie's [DynamoDB book](https://www.dynamodbbook.com/), which I highly recommend. If you're interested in learning more, you absolutely cannot find a better resource than that.
