@@ -4,12 +4,15 @@ import Layout from "../components/layout";
 import { getAllPosts } from "../lib/api";
 import Head from "next/head";
 import Link from "next/link";
+import Image from "next/image";
 
 import { GithubIcon } from "../components/svg/githubIcon";
 import { TwitterIcon } from "../components/svg/twitterIcon";
 
 import styles from "../styles/root-styles.module.scss";
-const { title: titleStyles, list: listStyles } = styles;
+const { title: titleStyles, list: listStyles, avatar: avatarStyles } = styles;
+
+import AvatarImg from "../public/assets/home/avatar.jpg";
 
 export default function Index({ allPosts }) {
   return (
@@ -21,7 +24,7 @@ export default function Index({ allPosts }) {
         <Container>
           <section className={titleStyles}>
             <div className="blog-header">
-              <img src="../assets/home/avatar.jpg" />
+              <Image placeholder="blur" src={AvatarImg} height={125} width={125} />
               <div className="titles">
                 <h1>Strangely Typed</h1>
                 <h3>Software engineering blog by Adam Rackis</h3>
