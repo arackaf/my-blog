@@ -5,13 +5,13 @@ description: A high-level introduction to DynamoDB
 ---
 
 <uikit-image url="/dynamo-introduction/img5a.png" preview='{ "w": 2244, "h": 622, "blurhash": "LnPGmj_zIA:KS}j[s:ay-VWVRjay" }'>
-  <img src="/dynamo-introduction/img5a.png" style="display: none;" />
-  <canvas width="2244" height="622"></canvas>
+  <img slot="image" src="/dynamo-introduction/img5a.png" />
+  <canvas slot="preview" width="2244" height="622"></canvas>
 </uikit-image>
 
 <uikit-image url="/dynamo-introduction/img1.png" preview='{ "w": 364, "h": 196, "blurhash": "L8S6SsD*%gt7IVM|tRRj~qWBM{NG" }'>
-  <img src="/dynamo-introduction/img1.png" style="display: none;" />
-  <canvas width="364" height="196"></canvas>
+  <img slot="image" src="/dynamo-introduction/img1.png" />
+  <canvas slot="preview" width="364" height="196"></canvas>
 </uikit-image>
 
 

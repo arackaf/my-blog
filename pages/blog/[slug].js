@@ -27,10 +27,12 @@ export default function Post({ post, morePosts, preview }) {
       if (img.parentElement.tagName === "A") {
         continue;
       }
+      img.setAttribute("slot", "");
 
       const referenceParent = img.parentElement;
 
       const anchor = document.createElement("a");
+      anchor.slot = "image";
       anchor.href = img.src;
       anchor.target = "_blank";
 

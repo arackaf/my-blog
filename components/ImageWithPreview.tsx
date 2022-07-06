@@ -5,8 +5,8 @@ type blurhash = { w: number; h: number; blurhash: string };
 
 if (typeof HTMLElement !== "undefined") {
   class ImageWithPreview extends HTMLElement {
-    static IS_ACTIVE = false;
     loaded: boolean = false;
+    sd: ShadowRoot;
 
     static observedAttributes = ["preview", "url"];
 
@@ -18,12 +18,9 @@ if (typeof HTMLElement !== "undefined") {
     }
 
     connectedCallback() {
-      if (ImageWithPreview.IS_ACTIVE) {
-        this.activate();
-      }
-    }
+      this.sd = this.attachShadow({ mode: "open" });
+      this.sd.innerHTML = `<slot name="preview"></slot>`;
 
-    activate() {
       if (this.currentImageEl.complete) {
         this.onImageLoad();
       } else {
@@ -55,6 +52,7 @@ if (typeof HTMLElement !== "undefined") {
       }
 
       const img = document.createElement("img");
+      img.slot = "image";
       img.alt = "Image";
       img.addEventListener("load", this.onImageLoad);
       img.src = url;
@@ -64,19 +62,15 @@ if (typeof HTMLElement !== "undefined") {
 
     onImageLoad = () => {
       if (this.getAttribute("url") !== this.currentImageEl.src) {
-        //setTimeout(() => {
-        this.loaded = true;
-        this.render();
-        //}, 3000);
+        setTimeout(() => {
+          this.loaded = true;
+          this.render();
+        }, 1500);
       }
     };
 
     render() {
-      const shown = this.loaded ? this.currentImageEl : this.currentCanvasEl;
-      const hidden = !this.loaded ? this.currentImageEl : this.currentCanvasEl;
-
-      shown.style.display = "";
-      hidden.style.display = "none";
+      this.sd.innerHTML = `<slot name="${this.loaded ? "image" : "preview"}"></slot>`;
     }
   }
 
@@ -89,6 +83,7 @@ function blurHashPreview(preview: blurhash): HTMLCanvasElement {
   const canvasEl = document.createElement("canvas");
   const { w: width, h: height } = preview;
 
+  canvasEl.slot = "preview";
   canvasEl.width = width;
   canvasEl.height = height;
 
@@ -102,15 +97,6 @@ function blurHashPreview(preview: blurhash): HTMLCanvasElement {
 }
 
 export const ImagePreviewBootstrap = props => {
-  useEffect(() => {
-    const currentWcs = document.getElementsByTagName("uikit-image") as HTMLCollectionOf<any>;
-    for (const wc of currentWcs) {
-      (wc as any).activate();
-    }
-
-    const ImagePreviewClass: any = customElements.get("uikit-image");
-    ImagePreviewClass.IS_ACTIVE = true;
-  }, []);
   return null;
 };
 
