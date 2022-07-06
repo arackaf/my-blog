@@ -5,6 +5,7 @@ type blurhash = { w: number; h: number; blurhash: string };
 
 if (typeof HTMLElement !== "undefined") {
   class ImageWithPreview extends HTMLElement {
+    static IS_ACTIVE = false;
     loaded: boolean = false;
 
     static observedAttributes = ["preview", "url"];
@@ -17,6 +18,12 @@ if (typeof HTMLElement !== "undefined") {
     }
 
     connectedCallback() {
+      if (ImageWithPreview.IS_ACTIVE) {
+        this.activate();
+      }
+    }
+
+    activate() {
       if (this.currentImageEl.complete) {
         this.onImageLoad();
       } else {
@@ -29,7 +36,7 @@ if (typeof HTMLElement !== "undefined") {
         this.syncPreview();
       } else if (name === "url") {
         if (newValue !== this.currentImageEl.getAttribute("src")) {
-          this.syncImage();
+          this.syncImage(newValue);
         }
       }
       this.render();
@@ -41,11 +48,7 @@ if (typeof HTMLElement !== "undefined") {
       this.replaceChild(newCanvas, this.currentCanvasEl);
     }
 
-    syncImage() {
-      this.loaded = false;
-      this.setupMainImage(this.getAttribute("url"));
-    }
-    setupMainImage(url: string) {
+    syncImage(url) {
       this.loaded = false;
       if (!url) {
         return;
@@ -61,10 +64,10 @@ if (typeof HTMLElement !== "undefined") {
 
     onImageLoad = () => {
       if (this.getAttribute("url") !== this.currentImageEl.src) {
-        setTimeout(() => {
-          this.loaded = true;
-          this.render();
-        }, 3000);
+        //setTimeout(() => {
+        this.loaded = true;
+        this.render();
+        //}, 3000);
       }
     };
 
@@ -97,6 +100,19 @@ function blurHashPreview(preview: blurhash): HTMLCanvasElement {
 
   return canvasEl;
 }
+
+export const ImagePreviewBootstrap = props => {
+  useEffect(() => {
+    const currentWcs = document.getElementsByTagName("uikit-image") as HTMLCollectionOf<any>;
+    for (const wc of currentWcs) {
+      (wc as any).activate();
+    }
+
+    const ImagePreviewClass: any = customElements.get("uikit-image");
+    ImagePreviewClass.IS_ACTIVE = true;
+  }, []);
+  return null;
+};
 
 export const ImageWithPreview = (props: any) => {
   const wcRef = useRef(null);
