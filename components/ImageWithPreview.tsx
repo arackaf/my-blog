@@ -17,47 +17,30 @@ if (typeof HTMLElement !== "undefined") {
       return this.querySelector("canvas");
     }
 
-    connectedCallback() {
+    constructor() {
+      super();
       this.sd = this.attachShadow({ mode: "open" });
       this.sd.innerHTML = `<slot name="preview"></slot>`;
+    }
 
+    connectedCallback() {
       if (this.currentImageEl.complete) {
         this.onImageLoad();
-      } else {
-        this.currentImageEl.addEventListener("load", this.onImageLoad);
       }
+      this.currentImageEl.addEventListener("load", this.onImageLoad);
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
       if (name === "preview") {
-        this.syncPreview();
+        const previewObj = JSON.parse(newValue);
+        updateBlurHashPreview(this.currentCanvasEl, previewObj);
       } else if (name === "url") {
         if (newValue !== this.currentImageEl.getAttribute("src")) {
-          this.syncImage(newValue);
+          this.loaded = false;
+          this.currentImageEl.src = newValue || "";
         }
       }
       this.render();
-    }
-
-    syncPreview() {
-      const previewObj = JSON.parse(this.getAttribute("preview"));
-      const newCanvas = blurHashPreview(previewObj);
-      this.replaceChild(newCanvas, this.currentCanvasEl);
-    }
-
-    syncImage(url) {
-      this.loaded = false;
-      if (!url) {
-        return;
-      }
-
-      const img = document.createElement("img");
-      img.slot = "image";
-      img.alt = "Image";
-      img.addEventListener("load", this.onImageLoad);
-      img.src = url;
-
-      this.replaceChild(img, this.currentImageEl);
     }
 
     onImageLoad = () => {
@@ -79,11 +62,9 @@ if (typeof HTMLElement !== "undefined") {
   }
 }
 
-function blurHashPreview(preview: blurhash): HTMLCanvasElement {
-  const canvasEl = document.createElement("canvas");
+function updateBlurHashPreview(canvasEl: HTMLCanvasElement, preview: blurhash) {
   const { w: width, h: height } = preview;
 
-  canvasEl.slot = "preview";
   canvasEl.width = width;
   canvasEl.height = height;
 
@@ -92,8 +73,6 @@ function blurHashPreview(preview: blurhash): HTMLCanvasElement {
   const imageData = ctx.createImageData(width, height);
   imageData.data.set(pixels);
   ctx.putImageData(imageData, 0, 0);
-
-  return canvasEl;
 }
 
 export const ImagePreviewBootstrap = props => {
