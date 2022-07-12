@@ -1,7 +1,7 @@
 ---
-title: Encoding and decoding json with Any
+title: Encoding and decoding `Any`
 date: "2022-07-12T10:00:00.000Z"
-description: How to decode dynamic, nested json into Any
+description: How to encode and decode json with concrete types, which include dynamic pieces typed as `Any`
 ---
 
 Swift has some nice facilities for working with json. In the truly general case, you can throw in some json, get back a generic dictionary of `[String: Any]`, and cast as needed. You can also decode into concrete types you know the shape of. Unfortunately, mixing these approaches can be tricky. The minute you want to decode a piece of dynamic data into `Any`, the compiler starts yelling at you, and before you know it you have 5 Stack Overflow tabs open, somehow less close than you were before.
