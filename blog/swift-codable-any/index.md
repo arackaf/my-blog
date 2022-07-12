@@ -1,5 +1,5 @@
 ---
-title: Encoding and decoding json into Any
+title: Encoding and decoding json with Any
 date: "2022-07-12T10:00:00.000Z"
 description: How to decode dynamic, nested json into Any
 ---
@@ -10,7 +10,9 @@ This post will cut through the noise and show you how to truly encode and decode
 
 This work is adapted from [this gist](https://gist.github.com/mikebuss/17142624da4baf9cdcc337861e256533). I had searched pretty extensively for how to do this, and this had the pieces I was missing, from which I was able to work out the rest.
 
-We'll start with decoding, walking through everything step by step, from the ground up. Encoding is a straightforward inversion of decoding, so we'll close by quickly going over the encoding solution, along with a full demo showing everything.  
+We'll start with decoding, walking through everything step by step, from the ground up. Encoding is a straightforward inversion of decoding, so we'll close by quickly going over the encoding solution, along with a full demo showing everything.
+
+If you already know what you're doing and just want to see the final result, [it's here](https://replit.com/@arackaf/CodableAnyDemo#main.swift)
 
 ## Getting started: generic decoding
 
@@ -449,7 +451,9 @@ func encodeValue(fromArrayContainer container: inout UnkeyedEncodingContainer, a
 }
 ```
 
-That was a lot! Here's a [full, working demo of the above](to.do).
+## Working demo
+
+That was a lot! Here's a [full, working demo of the above](https://replit.com/@arackaf/CodableAnyDemo#main.swift).
 
 ## Wrapping up
 
