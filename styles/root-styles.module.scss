@@ -65,7 +65,16 @@
     }
     
     & > :first-child {
-      border-radius: 50%;
+      & > :first-child {
+        border-radius: 50%;
+        width: 125px !important;
+        height: 125px !important;
+        
+        @media (max-width: 550px) { 
+          width: 100px !important;
+          height: 100px !important;
+        }
+      }
     }
   }
 
