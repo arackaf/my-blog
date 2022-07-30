@@ -1,8 +1,9 @@
----
+***
+
 title: New Beginnings
 date: "2019-03-04T20:00:32.169Z"
 description: My first post on my new blog
----
+-----------------------------------------
 
 Hi everyone 👋
 

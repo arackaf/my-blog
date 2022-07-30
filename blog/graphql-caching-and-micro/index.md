@@ -1,8 +1,9 @@
----
+***
+
 title: A Different Approach to GraphQL Caching
 date: "2019-03-19T10:00:00.000Z"
 description: A tour of GraphQL caching with micro-graphql-react.
----
+----------------------------------------------------------------
 
 GraphQL is an incredibly exciting innovation for web development. You specify your data, queries, and mutations in a statically typed way, and get an endpoint users can consume, requesting whatever slice of data they happen to need at any given moment. If you're old enough to remember OData, it's sort of like that, but good.
 
@@ -249,7 +250,7 @@ with these results
 }
 ```
 
-now, if the user runs _this_ mutation
+now, if the user runs *this* mutation
 
 ```graphql
 mutation {
@@ -350,7 +351,7 @@ and get back
 }
 ```
 
-Urql has no way of knowing that query holds Tasks, since it has no way of knowing what `TaskQueryResult` is. This means that if you run a mutation _creating_ a task that's assigned to Fred, the mutation result will not be able to indicate that this particular query needs to be cleared.
+Urql has no way of knowing that query holds Tasks, since it has no way of knowing what `TaskQueryResult` is. This means that if you run a mutation *creating* a task that's assigned to Fred, the mutation result will not be able to indicate that this particular query needs to be cleared.
 
 Interestingly, this is actually a solvable problem with a build step. A build step would be able to manually introspect the entire GraphQL endpoint, and figure out that `TaskQueryResult` contains `Task` objects, and fix this problem.
 
@@ -362,7 +363,7 @@ A side-effect of the above is that unlike Apollo and Urql, this library does no 
 
 The remainder of this post will go over how `micro-graphql-react` handles some common caching use cases. It'll paint with broad strokes, so be sure to check out [the docs](https://github.com/arackaf/micro-graphql-react) if you want to see some more detail on anything. As usual, all the code samples herein are from my [booklist project](https://github.com/arackaf/booklist).
 
-**Note** All of the code below was written for my particular application, based on what its GraphQL endpoint looks like. _Don't_ expect this code to work in your application, which will almost certainly have some differences in its GraphQL endpoint. In my particular case, my endpoint was created with my [mongo-graphql-starter](https://github.com/arackaf/mongo-graphql-starter) project.
+**Note** All of the code below was written for my particular application, based on what its GraphQL endpoint looks like. *Don't* expect this code to work in your application, which will almost certainly have some differences in its GraphQL endpoint. In my particular case, my endpoint was created with my [mongo-graphql-starter](https://github.com/arackaf/mongo-graphql-starter) project.
 
 ### Use case 1 - non-searched data
 
@@ -436,7 +437,7 @@ let { loading, loaded, data } = useQuery(
 
 You've now got a prime refactoring opportunity. It would be straightforward to replace those two chunks of code with two function calls, passing in the query name (or even array of query names, if you need), and the type name.
 
-_In fact_ - the beauty of hooks is how well they compose. Those two global mutation handlers could absolutely be inside the hook (`onMutation` can take a single object, **or** an array of them). If your application is big enough to justify it, a custom hook like this would work fine
+*In fact* - the beauty of hooks is how well they compose. Those two global mutation handlers could absolutely be inside the hook (`onMutation` can take a single object, **or** an array of them). If your application is big enough to justify it, a custom hook like this would work fine
 
 ```javascript
 const useSyncdQuery = (Query, Type, variables) => {
@@ -573,6 +574,7 @@ This library was designed to provide useful primitives, which can be tailored to
 Let's check out `syncUpdates` and `syncDeletes`
 
 <!-- prettier-ignore -->
+
 ```javascript
 import { getDefaultClient } from "micro-graphql-react";
 let graphqlClient = getDefaultClient();

@@ -1,12 +1,13 @@
----
+***
+
 title: Suspense Explained
 date: "2019-11-14T10:00:00.000Z"
 description: A walk through of the family of React features commonly all referred to as "Suspense"
----
+--------------------------------------------------------------------------------------------------
 
 React Suspense is a new way for React components to wait for something asynchronous. It can be difficult to understand its scope at first because it doesn’t replace any concrete, existing solution. It’s not a data fetching library, but a new, different way to think about asynchronous UI. This post is my attempt at explaining what problems it solves, with what primitives, which I'll take you through step by step, showing what they do, and how they're employed.
 
-What this post is _not_ is a quick guide to improving your application's data loading with Suspense. If that's all you want, just read the docs for the modern Suspense-enabled Relay, and go to work.
+What this post is *not* is a quick guide to improving your application's data loading with Suspense. If that's all you want, just read the docs for the modern Suspense-enabled Relay, and go to work.
 
 Again, the only goal of this post is to explain what problems Suspense solves, but from a *slightly* lower level than what the current Suspense docs have, which left me with a lot of unanswered questions. This is the introduction to Suspense I was looking for when I first started reading about it. I hope it's also useful to some of you!
 
@@ -54,7 +55,7 @@ I'll stress, this has nothing to do with Suspense, or even React; this preloadin
 
 ## And now, Suspense
 
-Ok let's get those two data requests in sync. First, let's wrap our module with a `Suspense` component, like this. Make sure your `<Suspense>` boundary is _above_ any components which are reading data. That won't make a difference yet, but it'll affect `useTransition` in a bit.
+Ok let's get those two data requests in sync. First, let's wrap our module with a `Suspense` component, like this. Make sure your `<Suspense>` boundary is *above* any components which are reading data. That won't make a difference yet, but it'll affect `useTransition` in a bit.
 
 ```tsx
 export default () => {
@@ -146,17 +147,17 @@ useEffect(() => {
 
 this tells React to start rendering this state change in a detached, in-memory copy of my app. If everything finishes, and stops suspending before the 3 second timeout, then cool, we'll update the UI then, with our new, consistent results. If it's not done within three seconds, then we'll apply it anyway, in it's suspended state, which will trigger the Suspense boundary's fallback ("Loading, yo").
 
-The `isPending` does what it says, and we can use it to display some sort of local loading indicator. The difference is, *that* loading indicator will represent the loading state of _all_ pending async operations. Again, that's what Suspense gives us: it allows us to coordinate multiple, separate async operations. Previously we would have to either co-locate these data requests somehow, and tie them together with `Promise.all`, or just fire them separately, and live with the possibility of an inconsistent UI, as the requests come back in a non-deterministic order.
+The `isPending` does what it says, and we can use it to display some sort of local loading indicator. The difference is, *that* loading indicator will represent the loading state of *all* pending async operations. Again, that's what Suspense gives us: it allows us to coordinate multiple, separate async operations. Previously we would have to either co-locate these data requests somehow, and tie them together with `Promise.all`, or just fire them separately, and live with the possibility of an inconsistent UI, as the requests come back in a non-deterministic order.
 
 Tweak that timeout amount as desired, and remember, you can use anything you want for the fallback display. The "Loading, yo" was silly and snarky; in practice you'll likely make it a shell of your actual UI, with a special message indicating how sorry you are that this search is taking so long.
 
 ## A warning on integrating this into existing applications
 
-Remember, you don't have to add Suspense to existing code, and doing so _might_ be more work than you think. When changing the code above to use Suspense api's, I noticed that my `<Suspense>` boundary (the ugly "Loading, yo" message) was being triggered at unexpected times. This happened because of state changes that were **not** wrapped in `startTransition`, which triggered new data loading. As you convert data reads to be Suspense ready, be _certain_ to wrap **every** state change that triggers those reads with `startTransition`
+Remember, you don't have to add Suspense to existing code, and doing so *might* be more work than you think. When changing the code above to use Suspense api's, I noticed that my `<Suspense>` boundary (the ugly "Loading, yo" message) was being triggered at unexpected times. This happened because of state changes that were **not** wrapped in `startTransition`, which triggered new data loading. As you convert data reads to be Suspense ready, be *certain* to wrap **every** state change that triggers those reads with `startTransition`
 
 ## Where to, from here
 
-Remember, you can place `<Suspense>` boundaries wherever you want. If a component suspends during rendering, React will render the fallback of the _first_ Suspense boundary it can find, by walking _up_ the tree from where the suspension happened. You can also use `useTransition` wherever you want, for any state change that involves async data loading (including lazy-loaded components created with `React.lazy`)
+Remember, you can place `<Suspense>` boundaries wherever you want. If a component suspends during rendering, React will render the fallback of the *first* Suspense boundary it can find, by walking *up* the tree from where the suspension happened. You can also use `useTransition` wherever you want, for any state change that involves async data loading (including lazy-loaded components created with `React.lazy`)
 
 With that in mind, I'll briefly note that these same primitives will likely need to be integrated into whatever routing solution you're using. New route parameters will likely need to be set with `useTransition`, with some sort of soft spinner that can display over the old route, while the new one loads. Which of course means you'll need a `<Suspense />` boundary at the very top of your app, to handle route transitions that take longer than the specified timeout.
 

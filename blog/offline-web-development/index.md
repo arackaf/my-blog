@@ -1,8 +1,9 @@
----
+***
+
 title: Making Sense of Offline Web Development
 date: "2019-03-08T20:00:32.169Z"
 description: Make your web apps work offline with Service Workers and IndexedDB.
----
+--------------------------------------------------------------------------------
 
 This post will walk you through making a web app work offline. It assumes a working knowledge of service workers and IndexedDB, so if those things are new to you, be sure to check out my prior post on offline development [here](https://css-tricks.com/making-your-web-app-work-offline-part-1/); this post builds heavily on it.
 
@@ -10,7 +11,7 @@ We’ll start by getting our app to load and render offline, thanks to service w
 
 ### A friendly word of caution
 
-While getting a basic service worker configured to pre-cache assets for better performance is relatively straightforward, getting a web app to actually _function_ while offline is not easy. There's no silver bullet; enabling offline functionality requires quite a lot of effort-much more than I assumed when I started this. If you're expecting to see a few apis and utilities you can plug into, and get something working quickly, you may be disappointed. Not only that, but the API of IndexedDB can be extremely un-friendly. While there are helpers on npm like [idb](https://www.npmjs.com/package/idb) and [idb-keyval](https://www.npmjs.com/package/idb-keyval), both by Jake Archibald, to assist with this, this post will use only vanilla API's and features. The **only** reason for this is to help provide a better understanding of the underlying tools, so if you ever decide to attempt this you'll have a better grasp of what's happening, have an easier time choosing suitable helpers, and debug when necessary.
+While getting a basic service worker configured to pre-cache assets for better performance is relatively straightforward, getting a web app to actually *function* while offline is not easy. There's no silver bullet; enabling offline functionality requires quite a lot of effort-much more than I assumed when I started this. If you're expecting to see a few apis and utilities you can plug into, and get something working quickly, you may be disappointed. Not only that, but the API of IndexedDB can be extremely un-friendly. While there are helpers on npm like [idb](https://www.npmjs.com/package/idb) and [idb-keyval](https://www.npmjs.com/package/idb-keyval), both by Jake Archibald, to assist with this, this post will use only vanilla API's and features. The **only** reason for this is to help provide a better understanding of the underlying tools, so if you ever decide to attempt this you'll have a better grasp of what's happening, have an easier time choosing suitable helpers, and debug when necessary.
 
 That said, there are limits to this philosophy. Getting a functioning Service Worker to precache, and update your resources as needed would be a project in and of itself. Fortunately there are utilities that can help, namely Google's [Workbox](https://developers.google.com/web/tools/workbox/), which I'll be using below. If you're curious what kind of work would be involved in making such a Service Worker from scratch, check out [this question](https://stackoverflow.com/questions/41616947/managing-service-worker-cache) I asked on Stack Overflow a few years ago, which Jeff Posnick was nice enough to answer.
 
@@ -210,7 +211,7 @@ function deleteItem(_id, table) {
 
 ## Limiting Application Functionality when Offline
 
-A particularly ambitious application might, when offline, collect all attempted POST requests for mutations, and just save them in IndexedDB, to fire when the device is next online. There’s nothing _wrong_ with doing this, just know that it’ll be possible for device B that is online to update the same data while device A is offline, causing A to destroy B’s updates when it comes back online. Obviously optimistic locking could solve this, but the complexity is quickly rising, for a feature that might not be necessary.
+A particularly ambitious application might, when offline, collect all attempted POST requests for mutations, and just save them in IndexedDB, to fire when the device is next online. There’s nothing *wrong* with doing this, just know that it’ll be possible for device B that is online to update the same data while device A is offline, causing A to destroy B’s updates when it comes back online. Obviously optimistic locking could solve this, but the complexity is quickly rising, for a feature that might not be necessary.
 
 Instead, let’s see how we can detect when the user is offline, and add that fact to our application state in order to remove access to any edit or delete buttons.
 
@@ -229,7 +230,7 @@ Non-Redux apps would integrate differently, of course, which is why I’m not sh
 
 The data retrieval so far has been overly simplified: we’ve just been dumping the entire contents of an IndexedDB table, without any filtering, sorting, or paging. Let’s take a look at some code that does all three.
 
-Let me stress, this code is built for speed, _not_ comfort. I wrote this with a mind toward avoiding any unnecessary table scans. It’s entirely likely this will be gross over-engineering for most use cases. I wrote this code as a learning exercise, for a meaningless side project, for fun. Be sure to profile before writing anything like this; as I said, there are many IndexedDB libraries which provide friendly APIs for searching, paging, and filtering data. It’s likely they do so by dumping entire tables in to memory, but as I said, this often won’t matter. **Profile before making any decisions.**
+Let me stress, this code is built for speed, *not* comfort. I wrote this with a mind toward avoiding any unnecessary table scans. It’s entirely likely this will be gross over-engineering for most use cases. I wrote this code as a learning exercise, for a meaningless side project, for fun. Be sure to profile before writing anything like this; as I said, there are many IndexedDB libraries which provide friendly APIs for searching, paging, and filtering data. It’s likely they do so by dumping entire tables in to memory, but as I said, this often won’t matter. **Profile before making any decisions.**
 
 But for fun, let’s dive in and see how this looks with vanilla code. We’ll be searching our books table, with the following assumptions: there are three fields on which the user can sort, in either direction; there’s one field on which the user can filter; and paging is built into the ui, so there will always be a page and page size property.
 
@@ -240,6 +241,7 @@ Here’s how we’ll implement this. The sort fields in the GraphQL request will
 Let’s implement this by adding some new, optional arguments to the `readTable` function from before, along with a new function that grabs the books’ arguments before calling `readTable` with them
 
 <!-- prettier-ignore -->
+
 ```javascript{numberLines: true}
 function readBooks(variableString) {
   let variables = JSON.parse(variableString);
@@ -329,4 +331,4 @@ Happy coding!
 
 ### Further Reading
 
-If you’d like to dig in more deeply to IndexedDB, Service Workers, and or PWAs in general, you won’t do better than [Progressive Web Apps](https://www.amazon.com/Building-Progressive-Web-Apps-Bringing/dp/1491961651/ref=sr_1_2?ie=UTF8&qid=1545942601&sr=8-2&keywords=progressive+web+app) by Tal Ater.
+If you’d like to dig in more deeply to IndexedDB, Service Workers, and or PWAs in general, you won’t do better than [Progressive Web Apps](https://www.amazon.com/Building-Progressive-Web-Apps-Bringing/dp/1491961651/ref=sr_1_2?ie=UTF8\&qid=1545942601\&sr=8-2\&keywords=progressive+web+app) by Tal Ater.

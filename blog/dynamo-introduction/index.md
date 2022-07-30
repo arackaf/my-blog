@@ -1,8 +1,9 @@
----
+***
+
 title: The What, Why and How of DynamoDB
 date: "2021-07-06T10:00:00.000Z"
 description: A high-level introduction to DynamoDB
----
+--------------------------------------------------
 
 DynamoDB is an incredible database whose popularity is quickly rising. Unfortunately, it can be difficult to wrap your head around how it works, and why. It's designed to have some very ambitious performance characteristics, and for this reason its api is rather different, and much more limited compared to what developers might be used to with other databases.
 
@@ -35,7 +36,7 @@ This query will be processed by a table scan, which we can see by looking at the
 
 ![Query execution plan](/dynamo-introduction/img2.png)
 
-Note that while it says “clustered index scan,” it is in fact scanning the table, since the clustered index _is the_ table, in SQL Server, for tables with a primary key defined.
+Note that while it says “clustered index scan,” it is in fact scanning the table, since the clustered index *is the* table, in SQL Server, for tables with a primary key defined.
 
 The engine will simply look through each and every record, and return those which match the filter clause. This query will run blazingly fast … when there's a tiny bit of data; it will run maddeningly slow when there's a massive amount of data, and everything in between.
 
@@ -55,7 +56,7 @@ What does that mean? Let's take a very high level view of how database indexes w
 
 But a flat list of all the terms in a book is still pretty big. Nobody would ever start reading an index at aardvark, and continue on until they either found what they were looking for, or hit zebra, and with it the end of the index. Typically folks will just thumb through the pages of a book’s index, looking at the words on each page, and just sort of find what they want. But if we were to force ourselves to think about how we'd do this algorithmically, we'd probably pick the middle page of the index, look at the first, and last word listed. If our target is in between, we just start reading and find the word. If our word is less than that smallest word, we'd pick the middle page of all the pages in the first half of the index, and repeat. And of course if the word is greater than the last word on our page, we'd pick the middle page in the remaining pages in the second half of the index, and repeat. With each repetition, we'd cut the number of pages we're searching in half. That means the algorithm would run in `O(lgN)` time, or logarithmic complexity.
 
-Logarithmic algorithms are incredibly fast. They're basically the inverse of exponential algorithms. Instead of a constant, like 2, multiplied by itself N times, we have N being divided by a constant repeatedly until we get to 1. That's what a logarithm means. _log<sub>2</sub>16_, or _lg16_ for short, means how many times do I divide 16 by 2, until I get to 1, which is 4. To give an idea of how well logarithmic algorithms perform, note that _lg_ of 4 billion is about 32, since _2<sup>32</sup>_ is about 4 billion. That's why you could never have more than 4GB of RAM on a 32 bit computer: you simply cannot create more than 4 billion unique addresses with just 32 bits.
+Logarithmic algorithms are incredibly fast. They're basically the inverse of exponential algorithms. Instead of a constant, like 2, multiplied by itself N times, we have N being divided by a constant repeatedly until we get to 1. That's what a logarithm means. *log<sub>2</sub>16*, or *lg16* for short, means how many times do I divide 16 by 2, until I get to 1, which is 4. To give an idea of how well logarithmic algorithms perform, note that *lg* of 4 billion is about 32, since *2<sup>32</sup>* is about 4 billion. That's why you could never have more than 4GB of RAM on a 32 bit computer: you simply cannot create more than 4 billion unique addresses with just 32 bits.
 
 But a real B+ tree is even better than this. Let’s dump the analogy and just look at how it works. A B+ tree is focused on getting you to the right page in memory, which contains the record you’re searching for. It starts with a root page, with a series of indexed values, with pointers to memory pages containing all values less than this value. Take this example
 
@@ -95,7 +96,7 @@ The index we added indexed on `employeeId`. Each leaf contains the employeeId, t
 
 ![Query execution plan](/dynamo-introduction/img8.png)
 
-Interesting. The engine decided to just scan the main table and get what we asked for. This is almost certainly because we have a tiny amount of data in the table. SQL Server maintains metadata about the size of tables and indexes to help it make decisions like this. It also allows us to force it to use a particular index by using a “hint,” which we _usually_ want to avoid, and let SQL Server to make smart choices for us. But just for fun, let’s see what it looks like
+Interesting. The engine decided to just scan the main table and get what we asked for. This is almost certainly because we have a tiny amount of data in the table. SQL Server maintains metadata about the size of tables and indexes to help it make decisions like this. It also allows us to force it to use a particular index by using a “hint,” which we *usually* want to avoid, and let SQL Server to make smart choices for us. But just for fun, let’s see what it looks like
 
 ```sql
 SELECT employeeId, id, [name]
@@ -142,13 +143,13 @@ What follows is the high level introduction I wish I had started with, when I go
 
 Dynamo is a NoSQL database. It enforces no schema on you, and allows you to store things like lists, and objects inside individual fields. But please don't be fooled into thinking it's like most other NoSQL databases. MongoDB has a lot more in common with SQL Server, than it does with Dynamo, and that was true even before Mongo added joins and transactions.
 
-When you create a table in Dynamo, you'll define a Partition Key. It's sort of like a primary key in other databases, except it doesn't uniquely identify a record (assuming there’s a sort key; stay tuned). What it does is uniquely identify a _list of_ records, which will be differentiated, and ordered by the sort key. The sort key is optional, and if you don't create one, the partition key will be **exactly** like a traditional primary key; but as we'll get into, you'll usually define both.
+When you create a table in Dynamo, you'll define a Partition Key. It's sort of like a primary key in other databases, except it doesn't uniquely identify a record (assuming there’s a sort key; stay tuned). What it does is uniquely identify a *list of* records, which will be differentiated, and ordered by the sort key. The sort key is optional, and if you don't create one, the partition key will be **exactly** like a traditional primary key; but as we'll get into, you'll usually define both.
 
 When we want to read data from Dynamo, we **always** (for the most part), start with the partition key. That will give you all of the rows defined with that key, ordered by the sort key (you can reverse this order in your query if you want). The best analogy I've heard is that each partition is basically a filing cabinet drawer, containing a bunch of related records. What's especially important here is that Dynamo guarantees that finding an individual partition is always fast. Basically, Dynamo comes sharded, out of the box, by partition key. This is a key point. As I said before, sharding becomes essential when your data scales, and is usually difficult to get right. But Dynamo comes with sharding out of the box, based on the partition key you define.
 
 But we can also also filter down the records from the partition (or filing cabinet drawer) if we want. We can run filters on the sort key as well, with things like equality, less than, greater than, between, etc. It turns out that each individual Dynamo partition is stored as a ... wait for it... B+ tree. This means finding a specific value in your partition is fast.
 
-What's especially important is what you cannot do. You cannot tell Dynamo to sort your query by some random field. You cannot join two tables, or even partitions together. You cannot do groupings. Etc. You can grab one precise value by specifying a partition key, and sort key, or you can grab a range of values within a partition, filtered by the sort key. I'll note that while you **can** also filter by arbitrary (non-key) fields, relying on this for major work is a strong anti-pattern. Dynamo is charging you (literally) based on how much you read, and arbitrary, non-key filters occur _after_ the reads happen. Also, these arbitrary filters are applied after your pagination values are applied, which means they won’t work well with pagination. Dynamo is pushing you very strongly toward using key-based filters.
+What's especially important is what you cannot do. You cannot tell Dynamo to sort your query by some random field. You cannot join two tables, or even partitions together. You cannot do groupings. Etc. You can grab one precise value by specifying a partition key, and sort key, or you can grab a range of values within a partition, filtered by the sort key. I'll note that while you **can** also filter by arbitrary (non-key) fields, relying on this for major work is a strong anti-pattern. Dynamo is charging you (literally) based on how much you read, and arbitrary, non-key filters occur *after* the reads happen. Also, these arbitrary filters are applied after your pagination values are applied, which means they won’t work well with pagination. Dynamo is pushing you very strongly toward using key-based filters.
 
 Again, Dynamo is extremely controlling, and specific about how it expects you to use it. Your data need to be modeled in such a way that your use cases can be satisfied by querying into a specific partition, based on sort key.
 
@@ -156,10 +157,10 @@ Before moving on I'll briefly note that Dynamo does allow you to scan the entire
 
 ### Modeling Data with Dynamo
 
-Ok so we want to design our data so that it fits into partitions, defined by the partition key, which can be further refined by the sort key. Let's see what that actually _means_. Let's say we wanted to create a table for books. What will each partition contain? Well, we'll need info about the book itself, we'll want records for each author, and let's also store some reviews the book received.
+Ok so we want to design our data so that it fits into partitions, defined by the partition key, which can be further refined by the sort key. Let's see what that actually *means*. Let's say we wanted to create a table for books. What will each partition contain? Well, we'll need info about the book itself, we'll want records for each author, and let's also store some reviews the book received.
 Here's one way (among many) we could model this.
 
-We'll name our partition key, `pk`, and we'll name our sort key `sk`. These keys _should_ have non-descriptive, generic names. They do not represent actual aspects of books, authors, or reviews, but rather are arbitrary values we'll use to rack and stack our data in exactly a way that Dynamo will like. To be crystal clear, each Dynamo partition will contain different types of data. If you’re used to SQL Server tables, or Mongo collections each storing a single entity type, this may be a radical change for you. These Dynamo partitions contain different types of entities. That’s why our pk and sk above are generic, and detached from our domain model.
+We'll name our partition key, `pk`, and we'll name our sort key `sk`. These keys *should* have non-descriptive, generic names. They do not represent actual aspects of books, authors, or reviews, but rather are arbitrary values we'll use to rack and stack our data in exactly a way that Dynamo will like. To be crystal clear, each Dynamo partition will contain different types of data. If you’re used to SQL Server tables, or Mongo collections each storing a single entity type, this may be a radical change for you. These Dynamo partitions contain different types of entities. That’s why our pk and sk above are generic, and detached from our domain model.
 
 Let's say that for any book, the partition key will be `Book#<isbn>`. Again, we’re using this instead of just the isbn alone because with Dynamo, we’re storing many different types of data inside of the same table. Your entire project would likely be stored inside of a single table, organized by partition. If our books are keyed as `Book#978111`, then a publishing house might be keyed as `Publisher#Random House`, a book seller might be keyed as `Seller#Amazon`, etc. Rather than having multiple tables, each with one type of thing, we have one big table, partitioned into different types, based on the partition key.
 
@@ -169,7 +170,7 @@ Let's see what it might look like for one book:
 
 ![Dynamo table](/dynamo-introduction/img12.png)
 
-So if we want to just dump everything about _The Ancestor’s Tale_, we would pull that partition.
+So if we want to just dump everything about *The Ancestor’s Tale*, we would pull that partition.
 
 More interestingly, if we want to pull the authors of a book, we pull that partition, and further filter based on sort key values that starts with `Author#`.
 
@@ -179,7 +180,7 @@ But what if we want to query a specific author, say, Richard Dawkins, and get al
 
 ### Hello, GSI
 
-One of the most important, and powerful features of Dynamo are global, secondary indexes, or GSIs. A GSI allows your to take your table, and basically project a brand new table _from it_, with a brand new partition, and sort key. As you update the table, the index will update automatically. Best of all, the GSI can be queried directly, just like the main table, in exactly the same way.
+One of the most important, and powerful features of Dynamo are global, secondary indexes, or GSIs. A GSI allows your to take your table, and basically project a brand new table *from it*, with a brand new partition, and sort key. As you update the table, the index will update automatically. Best of all, the GSI can be queried directly, just like the main table, in exactly the same way.
 
 Let's get started. Let's build a GSI with `authorName` as the partition key, and `book` as the sort key. I'm simplifying a bit here; usually you should create and maintain dedicated fields for index keys, rather than reuse fields from your model. The reason is, if some other entity type got added to our table with an `authorName` field, it would pollute our index. But for this blog post, it's good enough.
 
@@ -195,7 +196,7 @@ Now if we want to see Richard Dawkins's books, we can query the GSI directly.
 
 Best of all, this query is always guaranteed to be fast. Our GSI is partitioned by authorName, and again, Dynamo guarantees fast lookups on partitions. We sacrifice a lot of flexibility using Dynamo, but we gain fast, scalable queries.
 
-### What can Dynamo _not_ do?
+### What can Dynamo *not* do?
 
 As we've seen, Dynamo expects us to model our data pretty precisely, for queries we plan ahead, and model for. It is not for flexible querying. If you have use cases which demand flexible, user driven queries and sorting, Dynamo might not be the best for that use case. The good news is, nobody ever said you should use Dynamo for everything. There are lots of databases out there, each with their own pro's and con's. Pick the right ones for your project.
 
