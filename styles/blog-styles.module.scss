@@ -16,6 +16,11 @@
     position: relative;
   }
 
+  sup {
+    vertical-align: super;
+    font-size: 65%;
+  }
+
   p {
     margin-bottom: 1.6rem;
     line-height: 1.666;
