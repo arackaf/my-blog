@@ -34,9 +34,14 @@ if let jsonObject = try? JSONSerialization.jsonObject(with: json) as? [String: A
 
 this prints roughly what you'd expect
 
-> ["arr": [1, 2, 3], "obj": ["nestedString": "str", "nestedInt": 12], "b": "Hello", "a": 12] 
-> 
-> 1
+
+<blockquote>
+<pre>
+["arr": [1, 2, 3], "obj": ["nestedString": "str", "nestedInt": 12], "b": "Hello", "a": 12] 
+<br />
+1
+</pre>
+</blockquote>
 
 Here's a [live demo](https://replit.com/@arackaf/basicjsondecoding#main.swift)
 
@@ -87,9 +92,14 @@ struct Movie: Codable {
 
 We expect a metadata field that we can just cast as needed, like we did with the `[String: Any]` result from `JSONSerialization.jsonObject` we saw above. Unfortunately, the compiler has other ideas. This change alone causes a number of errors, but the one I'll point out is this
 
-> main.swift:6:7: note: cannot automatically synthesize 'Decodable' because 'Any' does not conform to 'Decodable'
->  var metadata: Any
->      ^
+<blockquote>
+<pre>
+main.swift:6:7: note: cannot automatically synthesize 'Decodable' because 'Any' does not conform to 'Decodable'
+ var metadata: Any
+     ^
+</pre>
+</blockquote>
+
 
 The Codable protocol has a few methods it requires, but Swift is able to write them (synthesize them) for you if, and only if all of the struct's properties are themselves Codable. Strings and Ints are; `Any` is not.
 
