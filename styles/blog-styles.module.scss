@@ -38,4 +38,26 @@
     margin-bottom: var(--heading-margin-bottom);
   }
 
+  blockquote {
+    padding: 15px;
+    overflow: auto;
+    background-color: hsl(43, 13%, 90%);
+    margin-bottom: 1.6rem;
+    font-family: monospace;
+    overflow: auto;
+    white-space: nowrap;
+
+    & > pre {
+      line-height: 1.5;
+
+      br {
+        display: none;
+      }
+    }
+
+    & > p {
+      margin: 0;
+    }
+  }
+
 }
