@@ -35,7 +35,7 @@ This will cause all of our webpack assets to be precached, excluding some font f
 
 Let’s go offline, and try opening the subjects page. Unsurprisingly, nothing loads since we’re offline, and our network requests fail.
 
-![Offline](/offline-web-development/initialOffline.png)
+![Offline](/offline-web-development/initialOffline-sized.png)
 
 To fix this, let’s set up a Workbox route that looks at what’s being requested, and, if it fails, satisfies the request with data from IndexedDB. Since this app uses GraphQL for its data, this becomes a bit more straightforward: all requests will be under the same path, and we can just inspect the query portion of the url. Of course if you’re not using GraphQL, you’d just inspect the url in some other way to figure out what to load from IndexedDB.
 
@@ -103,7 +103,7 @@ const gqlResponse = (op, coll) => data =>
 
 And now our subjects will load while offline
 
-![Subjects Loading](/offline-web-development/subjectsLoading.png)
+![Subjects Loading](/offline-web-development/subjectsLoading-sized.png)
 
 ## Syncing Data in IndexedDB
 

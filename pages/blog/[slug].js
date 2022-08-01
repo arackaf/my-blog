@@ -31,7 +31,13 @@ export default function Post({ post, morePosts, preview }) {
       const referenceParent = img.parentElement;
 
       const anchor = document.createElement("a");
-      anchor.href = img.src;
+      anchor.href = img.src.replace(/\-sized\./, ".");
+
+      const slotValue = img.getAttribute("slot");
+      if (slotValue) {
+        anchor.setAttribute("slot", img.getAttribute("slot"));
+        img.removeAttribute("slot", "");
+      }
       anchor.target = "_blank";
 
       referenceParent.insertBefore(anchor, img);

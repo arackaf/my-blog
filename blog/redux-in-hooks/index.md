@@ -241,7 +241,7 @@ function myReducer(state, [type, payload]): typeof initialState {
 
 Now, when we use this reducer, TypeScript will tell us what fields are on our returned state.
 
-![Typed reducer state](/redux-in-hooks/stateFromReducer.png)
+![Typed reducer state](/redux-in-hooks/stateFromReducer-sized.png)
 
 That was the easy part. Let's turn to our dispatch function, and see how we can get it to communicate its actions to TypeScript, and to us. Don't worry, this won't be terribly difficult, either.
 
@@ -265,15 +265,15 @@ function myReducer(state, [type, payload]: actions): typeof initialState {
 
 Now, when we start to dispatch an action, we'll get a nice autocomplete on the action names.
 
-![Typed action names](/redux-in-hooks/typedDispatch.png)
+![Typed action names](/redux-in-hooks/typedDispatch-sized.png)
 
 Unfortunately, VS Code isn't quite, yet, up to the task of providing auto-complete info on the payload.
 
-![No auto-complete on payload](/redux-in-hooks/typedDispatchLimitation.png)
+![No auto-complete on payload](/redux-in-hooks/typedDispatchLimitation-sized.png)
 
 But you can always jump to the reducer definition and quickly peak at the types, and regardless, if you use it wrong, TypeScript will tell you.
 
-![Typed payload](/redux-in-hooks/typedDispatchCheckingCorrectly.png)
+![Typed payload](/redux-in-hooks/typedDispatchCheckingCorrectly-sized.png)
 
 ### What about thunk dispatches?
 

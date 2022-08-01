@@ -58,7 +58,7 @@ Let's create that file, and add some purposefully ugly styles
 
 As we have it, this code leads to the following webpack error
 
-![Loading error](/css-modules/loadingError.png)
+![Loading error](/css-modules/loadingError-sized.png)
 
 webpack only knows how to load standard JavaScript by default. To add other content, like css, we need to tell webpack how to handle it. Let's do that now. First, install the `mini-css-extract-plugin` and `css-loader` plugins, using your favorite package manager, in your favorite cli.
 
@@ -89,7 +89,7 @@ If you're new to webpack, and that went a little too fast for you, check out the
 
 Now, if we restart webpack, and reload our page, we should see this disgusting, but technically correct result
 
-![Unstyled Component](/css-modules/styledComponent.png)
+![Unstyled Component](/css-modules/styledComponent-sized.png)
 
 "Success" - hooray.
 
@@ -140,7 +140,7 @@ _Edit_ - after publishing this, Marc Bernstein pointed out on Twitter that css-l
 
 Applying everything like so should reveal the same ugly output as before
 
-![Unstyled Component](/css-modules/styledComponent.png)
+![Unstyled Component](/css-modules/styledComponent-sized.png)
 
 ## Best of Both Worlds?
 
@@ -294,7 +294,7 @@ $listStyleType: armenian;
 
 after re-starting our webpack process, our cool component should look like this
 
-![Unstyled Component](/css-modules/styledSass.png)
+![Unstyled Component](/css-modules/styledSass-sized.png)
 
 ## Concluding thoughts
 
