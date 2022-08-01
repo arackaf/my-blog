@@ -33,7 +33,7 @@ WHERE employeeId = 552
 
 This query will be processed by a table scan, which we can see by looking at the execution plan.
 
-![Query execution plan](/dynamo-introduction/img2.png)
+![Query execution plan](/dynamo-introduction/img2-sized.png)
 
 Note that while it says “clustered index scan,” it is in fact scanning the table, since the clustered index _is the_ table, in SQL Server, for tables with a primary key defined.
 
@@ -49,7 +49,7 @@ CREATE INDEX idx_users_employeeId ON USERS (employeeId);
 
 Now when we run our same query, the engine will perform a seek.
 
-![Query execution plan](/dynamo-introduction/img3.png)
+![Query execution plan](/dynamo-introduction/img3-sized.png)
 
 What does that mean? Let's take a very high level view of how database indexes work. They're usually stored in a data structure known as a B+ tree. There's tons of comp sci-rich resources where you can learn all about them, but for now, think of a database index like the index of a book. A book's index has an ordered list of all the terms the book has, along with a page number. Database indexes are similarly ordered based on whatever they're indexing, and contain a pointer to the page in memory where the actual record is stored (they'll also have the primary key for the record, and any "covering" fields, which we'll get to).
 
@@ -59,7 +59,7 @@ Logarithmic algorithms are incredibly fast. They're basically the inverse of exp
 
 But a real B+ tree is even better than this. Let’s dump the analogy and just look at how it works. A B+ tree is focused on getting you to the right page in memory, which contains the record you’re searching for. It starts with a root page, with a series of indexed values, with pointers to memory pages containing all values less than this value. Take this example
 
-![B+ Tree 1](/dynamo-introduction/img4.png)
+![B+ Tree 1](/dynamo-introduction/img4-sized.png)
 
 The root record is telling us that all values less than 9 are in the memory page to the left, all values less than 21 are in the middle page, and so on. The pink boxes are leaf nodes. They’ll contain the indexed value (2, 7, 9, 10, 15, 21, etc., in the picture), any covering values, which we’ll get to, and also, not shown, but a pointer to the page in memory where actual record is, as stored in the table.
 
@@ -67,7 +67,7 @@ These leaf pages also contain pointers to the **next** page, which will come in 
 
 But what happens when our table gets so big that we can no longer have a single root page with a pointer to a single memory page with all values less than a certain key. Pages in memory are a fixed size, and pointers are not free, after all. When this happens, the B+ tree will just grow, adding more non-leaf levels.
 
-![B+ Tree 2](/dynamo-introduction/img5.png)
+![B+ Tree 2](/dynamo-introduction/img5-sized.png)
 
 It’s the same idea as before, except now you need to load a total of three pages in memory, to get to your target, instead of two. Before we read the root, which took us right to our destination. Now we read the root, which takes us to another page of pointers, which then takes us to our destination.
 
@@ -79,7 +79,7 @@ FROM [dbo].[Users]
 WHERE employeeId > 3
 ```
 
-![Query execution plan](/dynamo-introduction/img6.png)
+![Query execution plan](/dynamo-introduction/img6-sized.png)
 
 As we can see, SQL Server ran a seek to find the first value of 3, and then just kept reading the rest of the values. Cool! This query is a bit limited though. Let's also query for each user's name, and see what happens.
 
@@ -93,7 +93,7 @@ WHERE employeeId = 552
 
 The index we added indexed on `employeeId`. Each leaf contains the employeeId, the primary key, and a pointer to the (page in memory containing the) full record. You might think SQL Server would do a seek on our index, then follow the pointer to the record in the table. Instead, we see this
 
-![Query execution plan](/dynamo-introduction/img8.png)
+![Query execution plan](/dynamo-introduction/img8-sized.png)
 
 Interesting. The engine decided to just scan the main table and get what we asked for. This is almost certainly because we have a tiny amount of data in the table. SQL Server maintains metadata about the size of tables and indexes to help it make decisions like this. It also allows us to force it to use a particular index by using a “hint,” which we _usually_ want to avoid, and let SQL Server to make smart choices for us. But just for fun, let’s see what it looks like
 
@@ -103,7 +103,7 @@ FROM [dbo].[Users] WITH (INDEX(idx_users_employeeId))
 WHERE employeeId = 552
 ```
 
-![Query execution plan](/dynamo-introduction/img9.png)
+![Query execution plan](/dynamo-introduction/img9-sized.png)
 
 There we go. Key Lookup is the process by which SQL Server grabs the full row from the main table, and the Nested Loops is the process of combining them together.
 
@@ -124,7 +124,7 @@ Boom
 
 ![Query results](/dynamo-introduction/img10.png)
 
-![Query execution plan](/dynamo-introduction/img11.png)
+![Query execution plan](/dynamo-introduction/img11-sized.png)
 
 Our entire query was satisfied with a single index seek; it will scale incredibly well.
 
@@ -167,13 +167,13 @@ So what kind of values will we have within each Book partition? Let's say we'll 
 
 Let's see what it might look like for one book:
 
-![Dynamo table](/dynamo-introduction/img12.png)
+![Dynamo table](/dynamo-introduction/img12-sized.png)
 
 So if we want to just dump everything about _The Ancestor’s Tale_, we would pull that partition.
 
 More interestingly, if we want to pull the authors of a book, we pull that partition, and further filter based on sort key values that starts with `Author#`.
 
-![Dynamo query](/dynamo-introduction/img13.png)
+![Dynamo query](/dynamo-introduction/img13-sized.png)
 
 But what if we want to query a specific author, say, Richard Dawkins, and get all of their books? Things aren't looking good. Any query **has** to start with a partition key, but each separate book is its own partition. We definitely don't want to just scan the entire table, looking for items with a sk of Author#Richard Dawkins; that would be slow, and expensive.
 
@@ -185,13 +185,13 @@ Let's get started. Let's build a GSI with `authorName` as the partition key, and
 
 What this index will do is take the items in our main table, and for those with an `authorName` field, a corresponding partition will be created in our index, with a sort key of `book`. It looks like this.
 
-![Dynamo gsi](/dynamo-introduction/img14.png)
+![Dynamo gsi](/dynamo-introduction/img14-sized.png)
 
 Don’t be fooled by the pk and sk fields. We projected **all** fields from the original table (which includes pk and sk), with a partitionKey of `authorName`, and a sortKey of `book`.
 
 Now if we want to see Richard Dawkins's books, we can query the GSI directly.
 
-![Dynamo gsi query](/dynamo-introduction/img15.png)
+![Dynamo gsi query](/dynamo-introduction/img15-sized.png)
 
 Best of all, this query is always guaranteed to be fast. Our GSI is partitioned by authorName, and again, Dynamo guarantees fast lookups on partitions. We sacrifice a lot of flexibility using Dynamo, but we gain fast, scalable queries.
 
