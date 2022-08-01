@@ -14,7 +14,8 @@ async function run() {
     const sharpImage = sharp(img);
     const dimensions = await sharpImage.metadata();
 
-    if (dimensions.width <= 600) {
+    const MAX_WIDTH = 1000;
+    if (dimensions.width <= MAX_WIDTH) {
       console.log("Skipping", img);
       continue;
     }
@@ -22,10 +23,14 @@ async function run() {
     const dir = path.dirname(img);
     const basename = path.basename(img, ext);
 
+    if (basename.endsWith("-sized")) {
+      continue;
+    }
+
     const newName = path.join(dir, basename + "-sized" + ext);
 
     console.log("Creating", newName);
-    await sharpImage.resize(600).toFile(newName);
+    await sharpImage.resize(MAX_WIDTH).toFile(newName);
   }
 }
 
