@@ -35,6 +35,12 @@
     margin-top: var(--heading-margin-bottom);
     margin-bottom: var(--heading-margin-bottom);
   }
+  img {
+    height: auto;
+  }
+  canvas {
+    background-color: red;
+  }
 
   :global(.post-date) { 
     margin-top: calc(-1 * var(--heading-margin-bottom));
