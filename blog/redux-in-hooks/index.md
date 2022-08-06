@@ -8,7 +8,7 @@ description: A walk through of the various ways useReducer can be made more ergo
 
 If you're new to `useReducer`, be sure to check out [my prior post on it](https://adamrackis.dev/state-and-use-reducer/).
 
-This code in this post will often use TypeScript, especially at the end, when we start adding our own typings. If you're unfamiliar with TypeScript, *some* of the code below may look unfamiliar.
+This code in this post will often use TypeScript, especially at the end, when we start adding our own typings. If you're unfamiliar with TypeScript, _some_ of the code below may look unfamiliar.
 
 ## Our App state reducer
 
@@ -75,7 +75,7 @@ const setModule = module => ({ type: SET_MODULE, module });
 const setPublicInfo = publicInfo => ({ type: SET_PUBLIC_INFO, ...publicInfo });
 ```
 
-In the first two examples, the action creator returns a *function*, which is passed the dispatch function, which we can use as needed. And of course the second two are simpler action creators that just automate creation of our dispatch packets.
+In the first two examples, the action creator returns a _function_, which is passed the dispatch function, which we can use as needed. And of course the second two are simpler action creators that just automate creation of our dispatch packets.
 
 Without Redux, how can we get a similar, simple way of working with this reducer?
 
@@ -142,11 +142,11 @@ export function getStatePacket<T>(
 }
 ```
 
-This function wraps our dispatch so a function (or "thunk") can be dispatched. That's what allowed `requestDesktop` and `requestMobile` to work, above. If our new dispatch is passed an object, we dispatch it, and are done. If a function is dispatched, we *call* the function, passing it both the original dispatch function, as well as a function that returns the current state (Redux called this `getState`).
+This function wraps our dispatch so a function (or "thunk") can be dispatched. That's what allowed `requestDesktop` and `requestMobile` to work, above. If our new dispatch is passed an object, we dispatch it, and are done. If a function is dispatched, we _call_ the function, passing it both the original dispatch function, as well as a function that returns the current state (Redux called this `getState`).
 
 A quick note: `getState` will not return the "correct" state, by which I mean, if, inside your thunk, you call `dispatch(someAction)`, you cannot, synchronously, then call `getState()` and expect to see an updated result reflecting what you just dispatched. This is not a flaw in the code above, but rather central to how React updates state. tl;dr - the synchronous updates from Redux were nice, but they may not play well in a Suspense-enable world.
 
-While it's cool that we can now dispatch a function, we still don't have a way to *just call* those action creators, and have their results dispatched, automatically. Let's turn there, next.
+While it's cool that we can now dispatch a function, we still don't have a way to _just call_ those action creators, and have their results dispatched, automatically. Let's turn there, next.
 
 ### Wire the action creators
 
@@ -158,7 +158,7 @@ This is what allowed some of our action creators to be defined as higher ordered
 const requestDesktop = () => dispatch => {
 ```
 
-For these, calling `dispatch(f(args))` returns that inner function taking dispatch as the first argument (and `getState` as the second, although it's not used here). *This* function is what will be called in `getStatePacket`, in the `else if (typeof val === "function")` branch.
+For these, calling `dispatch(f(args))` returns that inner function taking dispatch as the first argument (and `getState` as the second, although it's not used here). _This_ function is what will be called in `getStatePacket`, in the `else if (typeof val === "function")` branch.
 
 After all that build-up, the end result is relatively boring.
 
@@ -173,7 +173,7 @@ export function makeActionCreators(dispatch, fns) {
 
 We loop through each action creator, and create a new function that forwards its arguments to the original function, takes the result, and passes it to dispatch. If the result is itself a new function, ie a thunk, `getStatePacket` will call it, and pass in dispatch. If that result is just an object, then `getStatePacket` will just dispatch it and be done.
 
-If `Object.entries` seems scary, know that it's basically just `Object.keys`, except it *also* gives you the corresponding values. If `reduce` seems scary, know that that's normal. If you're not well familiar with `Array.prototype.reduce`, I'd highly recommend you read through [the docs](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/reduce), and practice with it. It's one of the most versatile, useful tools you can have in your toolbox.
+If `Object.entries` seems scary, know that it's basically just `Object.keys`, except it _also_ gives you the corresponding values. If `reduce` seems scary, know that that's normal. If you're not well familiar with `Array.prototype.reduce`, I'd highly recommend you read through [the docs](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/reduce), and practice with it. It's one of the most versatile, useful tools you can have in your toolbox.
 
 ### Warning
 
@@ -189,7 +189,7 @@ But can we get these same benefits without all the overhead we saw above? It tur
 
 ### Tweaking our reducer
 
-Dan Abramov was nice enough to share this tip with me me: your reducer doesn't *have* to dispatch an object; you're allowed to dispatch an array. This allows you to do things like
+Dan Abramov was nice enough to share this tip with me me: your reducer doesn't _have_ to dispatch an object; you're allowed to dispatch an array. This allows you to do things like
 
 ```javascript
 dispatch(["ADD_TODO", { id: 1, title: "Write Blog" }]);
@@ -241,10 +241,7 @@ function myReducer(state, [type, payload]): typeof initialState {
 
 Now, when we use this reducer, TypeScript will tell us what fields are on our returned state.
 
-<blurhash-image url="/redux-in-hooks/stateFromReducer-sized.png" preview='{"blurhash":"U24x-=*0WDjd.SyCV?RQRMs*f5M{MwV@tRoL","w":1000,"h":234}'>
-  <img alt="Typed reducer state" width="1000" height="234" src="/redux-in-hooks/stateFromReducer-sized.png" slot="image" />
-  <canvas width="1000" height="234" slot="preview"></canvas>
-</blurhash-image>
+![Typed reducer state](/redux-in-hooks/stateFromReducer-sized.png)
 
 That was the easy part. Let's turn to our dispatch function, and see how we can get it to communicate its actions to TypeScript, and to us. Don't worry, this won't be terribly difficult, either.
 
@@ -268,24 +265,15 @@ function myReducer(state, [type, payload]: actions): typeof initialState {
 
 Now, when we start to dispatch an action, we'll get a nice autocomplete on the action names.
 
-<blurhash-image url="/redux-in-hooks/typedDispatch-sized.png" preview='{"blurhash":"U25#w;_MMwDj_Nx]Myn.XMN_M}s=KRW.s.Vs","w":1000,"h":310}'>
-  <img alt="Typed action names" width="1000" height="310" src="/redux-in-hooks/typedDispatch-sized.png" slot="image" />
-  <canvas width="1000" height="310" slot="preview"></canvas>
-</blurhash-image>
+![Typed action names](/redux-in-hooks/typedDispatch-sized.png)
 
 Unfortunately, VS Code isn't quite, yet, up to the task of providing auto-complete info on the payload.
 
-<blurhash-image url="/redux-in-hooks/typedDispatchLimitation-sized.png" preview='{"blurhash":"U36a|:-:D*nO*JOYMyv%4mtQ%2V]Hq-o-nS$","w":600,"h":127}'>
-  <img alt="No auto-complete on payload" width="600" height="127" src="/redux-in-hooks/typedDispatchLimitation-sized.png" slot="image" />
-  <canvas width="600" height="127" slot="preview"></canvas>
-</blurhash-image>
+![No auto-complete on payload](/redux-in-hooks/typedDispatchLimitation-sized.png)
 
 But you can always jump to the reducer definition and quickly peak at the types, and regardless, if you use it wrong, TypeScript will tell you.
 
-<blurhash-image url="/redux-in-hooks/typedDispatchCheckingCorrectly-sized.png" preview='{"blurhash":"U36*dj%NE0j=_3NFIUWF4mMwxuj]4ns;-:jE","w":1000,"h":204}'>
-  <img alt="Typed payload" width="1000" height="204" src="/redux-in-hooks/typedDispatchCheckingCorrectly-sized.png" slot="image" />
-  <canvas width="1000" height="204" slot="preview"></canvas>
-</blurhash-image>
+![Typed payload](/redux-in-hooks/typedDispatchCheckingCorrectly-sized.png)
 
 ### What about thunk dispatches?
 
