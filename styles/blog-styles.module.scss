@@ -39,7 +39,7 @@
     height: auto;
   }
   canvas {
-    background-color: red;
+    background: linear-gradient(0deg, rgba(251,251,251,1) 0%, rgba(231,231,231,1) 50%, rgba(243,243,243,1) 100%);
   }
 
   :global(.post-date) { 
