@@ -6,7 +6,7 @@ description: An introduction to loading css with webpack, and enabling css-modul
 
 The css ecosystem is immense and, at times, intimidating. This post will start at the beginning. We'll go over loading basic css with webpack, then move on to css modules, and wrap up with Sass. If you have some experience loading css in webpack-based web applications, some of this may be old news for you.
 
-Note that while the code samples in this post use React, none of the concepts are specific to it in the least. Also, this post does _not_ cover css-in-js, for the simple reason that I haven't yet gotten around to diving into that ecosystem; I'm hoping by the time I do, it'll be a bit less crowded :)
+Note that while the code samples in this post use React, none of the concepts are specific to it in the least. Also, this post does *not* cover css-in-js, for the simple reason that I haven't yet gotten around to diving into that ecosystem; I'm hoping by the time I do, it'll be a bit less crowded :)
 
 ## Starting at the beginning: basic css loading
 
@@ -27,7 +27,10 @@ const Component = () => (
 
 Without accompanying styles, it'll look something like this.
 
-![Unstyled Component](/css-modules/unstyledComp.png)
+<blurhash-image url="/css-modules/unstyledComp.png" preview='{"blurhash":"U8S$ovWB~qt7RjRjWBf6-;WBD%ayRjj[%May","w":276,"h":256}'>
+  <img alt="Unstyled Component" width="276" height="256" src="/css-modules/unstyledComp.png" slot="image" />
+  <canvas width="276" height="256" slot="preview"></canvas>
+</blurhash-image>
 
 Let's add some basic styling. Let's start simple, and have the JS module this component sits in import a css file, with standard, global styling rules. The import will look like this
 
@@ -58,7 +61,10 @@ Let's create that file, and add some purposefully ugly styles
 
 As we have it, this code leads to the following webpack error
 
-![Loading error](/css-modules/loadingError-sized.png)
+<blurhash-image url="/css-modules/loadingError-sized.png" preview='{"blurhash":"U77cKt}YoLS2,@jtS2oLEzWVjtazACoLsoS2","w":600,"h":230}'>
+  <img alt="Loading error" width="600" height="230" src="/css-modules/loadingError-sized.png" slot="image" />
+  <canvas width="600" height="230" slot="preview"></canvas>
+</blurhash-image>
 
 webpack only knows how to load standard JavaScript by default. To add other content, like css, we need to tell webpack how to handle it. Let's do that now. First, install the `mini-css-extract-plugin` and `css-loader` plugins, using your favorite package manager, in your favorite cli.
 
@@ -89,7 +95,10 @@ If you're new to webpack, and that went a little too fast for you, check out the
 
 Now, if we restart webpack, and reload our page, we should see this disgusting, but technically correct result
 
-![Unstyled Component](/css-modules/styledComponent-sized.png)
+<blurhash-image url="/css-modules/styledComponent-sized.png" preview='{"blurhash":"U[H{=Yayxua{ayjujuf7~Xj[WBjuj[fQfQfj","w":600,"h":229}'>
+  <img alt="Unstyled Component" width="600" height="229" src="/css-modules/styledComponent-sized.png" slot="image" />
+  <canvas width="600" height="229" slot="preview"></canvas>
+</blurhash-image>
 
 "Success" - hooray.
 
@@ -136,15 +145,18 @@ const Component = () => (
 
 We now import an object from the css file. The keys of this object are the class names we wrote originally in the css file, and the property values are the dynamically generated class names. Note the weird syntax around the `list-item` class. JavaScript identifiers cannot be hyphenated, so you'll either need to alias it, or just use valid JS names in your css modules.
 
-_Edit_ - after publishing this, Marc Bernstein pointed out on Twitter that css-loader has a `camelCase` option that will convert hyphenated class names to camel-cased equivalents. You can read the docs on it [here](https://github.com/webpack-contrib/css-loader#camelcase)
+*Edit* - after publishing this, Marc Bernstein pointed out on Twitter that css-loader has a `camelCase` option that will convert hyphenated class names to camel-cased equivalents. You can read the docs on it [here](https://github.com/webpack-contrib/css-loader#camelcase)
 
 Applying everything like so should reveal the same ugly output as before
 
-![Unstyled Component](/css-modules/styledComponent-sized.png)
+<blurhash-image url="/css-modules/styledComponent-sized.png" preview='{"blurhash":"U[H{=Yayxua{ayjujuf7~Xj[WBjuj[fQfQfj","w":600,"h":229}'>
+  <img alt="Unstyled Component" width="600" height="229" src="/css-modules/styledComponent-sized.png" slot="image" />
+  <canvas width="600" height="229" slot="preview"></canvas>
+</blurhash-image>
 
 ## Best of Both Worlds?
 
-So far so good, but what if, like me, you think global styles aren't so bad, _sometimes_. What if you have some styles that you plan to be universal in your app, used almost everywhere, and manually importing them as dynamic values just isn't worth the effort? Examples might include a `.btn`, `.table`, or even a `.pane` class. What if the `.pane` class is intended to be used far and wide, with exactly one meaning. Can we make that class (and others) be global, while using css-modules for module-specific stylings, like our list classes, above.
+So far so good, but what if, like me, you think global styles aren't so bad, *sometimes*. What if you have some styles that you plan to be universal in your app, used almost everywhere, and manually importing them as dynamic values just isn't worth the effort? Examples might include a `.btn`, `.table`, or even a `.pane` class. What if the `.pane` class is intended to be used far and wide, with exactly one meaning. Can we make that class (and others) be global, while using css-modules for module-specific stylings, like our list classes, above.
 
 You can, and you have two options: you can define each and every global css class with `:global()` (see the [css-modules docs](https://github.com/css-modules/css-modules) for more info), or, my preferred approach, you can use a naming scheme to differentiate global css files from css-modules.
 
@@ -294,7 +306,10 @@ $listStyleType: armenian;
 
 after re-starting our webpack process, our cool component should look like this
 
-![Unstyled Component](/css-modules/styledSass-sized.png)
+<blurhash-image url="/css-modules/styledSass-sized.png" preview='{"blurhash":"UXT7$}RjcDspozf8ayWVqEofaKWVkCayj[oL","w":600,"h":215}'>
+  <img alt="Unstyled Component" width="600" height="215" src="/css-modules/styledSass-sized.png" slot="image" />
+  <canvas width="600" height="215" slot="preview"></canvas>
+</blurhash-image>
 
 ## Concluding thoughts
 

@@ -27,13 +27,19 @@
     word-break: break-word;
   }
 
-  img { 
+  img, canvas { 
     display: block;
     max-width: 100%;
     margin-left: auto;
     margin-right: auto;
     margin-top: var(--heading-margin-bottom);
     margin-bottom: var(--heading-margin-bottom);
+  }
+  img {
+    height: auto;
+  }
+  canvas {
+    background: linear-gradient(0deg, rgba(251,251,251,1) 0%, rgba(231,231,231,1) 50%, rgba(243,243,243,1) 100%);
   }
 
   :global(.post-date) { 
