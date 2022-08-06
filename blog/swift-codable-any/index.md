@@ -16,7 +16,7 @@ If you already know what you're doing and just want to see the final result, [it
 
 ## Getting started: generic decoding
 
-Swift's `JSONSerialization.jsonObject` method allows you to turn a JSON string into a matching `[String: Any]` dictionary.
+Swift's `JSONSerialization.jsonObject` method allows you to turn a JSON string into a matching `[String: Any]` dictionary. 
 
 ```swift
 let json = """
@@ -33,6 +33,7 @@ if let jsonObject = try? JSONSerialization.jsonObject(with: json) as? [String: A
 ```
 
 this prints roughly what you'd expect
+
 
 <blockquote>
 <pre>
@@ -57,7 +58,7 @@ struct Movie: Codable {
 }
 ```
 
-then we can easily decode into it with a JSONDecoder, like this
+then we can easily decode into it with a JSONDecoder, like this 
 
 ```swift
 let json = """
@@ -71,7 +72,7 @@ if let movie = try? jsonDecoder.decode(Movie.self, from: json) {
 }
 ```
 
-which works just fine
+which works just fine 
 
 > Jackass: The Movie 2002
 
@@ -79,7 +80,7 @@ Here's [a live demo](https://replit.com/@arackaf/decodingjsonconcretetypes#main.
 
 ## Best of both worlds
 
-Let's say movies can have arbitrary metadata. Should be easy, right? We'll add a field, and that'll be that.
+Let's say movies can have arbitrary metadata. Should be easy, right? We'll add a field, and that'll be that. 
 
 ```swift
 struct Movie: Codable {
@@ -99,11 +100,12 @@ main.swift:6:7: note: cannot automatically synthesize 'Decodable' because 'Any' 
 </pre>
 </blockquote>
 
+
 The Codable protocol has a few methods it requires, but Swift is able to write them (synthesize them) for you if, and only if all of the struct's properties are themselves Codable. Strings and Ints are; `Any` is not.
 
 This is where that frustrating Googling usually starts. The solution is actually somewhat straightforward, but it's not well documented in any single place I could find. This post aims to be that place.
 
-Let's start by making one superficial change that'll make our solution more generalizable
+Let's start by making one superficial change that'll make our solution more generalizable 
 
 ```swift
 struct JSON: Codable {
@@ -119,7 +121,7 @@ struct Movie: Codable {
 
 We moved our dynamic value to its own struct, and put that dynamic value in a field. This doesn't affect our solution, and while it may seem inconvenient to now have to go through a `value` field to get our metadata, the upside is this will make our solution more reusable. Once we make `JSON` codable, all of Movie's fields will be Codable, and Swift will be able to synthesize everything it needs for `Movie`: best of all, we'll be able to reuse this `JSON` struct anywhere we'd like.
 
-### Getting started
+### Getting started 
 
 Let's see what we need to add to `JSON` to make it Codable.
 
@@ -140,7 +142,7 @@ This compiles and "works," in so far as the value of our JSON field will always 
 
 > { "title": "Jackass: The Movie", "year": 2002, "metadata": "Comedy" }
 
-now decodes into
+now decodes into 
 
 > Movie(title: "Jackass: The Movie", year: 2002, metadata: main.JSON(value: Optional(0)))
 
@@ -176,13 +178,13 @@ struct JSON: Codable {
 
 Our init method grabs a `singleValueContainer`, checks for nil, or decodes the real value.
 
-The metadata above now decodes into
+The metadata above now decodes into 
 
 > Movie(title: "Jackass: The Movie", year: 2002, metadata: main.JSON(value: Optional("Comedy")))
 
 #### Decoding nested objects
 
-We already have
+We already have 
 
 > { "title": "Jackass: The Movie", "year": 2002, "metadata": "Comedy" }
 
@@ -196,7 +198,7 @@ We want metadata here to be turned into a dictionary, with a single entry for "g
 container.decode([String: Any].self)
 ```
 
-but alas, no, you cannot. But what you *can* do is
+but alas, no, you cannot. But what you *can* do is 
 
 ```swift
 container.nestedContainer(keyedBy:)
@@ -282,7 +284,7 @@ func decode(fromObject container: KeyedDecodingContainer<JSONCodingKeys>) -> [St
 }
 ```
 
-Reasonably straightforward. We loop each key, and then try to decode for each possible json type. Note in particular the line with
+Reasonably straightforward. We loop each key, and then try to decode for each possible json type. Note in particular the line with 
 
 ```swift
 else if let nestedContainer = try? container.nestedContainer(keyedBy: JSONCodingKeys.self, forKey: key)
@@ -290,7 +292,7 @@ else if let nestedContainer = try? container.nestedContainer(keyedBy: JSONCoding
 
 That will seamlessly handle nested objects!
 
-And of course we have
+And of course we have 
 
 ```swift
 else if (try? container.decodeNil(forKey: key)) == true  {
@@ -323,7 +325,7 @@ public init(from decoder: Decoder) throws {
 }
 ```
 
-The `unkeyedContainer` method returns an instance of `UnkeyedDecodingContainer` if there's an array. This is processed a bit differently. There's an `isAtEnd` property we can test for, while repeatedly trying to decode the next value. Decoding the next value mutates the container, and advances to the next item, so we need to declare with `var` and pass it as `inout`.
+The `unkeyedContainer` method returns an instance of `UnkeyedDecodingContainer` if there's an array. This is processed a bit differently. There's an `isAtEnd` property we can test for, while repeatedly trying to decode the next value. Decoding the next value mutates the container, and advances to the next item, so we need to declare with `var` and pass it as `inout`. 
 
 Let's see our decode method for arrays
 
@@ -396,13 +398,13 @@ public func encode(to encoder: Encoder) throws {
 }
 ```
 
-We check to see if our value is a dictionary, and if so, create an encoding container for dictionaries, and call a method to handle it. And similarly for arrays. Note that for these encoding containers, we pass as inout arguments, since the encoding methods we call on them are mutating.
+We check to see if our value is a dictionary, and if so, create an encoding container for dictionaries, and call a method to handle it. And similarly for arrays. Note that for these encoding containers, we pass as inout arguments, since the encoding methods we call on them are mutating. 
 
 If our value is scalar, we figure out the type, and call the relevant method.
 
-Lastly, note that we're using `try` here, rather than `try?`. With decoding, we needed to try the various decoding methods, and see which one succeeded. We did this by using `try?`, and then discarding the nil values of anything that didn't succeed. With encoding, we check the types of *our own* values, and then *know* the correct encoding method to call. At that point, we expect it to succeed, and if it doesn't, something has gone wrong, and we *want* the exception to throw, and be processed by the relevant application code.
+Lastly, note that we're using `try` here, rather than `try?`. With decoding, we needed to try the various decoding methods, and see which one succeeded. We did this by using `try?`, and then discarding the nil values of anything that didn't succeed. With encoding, we check the types of *our own* values, and then *know* the correct encoding method to call. At that point, we expect it to succeed, and if it doesn't, something has gone wrong, and we *want* the exception to throw, and be processed by the relevant application code. 
 
-Let's see the encoding method for dictionaries.
+Let's see the encoding method for dictionaries. 
 
 ```swift
 func encodeValue(fromObjectContainer container: inout KeyedEncodingContainer<JSONCodingKeys>, map: [String:Any]) throws {
@@ -433,7 +435,7 @@ func encodeValue(fromObjectContainer container: inout KeyedEncodingContainer<JSO
 
 We loop the keys, and as before, we figure out the right encoding method to call.
 
-The array version is similar
+The array version is similar 
 
 ```swift
 func encodeValue(fromArrayContainer container: inout UnkeyedEncodingContainer, arr: [Any]) throws {
@@ -465,4 +467,4 @@ That was a lot! Here's a [full, working demo of the above](https://replit.com/@a
 
 ## Wrapping up
 
-We've come a long way. Swift offers a ton of convenient methods for JSON encoding, and decoding. It offers straightforward methods for working against concrete types, and it'll even let you work against untyped dictionaries of `[String: Any]`.  But mixing those approaches is surprisingly counterintuitive. Any isn't Codable on its own, but as we saw, it's reasonably straightforward, if tedious to make it so.
+We've come a long way. Swift offers a ton of convenient methods for JSON encoding, and decoding. It offers straightforward methods for working against concrete types, and it'll even let you work against untyped dictionaries of `[String: Any]`.  But mixing those approaches is surprisingly counterintuitive. Any isn't Codable on its own, but as we saw, it's reasonably straightforward, if tedious to make it so. 
