@@ -10,6 +10,11 @@ const slugs = [
 ];
 
 module.exports = {
+  experimental: {
+    images: {
+      allowFutureImage: true,
+    },
+  },
   async headers() {
     return [
       {

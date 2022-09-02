@@ -1,4 +1,4 @@
-.title { 
+.title {
   --root-section-spacing: 2rem;
 
   display: flex;
@@ -47,7 +47,7 @@
       & > * {
         margin-bottom: 0;
       }
-      
+
       & > :first-child {
         margin-bottom: 5px;
       }
@@ -63,14 +63,15 @@
         }
       }
     }
-    
+
     & > :first-child {
-      & > :first-child {
+      & img,
+      canvas {
         border-radius: 50%;
         width: 125px !important;
         height: 125px !important;
-        
-        @media (max-width: 550px) { 
+
+        @media (max-width: 550px) {
           width: 100px !important;
           height: 100px !important;
         }
@@ -87,7 +88,7 @@
   }
 }
 
-.list { 
+.list {
   --list-item-spacing: 2rem;
 
   :global(.blog-list-item) {
