@@ -1,5 +1,5 @@
 ---
-title: Encoding and decoding `Any`
+title: Swift - Encoding and decoding `Any`
 date: "2022-07-12T10:00:00.000Z"
 description: How to encode and decode json with concrete types, which include dynamic pieces typed as `Any`
 ---
@@ -25,7 +25,7 @@ let json = """
 
 if let jsonObject = try? JSONSerialization.jsonObject(with: json) as? [String: Any] {
   print(jsonObject, "\n")
-    
+
   if let intArray = jsonObject["arr"] as? [Int] {
     print(intArray[0])
   }
@@ -66,7 +66,7 @@ let json = """
 
 let jsonDecoder = JSONDecoder();
 
-if let movie = try? jsonDecoder.decode(Movie.self, from: json) {    
+if let movie = try? jsonDecoder.decode(Movie.self, from: json) {
   print(movie.title, movie.year)
 }
 ```
@@ -130,9 +130,9 @@ struct JSON: Codable {
   public init(from decoder: Decoder) throws {
     self.value = 0
   }
-    
-  public func encode(to encoder: Encoder) throws {      
-  }  
+
+  public func encode(to encoder: Encoder) throws {
+  }
 }
 ```
 
@@ -148,7 +148,7 @@ So how do we get appropriate values into JSON's `value` field?
 
 #### Decoding single values
 
-Let's assume, for now, that our metadata field will always be a single value, which for json means a string, boolean, number or null. `Decoder` has a `singleValueContainer` method which returns a `SingleValueDecodingContainer` instance. *That* type has decode methods which handle every scalar type there is: String, Int, Double, Float, Bool, etc., as well as a `decodeNil` method to check for `nil`.
+Let's assume, for now, that our metadata field will always be a single value, which for json means a string, boolean, number or null. `Decoder` has a `singleValueContainer` method which returns a `SingleValueDecodingContainer` instance. _That_ type has decode methods which handle every scalar type there is: String, Int, Double, Float, Bool, etc., as well as a `decodeNil` method to check for `nil`.
 
 Let's put those pieces together
 
@@ -196,7 +196,7 @@ We want metadata here to be turned into a dictionary, with a single entry for "g
 container.decode([String: Any].self)
 ```
 
-but alas, no, you cannot. But what you *can* do is
+but alas, no, you cannot. But what you _can_ do is
 
 ```swift
 container.nestedContainer(keyedBy:)
@@ -207,23 +207,23 @@ The `keyedBy` was sticking point for me, initially. Most decoding examples you s
 ```swift
 enum CodingKeys: String, CodingKey {
   case title
-  case year    
+  case year
   case metadata
 }
 ```
 
-But you need a *dynamic* set of keys. The solution is simple:
+But you need a _dynamic_ set of keys. The solution is simple:
 
 ```swift
 struct JSONCodingKeys: CodingKey {
   var stringValue: String
-    
+
   init(stringValue: String) {
     self.stringValue = stringValue
   }
-    
+
   var intValue: Int?
-    
+
   init?(intValue: Int) {
     self.init(stringValue: "\(intValue)")
     self.intValue = intValue
@@ -258,7 +258,7 @@ public init(from decoder: Decoder) throws {
 }
 ```
 
-Notice how we check for the container *first*. A container will happily decode into the singleValueContainer method, but we don't want that; we want to pick up the `decoder.container` method instead, if it's a match, which is why we test for that first.
+Notice how we check for the container _first_. A container will happily decode into the singleValueContainer method, but we don't want that; we want to pick up the `decoder.container` method instead, if it's a match, which is why we test for that first.
 
 From there we pass our container to a new `decode(fromObject:)` method: let's have a look at that
 
@@ -277,7 +277,7 @@ func decode(fromObject container: KeyedDecodingContainer<JSONCodingKeys>) -> [St
       result.updateValue(Optional<Any>(nil) as Any, forKey: key.stringValue)
     }
   }
-    
+
   return result
 }
 ```
@@ -345,7 +345,7 @@ func decode(fromArray container: inout UnkeyedDecodingContainer) -> [Any] {
       result.append(Optional<Any>(nil) as Any)
     }
   }
-    
+
   return result
 }
 ```
@@ -380,7 +380,7 @@ public func encode(to encoder: Encoder) throws {
     try encodeValue(fromArrayContainer: &container, arr: arr)
   } else {
     var container = encoder.singleValueContainer()
-        
+
     if let value = self.value as? String {
       try container.encode(value)
     } else if let value = self.value as? Int {
@@ -400,7 +400,7 @@ We check to see if our value is a dictionary, and if so, create an encoding cont
 
 If our value is scalar, we figure out the type, and call the relevant method.
 
-Lastly, note that we're using `try` here, rather than `try?`. With decoding, we needed to try the various decoding methods, and see which one succeeded. We did this by using `try?`, and then discarding the nil values of anything that didn't succeed. With encoding, we check the types of *our own* values, and then *know* the correct encoding method to call. At that point, we expect it to succeed, and if it doesn't, something has gone wrong, and we *want* the exception to throw, and be processed by the relevant application code.
+Lastly, note that we're using `try` here, rather than `try?`. With decoding, we needed to try the various decoding methods, and see which one succeeded. We did this by using `try?`, and then discarding the nil values of anything that didn't succeed. With encoding, we check the types of _our own_ values, and then _know_ the correct encoding method to call. At that point, we expect it to succeed, and if it doesn't, something has gone wrong, and we _want_ the exception to throw, and be processed by the relevant application code.
 
 Let's see the encoding method for dictionaries.
 
@@ -409,7 +409,7 @@ func encodeValue(fromObjectContainer container: inout KeyedEncodingContainer<JSO
   for k in map.keys {
     let value = map[k]
     let encodingKey = JSONCodingKeys(stringValue: k)
-        
+
     if let value = value as? String {
       try container.encode(value, forKey: encodingKey)
     } else if let value = value as? Int {
@@ -465,4 +465,4 @@ That was a lot! Here's a [full, working demo of the above](https://replit.com/@a
 
 ## Wrapping up
 
-We've come a long way. Swift offers a ton of convenient methods for JSON encoding, and decoding. It offers straightforward methods for working against concrete types, and it'll even let you work against untyped dictionaries of `[String: Any]`.  But mixing those approaches is surprisingly counterintuitive. Any isn't Codable on its own, but as we saw, it's reasonably straightforward, if tedious to make it so.
+We've come a long way. Swift offers a ton of convenient methods for JSON encoding, and decoding. It offers straightforward methods for working against concrete types, and it'll even let you work against untyped dictionaries of `[String: Any]`. But mixing those approaches is surprisingly counterintuitive. Any isn't Codable on its own, but as we saw, it's reasonably straightforward, if tedious to make it so.
