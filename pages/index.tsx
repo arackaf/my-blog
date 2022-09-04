@@ -36,7 +36,7 @@ export default function Index({ allPosts }) {
                 <h3>Software engineering blog by Adam Rackis</h3>
                 <div className="personal-links">
                   <h4>
-                    <a href="https://github.com/arackaf">
+                    <a href="https://twitter.com/AdamRackis">
                       <span>
                         <TwitterIcon />
                       </span>
@@ -44,7 +44,7 @@ export default function Index({ allPosts }) {
                     </a>
                   </h4>
                   <h4>
-                    <a href="https://twitter.com/AdamRackis">
+                    <a href="https://github.com/arackaf">
                       <span>
                         <GithubIcon />
                       </span>
