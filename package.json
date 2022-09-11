@@ -11,7 +11,7 @@
     "glob": "^8.0.3",
     "gray-matter": "4.0.3",
     "next": "^12.2.3",
-    "next-blurhash-previews": "0.0.3-beta79",
+    "next-blurhash-previews": "0.1.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "remark": "14.0.2",

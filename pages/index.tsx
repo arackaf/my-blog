@@ -4,7 +4,7 @@ import Layout from "../components/layout";
 import { getAllPosts } from "../lib/api";
 import Head from "next/head";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "next/future/image";
 
 import { GithubIcon } from "../components/svg/githubIcon";
 import { TwitterIcon } from "../components/svg/twitterIcon";
@@ -13,6 +13,8 @@ import styles from "../styles/root-styles.module.scss";
 const { title: titleStyles, list: listStyles, avatar: avatarStyles } = styles;
 
 import AvatarImg from "../public/assets/home/avatar.jpg";
+
+import { NextWrapper } from "next-blurhash-previews";
 
 export default function Index({ allPosts }) {
   return (
@@ -25,14 +27,16 @@ export default function Index({ allPosts }) {
           <section className={titleStyles}>
             <div className="blog-header">
               <span>
-                <Image placeholder="blur" src={AvatarImg} height={125} width={125} />
+                <NextWrapper sync={true} blurhash="L9Fhx14T144o5Q01~p-5lVD%x[tl" width="125" height="125">
+                  <Image src={AvatarImg} height={125} width={125} loading="eager" />
+                </NextWrapper>
               </span>
               <div className="titles">
                 <h1>Strangely Typed</h1>
                 <h3>Software engineering blog by Adam Rackis</h3>
                 <div className="personal-links">
                   <h4>
-                    <a href="https://github.com/arackaf">
+                    <a href="https://twitter.com/AdamRackis">
                       <span>
                         <TwitterIcon />
                       </span>
@@ -40,7 +44,7 @@ export default function Index({ allPosts }) {
                     </a>
                   </h4>
                   <h4>
-                    <a href="https://twitter.com/AdamRackis">
+                    <a href="https://github.com/arackaf">
                       <span>
                         <GithubIcon />
                       </span>
