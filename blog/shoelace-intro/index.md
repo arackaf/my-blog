@@ -4,7 +4,7 @@ date: "2022-08-28T10:00:00.000Z"
 description: A high-level introduction to Shoelace, a web component-based ux library.
 ---
 
-This is a post about [Shoelace](https://shoelace.style/). Shoelace is a component library, but with a twist. It defines all your standard UX components: tabs, modals, accordions, auto-completes, and much, much more. They look beautiful out of the box, are accessible, and fully customizable. But rather than creating these components in React, or Solid, or Svelte, or ... etc., it creates them with web components. This means you can use these components with _any_ framework.
+This is a post about [Shoelace](https://shoelace.style/), a component library, but with a twist. It defines all your standard UX components: tabs, modals, accordions, auto-completes, and much, much more. They look beautiful out of the box, are accessible, and fully customizable. But rather than creating these components in React, or Solid, or Svelte, or ... etc., it creates them with web components. This means you can use these components with _any_ framework.
 
 ## Some preliminary things
 
@@ -12,11 +12,11 @@ Web components are great, but there's currently a few small hitches to be aware 
 
 ### React
 
-I said they work in any JS framework, but as I've written before, React's support for web components is [currently poor](https://css-tricks.com/building-interoperable-web-components-react/#aa-react-is-a-different-beast). To address this, Shoelace actually [created wrappers](https://shoelace.style/frameworks/react?id=usage) just for React, which React devs can use. Another option, which I personally like, is to just create a thin React component that accepts the tag name of a web component, and all of its attributes and properties, and then does the dirty work of handling React's shortcomings with web components. I talked about this option [here](https://css-tricks.com/building-interoperable-web-components-react/#aa-option-2-wrap-it). I like this solution because it's designed to be deleted. The web component interop problem is currently fixed in React's experimental branch, so once that's shipped, any thin web component-interop component you're using could be searched, and removed, leaving you with direct web component usages, without any React wrappers.
+I said they work in any JS framework, but as I've written before, React's support for web components is [currently poor](https://css-tricks.com/building-interoperable-web-components-react/#aa-react-is-a-different-beast). To address this, Shoelace actually [created wrappers](https://shoelace.style/frameworks/react?id=usage) just for React, which React devs can use. Another option, which I personally like, is to just create a thin React component that accepts the tag name of a web component, and all of its attributes and properties, and then does the dirty work of handling React's shortcomings. I talked about this option [here](https://css-tricks.com/building-interoperable-web-components-react/#aa-option-2-wrap-it). I like this solution because it's designed to be deleted. The web component interop problem is currently fixed in React's experimental branch, so once that's shipped, any thin web component-interop component you're using could be searched, and removed, leaving you with direct web component usages, without any React wrappers.
 
 ### SSR
 
-Support for server side rendering is currently poor. In theory there's something called declarative shadow dom which would enable ssr. But browser support is minimal, and in any event, dsd actually requires _server support_ to work right, which means Next, Remix, or whatever you happen to use on the server will need to become capable of some special handling here.
+Support for server side rendering is also currently poor. In theory there's something called declarative shadow dom which would enable ssr. But browser support is minimal, and in any event, dsd actually requires _server support_ to work right, which means Next, Remix, or whatever you happen to use on the server will need to become capable of some special handling.
 
 That said, there are other ways to get web components to _just work_ with a web app that's SSR'd with something like Next. The short version is that your scripts registering your web components need to run in a blocking script before your markup is parsed. I'll cover how to do this in my next post, and discuss the perf implications, and how to minimize them using a Service Worker.
 
@@ -36,7 +36,7 @@ Shoelace has fairly detailed [installation instructions](https://shoelace.style/
 
 With Shoelace installed, let's create a Svelte component to Render some content, and then go through the steps to fully customize it. To pick something non-trivial, I went with the tabs and a modal. Here's some markup taken largely from the docs
 
-```svelte
+```html
 <sl-tab-group>
   <sl-tab slot="nav" panel="general">General</sl-tab>
   <sl-tab slot="nav" panel="custom">Custom</sl-tab>
@@ -66,7 +66,7 @@ I won't waste your time running through every inch of the api's that are documen
 
 ## Interacting with the api: methods and events
 
-Let's take a quick look at how we can interact with the methods and events that might exist on various controls.
+Calling methods and subscribing to events on a web component might be slightly different than what you're used to with your normal framework of choice, but it's not too complicated. Let's see how.
 
 ### Tabs
 
@@ -80,8 +80,8 @@ The tabs component has a `show` method, which will manually show a particular ta
 
 and bind it
 
-```jsx
-<sl-tab-group bind:this={tabs}></sl-tab-group>
+```html
+<sl-tab-group bind:this="{tabs}"></sl-tab-group>
 ```
 
 And now we can add a button, which calls it
@@ -102,24 +102,22 @@ which works, and logs the event objects as you show different tabs.
 
 ![Default tabs](/shoelace-intro/img2-event-obj.jpg)
 
-Typically we just render tabs, and let the user click between them, so this work isn't usually even necessary, but it's there if you need it. Now let's get that modal interactive.
+Typically we just render tabs, and let the user click between them, so this work isn't usually even necessary, but it's there if you need it. Now let's get the modal interactive.
 
 ### Modal
 
 The Dialog componnet takes an `open` prop which controls whether the modal is ... open. Let's declare it in our Svelte component
 
-```svelte
+```html
 <script>
   let tabs;
   let open = false;
 </script>
 ```
 
-Now let's pass it.
-
 It also has an sl-hide event for when the modal is hidden. Let's pass our open prop, and bind to the hide event so we can reset it when the user clicks outside of the modal content to close it. And let's add a click handler to that close button to set our `open` prop to false, which would also close the modal
 
-```svelte
+```jsx
 <sl-dialog no-header {open} label="Dialog" on:sl-hide={() => open = false}>
   Hello World!
   <button slot="footer" variant="primary" on:click={() => open = false}>Close</button>
@@ -128,8 +126,8 @@ It also has an sl-hide event for when the modal is hidden. Let's pass our open p
 
 Lastly, let's wire up our open modal button
 
-```svelte
-<button on:click={() => open = true}>Open Modal</button>
+```jsx
+<button on:click={() => (open = true)}>Open Modal</button>
 ```
 
 And that's that. Interacting with a component library's api is more or less straightforward. If that's all this post did, it would be pretty boring.
@@ -154,15 +152,15 @@ Take a peak at one of those tab headers in your dev tools, and it should look so
 
 ![Shadow dom](/shoelace-intro/img6-shadow-dom.jpg)
 
-Our tab element has create a div container with a tab and tab--active class, a tabindex, and is displaying the text we entered for that tab. But notice that it's sitting inside of a shadow root. This allows web component authors to add their own markup to the web component while also providing a place for the content _we_ provide. Notice the `<slot>` element? That basically means "put whatever content the user rendered **between** the web component tags _here_."
+Our tab element has created a div container with a tab and tab--active class, a tabindex, and is displaying the text we entered for that tab. But notice that it's sitting inside of a shadow root. This allows web component authors to add their own markup to the web component while also providing a place for the content _we_ provide. Notice the `<slot>` element? That basically means "put whatever content the user rendered **between** the web component tags _here_."
 
 So the sl-tab web component creates a shadow root, adds some content to it rendering the nicely styled tab header, along with a placeholder (slot) to render our content in.
 
 ### Encapsulated styles
 
-One of the classic, more frustrating problems in web development has always been styles cascading to places where we don't want them. You might worry that any style rules in our application which specify something like `div.tab` would interfere with these tabs. It turns out though that this isn't a problem; shadow roots encapsulate styles. Styles from outside the shadow root do not (with some exceptions we'll talk about) affect what's inside the shadow root, and vice versa.
+One of the classic, more frustrating problems in web development has always been styles cascading to places where we don't want them. You might worry that any style rules in our application which specify something like `div.tab` would interfere with these tabs. It turns out this isn't a problem; shadow roots encapsulate styles. Styles from outside the shadow root do not (with some exceptions which we'll talk about) affect what's inside the shadow root, and vice versa.
 
-The exception to this are styles which inherit. You of course don't need to apply a font-famliy style for every attribute in your web app. Instead, you can specify your font-family once, in :root, or html, and have it inherit everywhere beneath it. This inheritance will in fact pierce the shadow root.
+The exceptions to this are styles which inherit. You of course don't need to apply a font-famliy style for every element in your web app. Instead, you can specify your font-family once, in :root, or html, and have it inherit everywhere beneath it. This inheritance will in fact pierce the shadow root, as well.
 
 A related exception are custom css properties (often called "css variables"). A shadow root can absolutely read a css prop defined outside the shadow root; this will become relevant in a moment.
 
@@ -177,6 +175,8 @@ Let's see each of these appraches in action. As of now, _a lot_ of Shoelace styl
 ### Inheriting styles through the shadow root
 
 Open the app.css file in src, in the StackBlitz. In the `:root` section at the bottom you should see a `letter-spacing: normal;` rule defined. Since `letter-spacing` inherits, try setting a new value, like `2px`, and on saving, all content, including the tab headers defined in the shadow root, will adjust accordingly.
+
+![Shadow dom](/shoelace-intro/img8-letter-spacing.jpg)
 
 ### Overwriting Shoelace css variables
 
