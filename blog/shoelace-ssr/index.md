@@ -1,7 +1,7 @@
 ---
-title: Effectively using Shoelace with Next (or any SSR framework)
+title: Using web components with Next (or any SSR framework)
 date: "2022-09-19T10:00:00.000Z"
-description: Enabling Shoelace (or any web component) use in Next, while managing perf
+description: Enabling web components in Next, without any content shift, while managing perf
 ---
 
 In my [previous post](https://todo.co/) we looked at Shoelace, which is a component library with a full suite of ux components that are beautiful, accessible, and perhaps unexpected, built with web components. This means they can be used with any JS framework. While React's web component interop is at present less than ideal, even here there are [workarounds](https://css-tricks.com/building-interoperable-web-components-react/#aa-option-2-wrap-it).
