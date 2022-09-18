@@ -4,15 +4,17 @@ date: "2022-09-19T10:00:00.000Z"
 description: Enabling Shoelace (or any web component) use in Next, while managing perf
 ---
 
-In my [previous post](https://todo.co/), we looked at Shoelace, which is a component library with a full suite of ux components that are beautiful, accessible, and perhaps unexpected, built with web components. This means they can be used with any JS framework. While React's web component interop is at present less than ideal, even here there are [workarounds](https://css-tricks.com/building-interoperable-web-components-react/#aa-option-2-wrap-it).
+In my [previous post](https://todo.co/) we looked at Shoelace, which is a component library with a full suite of ux components that are beautiful, accessible, and perhaps unexpected, built with web components. This means they can be used with any JS framework. While React's web component interop is at present less than ideal, even here there are [workarounds](https://css-tricks.com/building-interoperable-web-components-react/#aa-option-2-wrap-it).
 
-But one serious shortcoming of web components is that the ssr story is currently poor. There is something called declarative shadow dom in the works, but support is currently poor, and it actually requires special handling from your web server to emit special markup for the dsd. There's currently work being done for Next, which I look forward to seeing. But for this post, we'll look at managing web components from an ssr frameowrk like Next _today_.
+But one serious shortcoming of web components is their ssr support is currently poor. There is something called declarative shadow dom in the works, but support is currently minimal, and it actually requires buy-in from your web server to emit special markup for the dsd. There's currently work being done for Next, which I look forward to seeing. But for this post, we'll look at how to manage web components from an ssr framework like Next _today_.
+
+We'll wind up doing a non-trivial amount of manual work, and hurting our page's startup performance in the process—slightly, and we'll look at mitigating these costs. But make no mistake, this solution is not without tradeoffs, so don't expect otherwise. Always measure and profile.
 
 ## The problem
 
-Before we dive in, let's take a moment and actually explain what the problem is. Why don't web components work well with server side rendering.
+Before we dive in, let's take a moment and actually explain the problem. Why don't web components work well with server side rendering?
 
-Application frameworks like Next take your React code and run it through an api to, essentially, "stringify" it, meaning, turn it into plain html. So your React component tree will render on whatever server your hosting your web app on, and that html will be sent down with the rest of your web app's html document when your user browses to it. Along with this html document will be some script tags loading React, along with the code for your React components. When your browser processes that code, React will re-render your component tree, match things up with the ssr'd html that was sent down. At this point all your effects will start running, your event handlers will wire up, and your state will actually ... contain state. It's at this point that your web app becomes _interactive_. The process of re-processing your component tree on the client, and wiring everything up is called hydration.
+Application frameworks like Next take your React code and run it through an api to, essentially, "stringify" it, meaning, turn it into plain html. So your React component tree will render on the server hosting your web app, and that html will be sent down with the rest of your web app's html document, to your user's browser. Along with this html will be some script tags loading React, along with the code for your React components. When a browser processes these script tags, React will re-render your component tree, and match things up with the ssr'd html that was sent down. At this point all your effects will start running, your event handlers will wire up, and your state will actually ... contain state. It's at this point that your web app becomes _interactive_. The process of re-processing your component tree on the client, and wiring everything up is called "hydration."
 
 So what does this have to do with web components? Well, when you render something like
 
@@ -32,7 +34,7 @@ So what does this have to do with web components? Well, when you render somethin
 
 React (or honestly _any_ JS framework) will see those tags, and just ... pass them along. React (or Svelte, or Solid) are not responsible for turning those tags into nicely formatted tabs. The code for that is tucked away inside of whatever code you have defining those web components. In our case, that code is in the Shoelace library, but the code can be anywhere. What's important is _when_ the code is _run_.
 
-Normally, the code registering these web components will be pulled into your normal application code via a normal JavaScript `import` statement. That means this code will wind up in your normal JavaScript bundle. Which means that it won't execute until hydration. Which means that, between the point in time when the user first gets their html, and when hydration happens, these tabs (or any web component) will not render the correct content. Then, when hydration happens, the proper content will display, likely causing all content around these web components to move around, to fit the properly formatted content. This is known as a Flash of Unstyled Content, or FOUC. _In theory_ you could stick markup in between all of those `<sl-tab-xyz>` tags, matching the finished output, but this is all but impossible in practice, especially for a third party component library like Shoelace.
+Normally, the code registering these web components will be pulled into your normal application code via a JavaScript `import`. That means this code will wind up in your normal JavaScript bundle, and execute during hydration. Which means that, between your user first seeing the ssr'd html, and hydration happening, these tabs (or any web component) will not render the correct content. Then, when hydration happens, the proper content will display, likely causing the content around these web components to move around, to fit the properly formatted content. This is known as a Flash of Unstyled Content, or FOUC. _In theory_ you could stick markup in between all of those `<sl-tab-xyz>` tags, matching the finished output, but this is all but impossible in practice, especially for a third party component library like Shoelace.
 
 ## Moving our web component registration code
 
@@ -75,7 +77,7 @@ setDefaultAnimation("dialog.hide", {
 
 It loads the definitions for the tabs, and modal components, and overrides some default animations for the modal. Simple enough. But the interesting piece, here, is getting this code into our application. We _cannot_ just import this module. If we did that, it'd get bundled into our normal js bundles, and run during hydration. This would cause the FOUC we're trying to avoid.
 
-Whiile Next does have a number of webpack hooks to custom bundle things, I'll just use Vite. First install it with `npm i vite` and then create a vite.config.js file. Mine looks like this
+While Next does have a number of webpack hooks to custom bundle things, I'll just use Vite. First install it with `npm i vite` and then create a vite.config.js file. Mine looks like this
 
 ```js
 import { defineConfig } from "vite";
@@ -99,7 +101,7 @@ export default defineConfig({
 });
 ```
 
-This will build a bundle file with our web component definitions in the shoelace-dir folder. Let's move it over to the public folder, so Next will serve it. And we should also keep track of the exact name of the file, with the hash on the end of it. Here's a Node script that moves the file, and writes a JavaScript module that exports a simple constant, with the name of the bundle file
+This will build a bundle file with our web component definitions in the shoelace-dir folder. Let's move it over to the public folder, so Next will serve it. And we should also keep track of the exact name of the file, with the hash on the end of it. Here's a Node script that moves the file, and writes a JavaScript module that exports a simple constant, with the name of the bundle file (this will come in handy shortly).
 
 ```js
 const fs = require("fs");
@@ -121,13 +123,13 @@ fs.rmSync(shoelaceOutputPath, { force: true, recursive: true });
 fs.writeFileSync(path.join(process.cwd(), "util", "shoelace-bundle-info.js"), `export const shoelacePath = "/shoelace/${shoelaceBundleFile}";`);
 ```
 
-an npm script
+with a companion npm script
 
-```
+```bash
 "bundle-shoelace": "vite build && node util/process-shoelace-bundle",
 ```
 
-and that should work. For me, `util/shoelace-bundle-info.js` looks like this
+and that should work. For me, `util/shoelace-bundle-info.js` now exists, and looks like this
 
 ```js
 export const shoelacePath = "/shoelace/shoelace-bundle-a6f19317.js";
@@ -164,19 +166,21 @@ export default function Document() {
 }
 ```
 
+And that should work. Our Shoelace registration will load in a blocking script, and be available immediately, as our page processes our initial html.
+
 ## Improving perf
 
-And that should work. We could leave things as they are, but let's add caching for those shoelace bundles. We could force Next to add http cache headers, but I personally hate dealing with that. I decided to use workbox to spin up a simple service worker, with runtime caching just for the shoelace bundle (you could also add caching for anything else, if you're so inclined).
+We could leave things as they are, but let's add caching for this shoelace bundle. We could force Next to add http cache headers, but I personally hate dealing with that. I decided to use workbox to spin up a simple service worker, with runtime caching just for the shoelace bundle (you could also add caching for anything else, if you're so inclined).
 
 If you've never heard of Workbox the docs [are here](https://developer.chrome.com/docs/workbox/modules/workbox-cli/). It's from the good people at Google, and handles the boilerplate of creating a service worker. For our use case, I'll only be using runtime caching. That means any file matching a pattern we provide will be cached after being requested, with subsequent requests being served from cache.
 
 This is different from precaching an entire web application's manifest which I've [written about before](https://css-tricks.com/vitepwa-plugin-offline-service-worker/). That's suited more to a client-rendered application shell, where your root html file, and all of the needed js chunks are cached. When a new version of anything becomes available, your service worker detects that, and then prompts the user to click something to trigger the update behind the scenes, and reload the page with the new version of your app.
 
-For us, with an SSR web app driven by Next, runtime caching is much more appropriate, much simpler, and much safer. The user will always run the latest version of our bundle. If the requested file is not in cache, it'll just request from the network.
+For us, with an SSR web app driven by Next, runtime caching is more appropriate, simpler, and safer. The user will always run the latest version of our bundle. If the requested file is not in cache, it'll just request it from the network.
 
 So let's install workbox's cli
 
-```
+```bash
 npm i workbox-cli
 ```
 
@@ -209,13 +213,13 @@ module.exports = {
 
 and then we'll add a script to run this
 
-```
+```bash
 "build-service-worker": "npx workbox-cli generateSW workbox-config.js"
 ```
 
 running that script should look something like this
 
-```
+```bash
   ---->npm run build-service-worker
 
 > next-wc-ssr@0.1.0 build-service-worker
@@ -230,9 +234,11 @@ The service worker files were written to:
 The service worker will precache 0 URLs, totaling 0 B.
 ```
 
+and now our service worker file exists.
+
 ### Loading the service worker
 
-Now that our service worker file exists, lets have our web app actually load it. We'll go into our \_app.js file, and add this
+Now let's actually load our service worker. We'll go into our \_app.js file, and add this
 
 ```js
 if (typeof window === "object" && !/localhost/.test(location.href) && "serviceWorker" in navigator) {
@@ -247,10 +253,12 @@ if (typeof window === "object" && !/localhost/.test(location.href) && "serviceWo
 }
 ```
 
-The next time we run our web app, the service worker should register. Then after _that_ we should see the shoelace bundle serving from cache
+The next time we run our web app, the service worker should register. Then after _that_ we should see the shoelace bundle serving from cache.
 
-![Default tabs](/shoelace-intro/img1-default-tabs.jpg)
+![Service worker works](/shoelace-ssr/img1-service-worker.jpg)
 
 ## Wrapping up
 
-This may have seemed like a lot of manual work; it was. It's unfortunate web components don't offer better out of the box support for server side rendering. But we shoulnd't forget the benefits they provide: it's nice being able to use quality ux components which aren't tied to a specific framework. It's nice being able to experiement with brand new frameworks like Solid, without needing to find (or hack together) some sort of tab, modal, autocomplete, etc component.
+This may have seemed like a lot of manual work; it was. It's unfortunate web components don't offer better out of the box support for server side rendering.
+
+But we shouldn't forget the benefits they provide: it's nice being able to use quality ux components which aren't tied to a specific framework. It's nice being able to experiment with brand new frameworks like Solid, without needing to find (or hack together) some sort of tab, modal, autocomplete, etc component.
