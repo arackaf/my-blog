@@ -62,7 +62,7 @@ Which renders some nice, styled tabs. The underline on the active tab even anima
 
 ![Default tabs](/shoelace-intro/img1-default-tabs.jpg)
 
-I won't waste your time running through every inch of the api's that are documented well on the Shoelace website. Instead, let's look into how best to interract with, and fully customize these web components.
+I won't waste your time running through every inch of the api's that are documented well on the Shoelace website. Instead, let's look into how best to interact with, and fully customize these web components.
 
 ## Interacting with the api: methods and events
 
@@ -106,7 +106,7 @@ Typically we just render tabs, and let the user click between them, so this work
 
 ### Modal
 
-The Dialog componnet takes an `open` prop which controls whether the modal is ... open. Let's declare it in our Svelte component
+The Dialog component takes an `open` prop which controls whether the modal is ... open. Let's declare it in our Svelte component
 
 ```html
 <script>
@@ -138,7 +138,7 @@ But Shoelace being built with web components means that some things, in particul
 
 ** NOTE **
 
-As of this writing, Shoelace is still in beta, and the creator is considering changing some default styles, and in fact removing some defaults altogether, so they'll no longer override your host application's styles. The concepts we'll cover are relevant either way, but don't be suprised if some of the Shoelace specifics I mention are different when you go to use it.
+As of this writing, Shoelace is still in beta, and the creator is considering changing some default styles, and in fact removing some defaults altogether, so they'll no longer override your host application's styles. The concepts we'll cover are relevant either way, but don't be surprised if some of the Shoelace specifics I mention are different when you go to use it.
 
 ** /NOTE **
 
@@ -160,7 +160,7 @@ So the sl-tab web component creates a shadow root, adds some content to it rende
 
 One of the classic, more frustrating problems in web development has always been styles cascading to places where we don't want them. You might worry that any style rules in our application which specify something like `div.tab` would interfere with these tabs. It turns out this isn't a problem; shadow roots encapsulate styles. Styles from outside the shadow root do not (with some exceptions which we'll talk about) affect what's inside the shadow root, and vice versa.
 
-The exceptions to this are styles which inherit. You of course don't need to apply a font-famliy style for every element in your web app. Instead, you can specify your font-family once, in :root, or html, and have it inherit everywhere beneath it. This inheritance will in fact pierce the shadow root, as well.
+The exceptions to this are styles which inherit. You of course don't need to apply a font-family style for every element in your web app. Instead, you can specify your font-family once, in :root, or html, and have it inherit everywhere beneath it. This inheritance will in fact pierce the shadow root, as well.
 
 A related exception are custom css properties (often called "css variables"). A shadow root can absolutely read a css prop defined outside the shadow root; this will become relevant in a moment.
 
@@ -170,7 +170,7 @@ What about styles which _don't_ inherit. What if we want to customize something 
 
 ## Overriding Shoelace styles
 
-Let's see each of these appraches in action. As of now, _a lot_ of Shoelace styles, including fonts, receive default values from css custom properties. To align those fonts with your application's styles, just override the custom props in question. See [the docs](https://shoelace.style/getting-started/customizing) for info on which css vars Shoelace is using, or of course you can just look at the styles on any given element in dev tools.
+Let's see each of these approaches in action. As of now, _a lot_ of Shoelace styles, including fonts, receive default values from css custom properties. To align those fonts with your application's styles, just override the custom props in question. See [the docs](https://shoelace.style/getting-started/customizing) for info on which css vars Shoelace is using, or of course you can just look at the styles on any given element in dev tools.
 
 ### Inheriting styles through the shadow root
 
