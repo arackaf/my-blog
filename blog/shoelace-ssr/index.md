@@ -40,7 +40,7 @@ Normally, the code registering these web components will be pulled into your nor
 
 So the problem is, the code to make web components do what they need to do won't run until hydration. For this post, we'll look at running that code sooner, in fact immediately. We'll look at custom bundling our web component code, and manually adding a script directly to our document's `<head>` so it runs immediately, and blocks the rest of the document until it does. _This is normally a terrible thing to do_. The whole point of server-side rendering is to _not_ block our page from processing until our JavaScript has processed. But once done, it means that, as the document is initially rendering our html from the server, the web components will be registered, and will immediately, synchronously emit the right content.
 
-In our case, we're _just_ looking to run our web component registration code in a blocking script. This code isn't huge, and we'll look to significantly lessen the perf hit by adding a service worker to runtime cache this code on subsequent visits. This isn't a perfect solution. Your users' first browse to your page will always block while that script file is loaded. Subsequent visits will cache nicely, but this tradeoff _might not_ be feasible for you—eCommerce, anyone? Anyway, profile, and measure, and make the right decision for your app. Besides, in the future it's entirely possible Next will have full support for declarative shadow dom, and ssr web components.
+In our case, we're _just_ looking to run our web component registration code in a blocking script. This code isn't huge, and we'll look to significantly lessen the perf hit by adding some caching headers to help with subsequent visits. This isn't a perfect solution. Your users' first browse to your page will always block while that script file is loaded. Subsequent visits will cache nicely, but this tradeoff _might not_ be feasible for you—eCommerce, anyone? Anyway, profile, and measure, and make the right decision for your app. Besides, in the future it's entirely possible Next will have full support for declarative shadow dom, and ssr web components.
 
 ## Getting started
 
@@ -170,92 +170,27 @@ And that should work. Our Shoelace registration will load in a blocking script, 
 
 ## Improving perf
 
-We could leave things as they are, but let's add caching for this shoelace bundle. We could force Next to add http cache headers, but I personally hate dealing with that. I decided to use workbox to spin up a simple service worker, with runtime caching just for the shoelace bundle (you could also add caching for anything else, if you're so inclined).
-
-If you've never heard of Workbox the docs [are here](https://developer.chrome.com/docs/workbox/modules/workbox-cli/). It's from the good people at Google, and handles the boilerplate of creating a service worker. For our use case, I'll only be using runtime caching. That means any file matching a pattern we provide will be cached after being requested, with subsequent requests being served from cache.
-
-This is different from precaching an entire web application's manifest which I've [written about before](https://css-tricks.com/vitepwa-plugin-offline-service-worker/). That's suited more to a client-rendered application shell, where your root html file, and all of the needed js chunks are cached. When a new version of anything becomes available, your service worker detects that, and then prompts the user to click something to trigger the update behind the scenes, and reload the page with the new version of your app.
-
-For us, with an SSR web app driven by Next, runtime caching is more appropriate, simpler, and safer. The user will always run the latest version of our bundle. If the requested file is not in cache, it'll just request it from the network.
-
-So let's install workbox's cli
-
-```bash
-npm i workbox-cli
-```
-
-Next, we'll add a workbox-config.js file. Mine looks like this
+We could leave things as they are, but let's add caching for this shoelace bundle. We'll tell Next to make these shoelace bundles cacheable by adding the following entry to our next config file
 
 ```js
-const getCache = ({ name, pattern }) => ({
-  urlPattern: pattern,
-  handler: "CacheFirst",
-  options: {
-    matchOptions: {
-      ignoreVary: true,
+async headers() {
+  return [
+    {
+      source: "/shoelace/shoelace-bundle-:hash.js",
+      headers: [
+        {
+          key: "Cache-Control",
+          value: "public,max-age=31536000,immutable",
+        },
+      ],
     },
-    cacheName: name,
-    expiration: {
-      maxEntries: 3,
-      maxAgeSeconds: 60 * 60 * 24 * 365 * 2, //2 years
-    },
-    cacheableResponse: {
-      statuses: [200],
-    },
-  },
-});
-
-module.exports = {
-  swDest: "public/sw.js",
-  runtimeCaching: [getCache({ pattern: /shoelace-bundle.*\.js/i, name: "shoelace-js" })],
-};
-```
-
-and then we'll add a script to run this
-
-```bash
-"build-service-worker": "npx workbox-cli generateSW workbox-config.js"
-```
-
-running that script should look something like this
-
-```bash
-  ---->npm run build-service-worker
-
-> next-wc-ssr@0.1.0 build-service-worker
-> npx workbox-cli generateSW workbox-config.js
-
-Using configuration from /Users/arackis/Documents/git/next-wc-ssr/workbox-config.js.
-The service worker files were written to:
-  • /Users/arackis/Documents/git/next-wc-ssr/public/sw.js
-  • /Users/arackis/Documents/git/next-wc-ssr/public/sw.js.map
-  • /Users/arackis/Documents/git/next-wc-ssr/public/workbox-d12a13bd.js
-  • /Users/arackis/Documents/git/next-wc-ssr/public/workbox-d12a13bd.js.map
-The service worker will precache 0 URLs, totaling 0 B.
-```
-
-and now our service worker file exists.
-
-### Loading the service worker
-
-Now let's actually load our service worker. We'll go into our \_app.js file, and add this
-
-```js
-if (typeof window === "object" && !/localhost/.test(location.href) && "serviceWorker" in navigator) {
-  navigator.serviceWorker
-    .register("/sw.js")
-    .then(registration => {
-      console.log("Service worker registered", registration);
-    })
-    .catch(err => {
-      console.log("Error registering service worker", err);
-    });
+  ];
 }
 ```
 
-The next time we run our web app, the service worker should register. Then after _that_ we should see the shoelace bundle serving from cache.
+and now when we browse to our site, we see the shoelace bundle cached nicely
 
-![Service worker works](/shoelace-ssr/img1-service-worker.jpg)
+![Http Caching](/shoelace-ssr/img2-http-caching.jpg)
 
 ## Wrapping up
 
