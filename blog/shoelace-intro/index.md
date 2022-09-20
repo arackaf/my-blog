@@ -18,7 +18,7 @@ I said they work in any JS framework, but as I've written before, React's suppor
 
 Support for server side rendering is also currently poor. In theory there's something called declarative shadow dom which would enable ssr. But browser support is minimal, and in any event, dsd actually requires _server support_ to work right, which means Next, Remix, or whatever you happen to use on the server will need to become capable of some special handling.
 
-That said, there are other ways to get web components to _just work_ with a web app that's SSR'd with something like Next. The short version is that your scripts registering your web components need to run in a blocking script before your markup is parsed. I'll cover how to do this in my next post, and discuss the perf implications, and how to minimize them using a Service Worker.
+That said, there are other ways to get web components to _just work_ with a web app that's SSR'd with something like Next. The short version is that your scripts registering your web components need to run in a blocking script before your markup is parsed. I'll cover how to do this in my next post, and discuss the perf implications, and how to minimize them with caching.
 
 Of course, if you're building any kind of client-rendered SPA, this is a non-issue. This is what we'll work with for this post.
 
