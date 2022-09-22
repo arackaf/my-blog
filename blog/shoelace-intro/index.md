@@ -36,7 +36,7 @@ If you find you like Shoelace after reading this post and want to try it in a Re
 
 Shoelace has fairly detailed [installation instructions](https://shoelace.style/getting-started/installation). At its most simple, you can dump `<script>` and `<style>` tags into your HTML doc, and that's that. For any production app, though, you'll probably want to selectively import only what you want, and there are instructions for that, too.
 
-With Shoelace installed, let's create a Svelte component to render some content, and then go through the steps to fully customize it. To pick something fairly non-trivial, I went with the tabs and a modal. Here's some markup [taken largely from the docs](https://shoelace.style/components/tab-group):
+With Shoelace installed, let's create a Svelte component to render some content, and then go through the steps to fully customize it. To pick something fairly non-trivial, I went with the tabs and a dialog (commonly referred to as a modal). Here's some markup [taken largely from the docs](https://shoelace.style/components/tab-group):
 
 ```html
 <sl-tab-group>
@@ -57,7 +57,7 @@ With Shoelace installed, let's create a Svelte component to render some content,
 </sl-dialog>
 
 <br />
-<button>Open Modal</button>
+<button>Open Dialog</button>
 ```
 
 This renders some nice, styled tabs. The underline on the active tab even animates nicely, and slides from one active tab to the next.
@@ -102,11 +102,11 @@ That works and logs the event objects as you show different tabs.
 
 ![Default tabs](/shoelace-intro/img2-event-obj.jpg)
 
-Typically we render tabs and let the user click between them, so this work isn't usually even necessary, but it's there if you need it. Now let's get the modal interactive.
+Typically we render tabs and let the user click between them, so this work isn't usually even necessary, but it's there if you need it. Now let's get the dialog interactive.
 
-#### Modal
+#### Dialog
 
-The `Dialog` component takes an `open` prop which controls whether the modal is ... open. Let's declare it in our Svelte component
+The `Dialog` component takes an `open` prop which controls whether the dialog is ... open. Let's declare it in our Svelte component
 
 ```html
 <script>
@@ -115,7 +115,7 @@ The `Dialog` component takes an `open` prop which controls whether the modal is 
 </script>
 ```
 
-It also has an `sl-hide` event for when the modal is hidden. Let's pass our `open` prop, and bind to the `hide` event so we can reset it when the user clicks outside of the modal content to close it. And let's add a click handler to that close button to set our `open` prop to `false`, which would also close the modal.
+It also has an `sl-hide` event for when the dialog is hidden. Let's pass our `open` prop, and bind to the `hide` event so we can reset it when the user clicks outside of the dialog content to close it. And let's add a click handler to that close button to set our `open` prop to `false`, which would also close the dialog.
 
 ```jsx
 <sl-dialog no-header {open} label="Dialog" on:sl-hide={() => open = false}>
@@ -124,10 +124,10 @@ It also has an `sl-hide` event for when the modal is hidden. Let's pass our `ope
 </sl-dialog>
 ```
 
-Lastly, let's wire up our open modal button:
+Lastly, let's wire up our open dialog button:
 
 ```jsx
-<button on:click={() => (open = true)}>Open Modal</button>
+<button on:click={() => (open = true)}>Open Dialog</button>
 ```
 
 And that's that. Interacting with a component library's API is more or less straightforward. If that's all this post did, it would be pretty boring.
@@ -202,7 +202,7 @@ That's that!
 
 ### Customizing animations
 
-For some icing on the metaphorical cake, let's see how Shoelace allows us to customize animations. Shoelace uses the [Web Animations API](https://css-tricks.com/css-animations-vs-web-animations-api/), and exposes a `setDefaultAnimation` API to control how different elements animate their various interactions. See the docs for specifics, but as an example, here's how you might change Shoelace's default modal animation from expanding outward, and shrinking inward, to instead animate in from the top, and drop down while hiding.
+For some icing on the metaphorical cake, let's see how Shoelace allows us to customize animations. Shoelace uses the [Web Animations API](https://css-tricks.com/css-animations-vs-web-animations-api/), and exposes a `setDefaultAnimation` API to control how different elements animate their various interactions. See the docs for specifics, but as an example, here's how you might change Shoelace's default dialog animation from expanding outward, and shrinking inward, to instead animate in from the top, and drop down while hiding.
 
 ```js
 import { setDefaultAnimation } from "@shoelace-style/shoelace/dist/utilities/animation-registry";
