@@ -26,9 +26,9 @@ Of course, if you're building any kind of client-rendered <abbr title="single-pa
 
 ### Let's start
 
-Since I want this post to focus on Shoelace and on its web component nature, I'll be using [Svelte](https://css-tricks.com/getting-acquainted-with-svelte-the-new-framework-on-the-block/) for everything. I'll also be using the [Stackblitz project](https://stackblitz.com/edit/vitejs-vite-4dm7sb?file=index.html) here. We'll build this demo together, step-by-step, but feel free to open that REPL up anytime to see the end result.
+Since I want this post to focus on Shoelace and on its web component nature, I'll be using [Svelte](https://css-tricks.com/getting-acquainted-with-svelte-the-new-framework-on-the-block/) for everything. I'll also be using this [Stackblitz project](https://stackblitz.com/edit/vitejs-vite-4dm7sb?file=index.html) for demonstration. We'll build this demo together, step-by-step, but feel free to open that REPL up anytime to see the end result.
 
-I'll show you how to use Shoelace, and more importantly, how to customize it. We'll talk about [Shadow DOMs](https://css-tricks.com/encapsulating-style-and-structure-with-shadow-dom/), which styles they block from the outside world (and which ones they don't). We'll also talk about the `::part` CSS selector — which may be entirely new to you — and we'll even see how Shoelace allows us to override and customize its various animations.
+I'll show you how to use Shoelace, and more importantly, how to customize it. We'll talk about [Shadow DOMs](https://css-tricks.com/encapsulating-style-and-structure-with-shadow-dom/) and which styles they block from the outside world (as well as which ones they don't). We'll also talk about the `::part` CSS selector — which may be entirely new to you — and we'll even see how Shoelace allows us to override and customize its various animations.
 
 If you find you like Shoelace after reading this post and want to try it in a React project, my advice is to use [a wrapper](https://css-tricks.com/building-interoperable-web-components-react/#aa-option-2-wrap-it) like I mentioned in the introduction. This will allow you to use any of Shoelace's components, and it can be removed altogether once React ships the web component fixes they already have (look for that in version 19).
 
@@ -36,7 +36,7 @@ If you find you like Shoelace after reading this post and want to try it in a Re
 
 Shoelace has fairly detailed [installation instructions](https://shoelace.style/getting-started/installation). At its most simple, you can dump `<script>` and `<style>` tags into your HTML doc, and that's that. For any production app, though, you'll probably want to selectively import only what you want, and there are instructions for that, too.
 
-With Shoelace installed, let's create a Svelte component to render some content, and then go through the steps to fully customize it. To pick something fairly non-trivial, I went with the tabs and a dialog (commonly referred to as a modal). Here's some markup [taken largely from the docs](https://shoelace.style/components/tab-group):
+With Shoelace installed, let's create a Svelte component to render some content, and then go through the steps to fully customize it. To pick something fairly non-trivial, I went with the tabs and a dialog (commonly referred to as a modal) components. Here's some markup [taken largely from the docs](https://shoelace.style/components/tab-group):
 
 ```html
 <sl-tab-group>
@@ -72,7 +72,7 @@ Calling methods and subscribing to events on a web component might be slightly d
 
 #### Tabs
 
-The tabs component has a `show` method, which manually show a particular tab. In order to call this, we need to get access to the underlying DOM element of our tabs. In Svelte, that means using `bind:this`. In React, it'd be a `ref`. And so on. Since we're using Svelte, let's declare a variable for our tabs instance:
+The tabs component (`<sl-tab-group>`) has a [`show` method](https://shoelace.style/components/tab-group?id=methods), which manually shows a particular tab. In order to call this, we need to get access to the underlying DOM element of our tabs. In Svelte, that means using `bind:this`. In React, it'd be a `ref`. And so on. Since we're using Svelte, let's declare a variable for our `tabs` instance:
 
 ```html
 <script>
@@ -92,7 +92,7 @@ Now we can add a button to call it:
 <button on:click={() => tabs.show("custom")}>Show custom</button>
 ```
 
-It's the same idea for events. There's a `sl-tab-show` event that fires when a new tab is shown. We could use `addEventListener` on our `tabs` variable, or we can use Svelte's `on:event-name` shortcut.
+It's the same idea for events. There's a [`sl-tab-show` event](https://shoelace.style/components/tab-group?id=events) that fires when a new tab is shown. We could use `addEventListener` on our `tabs` variable, or we can use Svelte's `on:event-name` shortcut.
 
 ```jsx
 <sl-tab-group bind:this={tabs} on:sl-tab-show={e => console.log(e)}>
@@ -102,11 +102,11 @@ That works and logs the event objects as you show different tabs.
 
 ![Default tabs](/shoelace-intro/img2-event-obj.jpg)
 
-Typically we render tabs and let the user click between them, so this work isn't usually even necessary, but it's there if you need it. Now let's get the dialog interactive.
+Typically we render tabs and let the user click between them, so this work isn't usually even necessary, but it's there if you need it. Now let's get the dialog component interactive.
 
 #### Dialog
 
-The `Dialog` component takes an `open` prop which controls whether the dialog is ... open. Let's declare it in our Svelte component
+The dialog component (`<sl-dialog>`) takes an `open` prop which controls whether the dialog is... open. Let's declare it in our Svelte component:
 
 ```html
 <script>
@@ -115,7 +115,7 @@ The `Dialog` component takes an `open` prop which controls whether the dialog is
 </script>
 ```
 
-It also has an `sl-hide` event for when the dialog is hidden. Let's pass our `open` prop, and bind to the `hide` event so we can reset it when the user clicks outside of the dialog content to close it. And let's add a click handler to that close button to set our `open` prop to `false`, which would also close the dialog.
+It also has an `sl-hide` event for when the dialog is hidden. Let's pass our `open` prop and bind to the `hide` event so we can reset it when the user clicks outside of the dialog content to close it. And let's add a click handler to that close button to set our `open` prop to `false`, which would also close the dialog.
 
 ```jsx
 <sl-dialog no-header {open} label="Dialog" on:sl-hide={() => open = false}>
@@ -136,7 +136,7 @@ But Shoelace — being built with web components — means that some things, par
 
 ### Customize all the styles!
 
-/explanation As of this writing, Shoelace is still in beta, and the creator is considering changing some default styles, and in fact removing some defaults altogether, so they'll no longer override your host application's styles. The concepts we'll cover are relevant either way, but don't be surprised if some of the Shoelace specifics I mention are different when you go to use it.
+/explanation As of this writing, Shoelace is still in beta and the creator is considering changing some default styles, possibly even removing some defaults altogether so they'll no longer override your host application's styles. The concepts we'll cover are relevant either way, but don't be surprised if some of the Shoelace specifics I mention are different when you go to use it.
 
 As nice as Shoelace's default styles are, we might have our own designs in our web app, and we'll want our <abbr>UX</abbr> components to match. Let's see how we'd go about that in a web components world.
 
@@ -146,11 +146,11 @@ We won't try to actually _improve_ anything. The Shoelace creator is a far bette
 
 Take a peek at one of those tab headers in your DevTools; it should look something like this:
 
-![Shadow dom](/shoelace-intro/img6-shadow-dom.jpg)
+![Shadow DOM](/shoelace-intro/img6-shadow-dom.jpg)
 
-Our tab element has created a div container with a tab and tab--active class, a tabindex, and is displaying the text we entered for that tab. But notice that it's sitting inside of a _shadow root_. This allows web component authors to add their own markup to the web component while also providing a place for the content _we_ provide. Notice the `<slot>` element? That basically means "put whatever content the user rendered **between** the web component tags _here_."
+Our tab element has created a `div` container with a tab, a `.tab--active` class, and a `tabindex`, while also displaying the text we entered for that tab. But notice that it's sitting inside of a _shadow root_. This allows web component authors like us to add our own markup to the web component while also providing a place for the content _we_ provide. Notice the `<slot>` element? That basically means "put whatever content the user rendered **between** the web component tags _here_."
 
-So the `sl-tab` web component creates a shadow root, adds some content to it to render the nicely-styled tab header, along with a placeholder (`<slot>`) that renders our content inside.
+So the `sl-tab` web component creates a shadow root, adds some content to it to render the nicely-styled tab header along with a placeholder (`<slot>`) that renders our content inside.
 
 #### Encapsulated styles
 
@@ -158,7 +158,7 @@ One of the classic, more frustrating problems in web development has always been
 
 The exceptions to this are inheritable styles. You, of course, don't need to apply a `font-family` style for every element in your web app. Instead, you can specify your `font-family` once, on `:root` or `html` and have it inherit everywhere beneath it. This inheritance will, in fact, pierce the shadow root as well.
 
-A related exception are [CSS custom properties](https://css-tricks.com/a-complete-guide-to-custom-properties/) (often called "css variables"). A shadow root can absolutely read a CSS prop defined outside the shadow root; this will become relevant in a moment.
+[CSS custom properties](https://css-tricks.com/a-complete-guide-to-custom-properties/) (often called "css variables") are a related exception. A shadow root can absolutely read a CSS property that is defined outside the shadow root; this will become relevant in a moment.
 
 #### The `::part` selector
 
@@ -170,13 +170,13 @@ Let's see each of these approaches in action. As of now, _a lot_ of Shoelace sty
 
 #### Inheriting styles through the shadow root
 
-Open the `app.css` file in the `src` directory in the [StackBlitz project](https://stackblitz.com/edit/vitejs-vite-4dm7sb?file=index.html). In the `:root` section at the bottom, you should see a `letter-spacing: normal;` declaration. Since the [`letter-spacing`](https://css-tricks.com/almanac/properties/l/letter-spacing/) property is inheritable, try setting a new value, like `2px`. On save, all content, including the tab headers defined in the shadow root, will adjust accordingly.
+Open the `app.css` file in the `src` directory of the [StackBlitz project](https://stackblitz.com/edit/vitejs-vite-4dm7sb?file=index.html). In the `:root` section at the bottom, you should see a `letter-spacing: normal;` declaration. Since the [`letter-spacing`](https://css-tricks.com/almanac/properties/l/letter-spacing/) property is inheritable, try setting a new value, like `2px`. On save, all content, including the tab headers defined in the shadow root, will adjust accordingly.
 
 ![Shadow DOM](/shoelace-intro/img8-letter-spacing.jpg)
 
 #### Overwriting Shoelace CSS variables
 
-The `sl-tab-group` reads a `--indicator-color` CSS custom property for the active tab's underline. We can override this with some basic CSS:
+The `<sl-tab-group>` component reads an `--indicator-color` CSS custom property for the active tab's underline. We can override this with some basic CSS:
 
 ```css
 sl-tab-group {
@@ -186,11 +186,11 @@ sl-tab-group {
 
 And just like that, we now have a green indicator!
 
-![Shadow dom](/shoelace-intro/img-7-green-indicator.jpg)
+![Shadow DOM](/shoelace-intro/img-7-green-indicator.jpg)
 
 #### Querying parts
 
-In the version of Shoelace I'm using right now (2.0.0-beta.83), any non-disabled tab has have a `pointer` cursor. Let's change that to a default cursor for the active (selected) tab. We already saw that the `sl-tab` element adds a `part="base"` attribute on the container for the tab header. Also, the currently selected tab receives an `active` attribute. Let's use these facts to target the active tab, and change the cursor:
+In the version of Shoelace I'm using right now (2.0.0-beta.83), any non-disabled tab has have a `pointer` cursor. Let's change that to a default cursor for the active (selected) tab. We already saw that the `<sl-tab>` element adds a `part="base"` attribute on the container for the tab header. Also, the currently selected tab receives an `active` attribute. Let's use these facts to target the active tab, and change the cursor:
 
 ```css
 sl-tab[active]::part(base) {
