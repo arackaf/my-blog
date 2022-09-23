@@ -4,7 +4,7 @@ date: "2022-08-28T10:00:00.000Z"
 description: A high-level introduction to Shoelace, a web component-based ux library.
 ---
 
-This is a post about [Shoelace](https://shoelace.style/), a component library, but with a twist. It defines all your standard <abbr>UX</abbr> components: tabs, modals, accordions, auto-completes, and [much, much more](https://shoelace.style/components/alert). They look beautiful out of the box, are accessible, and fully customizable. But rather than creating these components in React, or Solid, or Svelte, etc., it creates them with [web components](https://css-tricks.com/our-best-posts-on-web-components/). This means you can use these components with _any_ framework.
+This is a post about [Shoelace](https://shoelace.style/), a component library, but with a twist. It defines all your standard <abbr>UX</abbr> components: tabs, modals, accordions, auto-completes, and [much, much more](https://shoelace.style/components/alert). They look beautiful out of the box, are accessible, and fully customizable. But rather than creating these components in React, or Solid, or Svelte, etc., it creates them with [web components](https://css-tricks.com/our-best-posts-on-web-components/); this means you can them with _any_ framework.
 
 ### Some preliminary things
 
@@ -12,7 +12,7 @@ Web components are great, but there's currently a few small hitches to be aware 
 
 #### React
 
-I said they work in any JavaScript framework, but as I've written before, React's support for web components is [currently poor](https://css-tricks.com/building-interoperable-web-components-react/#aa-react-is-a-different-beast). To address this, Shoelace actually [created wrappers](https://shoelace.style/frameworks/react?id=usage) just for React that React developers can use.
+I said they work in any JavaScript framework, but as I've written before, React's support for web components is [currently poor](https://css-tricks.com/building-interoperable-web-components-react/#aa-react-is-a-different-beast). To address this, Shoelace actually [created wrappers](https://shoelace.style/frameworks/react?id=usage) just for React.
 
 Another option, which I personally like, is to create a thin React component that accepts the tag name of a web component and all of its attributes and properties, then does the dirty work of handling React's shortcomings. I talked about this option [in a previous post](https://css-tricks.com/building-interoperable-web-components-react/#aa-option-2-wrap-it). I like this solution because it's designed to be deleted. The web component interop problem is currently fixed in React's experimental branch, so once that's shipped, any thin web component-interop component you're using could be searched, and removed, leaving you with direct web component usages, without any React wrappers.
 
@@ -26,7 +26,7 @@ Of course, if you're building any kind of client-rendered <abbr title="single-pa
 
 ### Let's start
 
-Since I want this post to focus on Shoelace and on its web component nature, I'll be using [Svelte](https://css-tricks.com/getting-acquainted-with-svelte-the-new-framework-on-the-block/) for everything. I'll also be using the [Stackblitz project](https://stackblitz.com/edit/vitejs-vite-4dm7sb?file=index.html). We'll build this demo together, step-by-step, but feel free to open that REPL up anytime to see the end result.
+Since I want this post to focus on Shoelace and on its web component nature, I'll be using [Svelte](https://css-tricks.com/getting-acquainted-with-svelte-the-new-framework-on-the-block/) for everything. I'll also be using the [Stackblitz project](https://stackblitz.com/edit/vitejs-vite-4dm7sb?file=index.html) here. We'll build this demo together, step-by-step, but feel free to open that REPL up anytime to see the end result.
 
 I'll show you how to use Shoelace, and more importantly, how to customize it. We'll talk about [Shadow DOMs](https://css-tricks.com/encapsulating-style-and-structure-with-shadow-dom/), which styles they block from the outside world (and which ones they don't). We'll also talk about the `::part` CSS selector — which may be entirely new to you — and we'll even see how Shoelace allows us to override and customize its various animations.
 
@@ -144,7 +144,7 @@ We won't try to actually _improve_ anything. The Shoelace creator is a far bette
 
 #### A quick tour of Shadow DOMs
 
-Take a peek at one of those tab headers in your DevTools and it should look something like this:
+Take a peek at one of those tab headers in your DevTools; it should look something like this:
 
 ![Shadow dom](/shoelace-intro/img6-shadow-dom.jpg)
 
@@ -184,7 +184,7 @@ sl-tab-group {
 }
 ```
 
-And just like, that we now have a green indicator!
+And just like that, we now have a green indicator!
 
 ![Shadow dom](/shoelace-intro/img-7-green-indicator.jpg)
 
@@ -198,7 +198,7 @@ sl-tab[active]::part(base) {
 }
 ```
 
-That's that!
+And that's that!
 
 ### Customizing animations
 
