@@ -6,15 +6,15 @@ description: Enabling web components in Next, without any content shift, while m
 
 In my [previous post](https://css-tricks.com/shoelace-component-frameowrk-introduction) we looked at Shoelace, which is a component library with a full suite of <abbr>UX</abbr> components that are beautiful, accessible, and — perhaps unexpectedly — built with [Web Components](https://css-tricks.com/an-introduction-to-web-components/). This means they can be used with any JavaScript framework. While React's Web Component interoperability is, at present, less than ideal, [there are workarounds](https://css-tricks.com/building-interoperable-web-components-react/#aa-option-2-wrap-it).
 
-But one serious shortcoming of Web Components is their current lack of support for server-side rendering (<abbr>SSR</abbr>). There is something called the Declarative Shadow DOM (<abbr>DSD</abbr>) in the works, but current support for it is pretty minimal as well, and it actually requires buy-in from your web server to emit special markup for the <abbr>DSD</abbr>. There's currently work being done for [Next.js](https://nextjs.org) that I look forward to seeing. But for this post, we'll look at how to manage Web Components from an <abbr>SSR</abbr> framework, like Next.js, _today_.
+But one serious shortcoming of Web Components is their current lack of support for server-side rendering (<abbr>SSR</abbr>). There is something called the Declarative Shadow DOM (<abbr>DSD</abbr>) in the works, but current support for it is pretty minimal, and it actually requires buy-in from your web server to emit special markup for the <abbr>DSD</abbr>. There's currently work being done for [Next.js](https://nextjs.org) that I look forward to seeing. But for this post, we'll look at how to manage Web Components from any <abbr>SSR</abbr> framework, like Next.js, _today_.
 
-We'll wind up doing a non-trivial amount of manual work, slightly hurting our page's startup performance in the process, and looking at how to mitigate these performance costs. But make no mistake: this solution is not without tradeoffs, so don't expect otherwise. Always measure and profile.
+We'll wind up doing a non-trivial amount of manual work, and _slightly_ hurting our page's startup performance in the process. We'll then look at how to minimize these performance costs. But make no mistake: this solution is not without tradeoffs, so don't expect otherwise. Always measure and profile.
 
 ### The problem
 
 Before we dive in, let's take a moment and actually explain the problem. Why don't Web Components work well with server-side rendering?
 
-Application frameworks, like Next.js, take React code and run it through an <abbr>API</abbr> to essentially "stringify" it, meaning it turn the data into plain HTML. So the React component tree will render on the server hosting the web app and that HTML will be sent down with the rest of the web app's HTML document to your user's browser. Along with this HTML are some `<script>` tags that load React, along with the code for any React components. When a browser processes these `<script>` tags, React will re-render the component tree, and match things up with the <abbr>SSR</abbr>'d HTML that was sent down. At this point, all of the effects will start running, the event handlers will wire up, and the state will actually... contain state. It's at this point that the web app becomes _interactive_. The process of re-processing your component tree on the client, and wiring everything up is called **<dfn id="hydration">hydration</dfn>**.
+Application frameworks like Next.js take React code and run it through an <abbr>API</abbr> to essentially "stringify" it, meaning it turns your components into plain HTML. So the React component tree will render on the server hosting the web app, and that HTML will be sent down with the rest of the web app's HTML document to your user's browser. Along with this HTML are some `<script>` tags that load React, along with the code for all your React components. When a browser processes these `<script>` tags, React will re-render the component tree, and match things up with the <abbr>SSR</abbr>'d HTML that was sent down. At this point, all of the effects will start running, the event handlers will wire up, and the state will actually... contain state. It's at this point that the web app becomes _interactive_. The process of re-processing your component tree on the client, and wiring everything up is called **<dfn id="hydration">hydration</dfn>**.
 
 So, what does this have to do with web components? Well, when you render something, say the same Shoelace `<sl-tab-group>` component we visited [last time](https://css-tricks.com/shoelace-component-frameowrk-introduction):
 
@@ -34,7 +34,7 @@ So, what does this have to do with web components? Well, when you render somethi
 
 React (or honestly _any_ JavaScript framework) will see those tags and simply pass them along. React (or Svelte, or Solid) are not responsible for turning those tags into nicely-formatted tabs. The code for that is tucked away inside of whatever code you have that defines those Web Components. In our case, that code is in the Shoelace library, but the code can be anywhere. What's important is _when the code runs_.
 
-Normally, the code registering these Web Components will be pulled into your normal application code via a JavaScript `import`. That means this code will wind up in your JavaScript bundle and execute during hydration which means that, between your user first seeing the <abbr>SSR</abbr>'d HTML and hydration happening, these tabs (or any Web Component for that matter) will not render the correct content. Then, when hydration happens, the proper content will display, likely causing the content around these Web Components to move around and fit the properly formatted content. This is known as a **flash of unstyled content**, or <abbr>FOUC</abbr>. In theory, you could stick markup in between all of those `<sl-tab-xyz>` tags to match the finished output, but this is all but impossible in practice, especially for a third-party component library like Shoelace.
+Normally, the code registering these Web Components will be pulled into your normal application's code via a JavaScript `import`. That means this code will wind up in your JavaScript bundle and execute during hydration which means that, between your user first seeing the <abbr>SSR</abbr>'d HTML and hydration happening, these tabs (or any Web Component for that matter) will not render the correct content. Then, when hydration happens, the proper content will display, likely causing the content around these Web Components to move around and fit the properly formatted content. This is known as a **flash of unstyled content**, or <abbr>FOUC</abbr>. In theory, you could stick markup in between all of those `<sl-tab-xyz>` tags to match the finished output, but this is all but impossible in practice, especially for a third-party component library like Shoelace.
 
 ### Moving our Web Component registration code
 
@@ -147,15 +147,13 @@ Then, we manually render a `<script>` tag in the `<head>`. Here's what my entire
 
 ```js
 import { Html, Head, Main, NextScript } from "next/document";
-import Script from "next/script";
-
 import { shoelacePath } from "../util/shoelace-bundle-info";
 
 export default function Document() {
   return (
     <Html>
       <Head>
-        <script src={shoelacePath}></>
+        <script src={shoelacePath}></script>
       </Head>
       <body>
         <Main />
@@ -170,7 +168,7 @@ And that should work! Our Shoelace registration will load in a blocking script a
 
 ### Improving performance
 
-We could leave things as they are but let's add caching for this Shoelace bundle. We'll tell Next.js to make these Shoelace bundles cacheable by adding the following entry to our Next.js config file:
+We could leave things as they are but let's add caching for our Shoelace bundle. We'll tell Next.js to make these Shoelace bundles cacheable by adding the following entry to our Next.js config file:
 
 ```js
 async headers() {
@@ -191,6 +189,8 @@ async headers() {
 Now, when we browse to our site, we see the Shoelace bundle caching things nicely!
 
 ![Http Caching](/shoelace-ssr/img2-http-caching.jpg)
+
+If our shoelace bundle ever changes, the file name will change (via the `:hash` portion from the source property above), the browser will find that it does not have that file cached, and will simply request it fresh from the network.
 
 ### Wrapping up
 
