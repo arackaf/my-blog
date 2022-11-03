@@ -30,7 +30,7 @@ export default function () {
 }
 ```
 
-![first rsc](/next-13/img1.jpg)
+![first rsc](/next-13-intro/img1.jpg)
 
 Remember, this component only exists on the server. It's not sent down to the client except as the rendered html; no matter how mcuh code we dump into this RSC, it won't increase our hydration script.
 
@@ -48,7 +48,7 @@ export default function () {
 }
 ```
 
-![rsc error](/next-13/img2.jpg)
+![rsc error](/next-13-intro/img2.jpg)
 
 # Let's get started
 
