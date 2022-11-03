@@ -87,3 +87,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 We define an array of TODOs, read an optional filter from the request querystring, and then return a simple filter.
 
 ## Out RSC
+
+Let's turn to our page.tsx file. First
