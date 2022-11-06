@@ -1,6 +1,6 @@
 ---
 title: Next 13 - Data fetching with React Server Components
-date: "2022-10-31T10:00:00.000Z"
+date: "2022-11-05T10:00:00.000Z"
 description: A high level introduction to data fetching with react server components
 ---
 
@@ -121,7 +121,7 @@ export default async function Page({ searchParams }: RSCProps) {
 
 Notice first that our component is using async await. RSCs are designed like this, to help enable you to load data.
 
-The astute among you will immediately spot the waterfall problem. I await the `getTodos()` call, _and then_ await the `getColors()` call. This means our component will block, waiting for the todos, and then block again waiting for the colors. But before we go rushing to toss a `Promise.all` in there, let's just press on, for now, and see how things work.
+The astute will immediately spot the waterfall problem. I await the `getTodos()` call, _and then_ await the `getColors()` call. This means our component will block, waiting for the todos, and then block again waiting for the colors. But before we go rushing to toss a `Promise.all` in there, let's just press on, for now, and see how things work.
 
 The page blocks for about 2 seconds (both of our endpoints have a 1 second delay, which run serially because of the waterfall), and then the whole page renders.
 
@@ -137,7 +137,7 @@ Let's fix by moving the awaits into the component that actually uses it. This wi
 
 One last thing: instead of using `await` let's use `use`, which is a new export available from the react package. It's like await, except it can also be used from client components. We `use(someDataSource)` and the Suspense boundaries are triggered just like with await. Again, the difference is we can also use it on client components. I'm also a fan of the semantics: we call `use` to _use_ the data. And only when we want to use the data. Do not `use` (or `await`) your data high in the component tree, and then pass it down; that's a fantastic way to create waterfalls, as we _just saw_. Instead `use()` your data when you need to actually _use_ it.
 
-One last thing: `use` cannot be used in an async component. Bad things will happen. See [this thread](https://github.com/vercel/next.js/issues/42469) for more info. Eventually the lint rule will be updated to prohibit this.
+One last, _last_ thing: `use` cannot be used in an async component. Bad things will happen. See [this thread](https://github.com/vercel/next.js/issues/42469) for more info. Eventually the lint rule will be updated to prohibit this.
 
 With that out of the way, let's look at our `<Todos>` component.
 
@@ -181,6 +181,14 @@ until the data come in and the page updates
 
 ![updated](/next-13-intro/img3.jpg)
 
+## Filtering
+
+Best of all, as we select filters from the dropdown, all that happens is the url updates with the right querystring, which triggers a re-render from the RSC. Next is smart enough to re-render this same page, but with the new data. When the data come in, the RSC sends down the newly rendered data, when ready.
+
+In order to get an inline "loading" indicator while the new route is pending, we wrap the call to `router.push` inside of the function returned by the `useTransition` hook. Cool!
+
 ## Wrapping up
 
 I'm extremely excited by Next 13 and React 18. Not only is data loading streamlined, and well integrated with Suspense boundaries, but it's done so in a way that's server driven, and won't bloat your bundle sizes.
+
+Happy coding!
