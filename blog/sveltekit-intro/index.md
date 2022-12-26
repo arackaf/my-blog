@@ -12,12 +12,18 @@ In some ways this is a challenging post to write. SvelteKit is an _application f
 
 To that end, we'll build the tried and true todo application. But don't worry, this will be much, much more about seeing how SvelteKit works than in re-implementing yet another TODO app.
 
+The code for everything you'll be seeing is [here](https://github.com/arackaf/sveltekit-blog-1). This project is also deployed on Vercel [here](https://sveltekit-blog-1.vercel.app/).
+
 ## Creating your project
 
 Creating your project is simple enough. Just run `npm create svelte@latest your-app-name` and answer the questions. Be sure to pick Skeleton Project, but otherwise make whatever selections you want for TypeScript, eslint, etc.
 
+Once it's created, run `npm i` and `npm run dev` and you should have a dev server running. Fire up `localhost:5173` and you should
+
 ## Layout and routing
+
+Notice the `routes` folder under src. That holds code for all of our ... routes. There's already a `+page.svelte` file in there. That has content for the root `/` route. No matter where in the file hierarchy you are, the actual page for that path always has the name `+page.svelte`. With that in mind, let's create pages for `/list`, `/details`, `/admin/user-settings` and `admin/paid-plan`.
 
 In SvelteKit, special files start with a `+` character. +layout.svelte, +page.svelte, +page.server.ts, +server.ts, and so on. We'll cover many of these, the docs cover all of them.
 
-Let's create a root layout
+Let's create a root layout to render our header (and in a real app, a footer, mobile hamburger menu, etc).
