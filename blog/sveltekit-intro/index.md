@@ -377,6 +377,8 @@ Can we have more targeted means of invalidating our data? For example, our tags 
 
 Loading data anew on every navigation is potentially expensive, and unnecessary. Can I cache this data like I do with tools like react-query? Yes, just differently. SvelteKit let's you set (and then respects) the cache-control headers the web already has. This, plus a Vary on a custom header can give you targeted invalidation. Stay tuned for my next post on how this all works.
 
+Everything we've done was with static data, modifying values in memory. So if you ever want to revert everything and start over, just stop, and restart your `npm run dev` node process.
+
 ## Wrapping up
 
 We've barely scratched the surface of SvelteKit, but hopefully we've seen enough to create some excitement. I can't remember the last time I've found web development this much fun.
