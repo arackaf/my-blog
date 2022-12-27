@@ -129,7 +129,7 @@ let tags = [
   { id: 4, name: "CSS-Tricks Admin", color: "blue" },
 ];
 
-const wait = async () => new Promise(res => setTimeout(res, 100));
+export const wait = async amount => new Promise(res => setTimeout(res, amount ?? 100));
 
 export async function getTodos() {
   await wait();
@@ -216,13 +216,13 @@ And this should render our todo's.
 
 ## Layout groups
 
-Before we move on to the details page, and start looking at mutating data, let's take a peak at a really neat feature of SvelteKit: layout groups. We've already seen nested layouts being used for all admin pages, but what if we wanted to share a layout between some arbitrary pages at the same level of our file system. In particular, what if we wanted to share a layout just between our list page, and our details page. We already have a layout at that level, which is the global layout. Instead, we can create a new directory, but with a name that's in parenthesis, like this
+Before we move on to the details page, and start looking at mutating data, let's take a peak at a really neat feature of SvelteKit: layout groups. We've already seen nested layouts for all admin pages, but what if we wanted to share a layout between some arbitrary pages at the same level of our file system. In particular, what if we wanted to share a layout just between our list page, and our details page. We already have a layout at that level, which is the global layout. Instead, we can create a new directory, but with a name that's in parenthesis, like this
 
 ![Layout group](/sveltekit-intro/img5-layout-group.jpg)
 
 We now have a layout group that covers our list, and details pages. I named it `(todo-management)` but you can name it anything; to be clear, this name will **not** affect the url's of the pages inside of the layout group. The url's will remain the same; layout groups allow you to add shared layouts to some pages without them all comprising the entirety of a directory in `routes`.
 
-We _could_ add a `+layout.svelte` file, and add some silly div banner saying "Hey we're managing todo's" but instead, let's do something more interesting. Layouts can also define `load` functions, in order to provide data for all routes underneath them. Let's use this functionaltiy to load our tags, since we'll be using our tags in our `details` page, in addition to the `list` page we already have.
+We _could_ add a `+layout.svelte` file, and add some silly div banner saying "Hey we're managing todo's" but instead, let's do something more interesting, and new. Layouts can also define `load` functions, in order to provide data for all routes underneath them. Let's use this functionaltiy to load our tags, since we'll be using our tags in our `details` page, in addition to the `list` page we already have. In reality forcing a layout group just to provide a single piece of data is almost certainly not worth it; just duplicate that data in each of your pages. But for this post, it'll provide the excuse we need to see a new SvelteKit feature!
 
 First let's go into our `list` page's `+page.server.js` file, and remove the tags from it.
 
@@ -240,7 +240,7 @@ export function load() {
 
 Our list page should now error out, since there's no tags object.
 
-To fix this, let's add a `+layout.server.js` file and define a load function in it, that loads our tags
+To fix this, let's add a `+layout.server.js` file in our layout group, and define a load function in it, that loads our tags
 
 ```js
 import { getTags } from "$lib/data/todoData";
@@ -258,7 +258,7 @@ And just like that, our list page is rendering again.
 
 ### We're loading data from multiple locations
 
-Let's put a fine point on what's happening. We have a load function defined for our layout group, which we put in `+layout.server.js`. This provides data for **all** pages the layout serves, which in this case means our list and details pages. Our list page also defines a load function, which goes in its `+page.server.js` file. SvelteKit does the grunt work of taking the results of these data sources and merging them together, making both available the `$page.data` object.
+Let's put a finer point on what's happening. We have a load function defined for our layout group, which we put in `+layout.server.js`. This provides data for **all** pages the layout serves, which in this case means our list, and details pages. Our list page also defines a load function, which goes in its `+page.server.js` file. SvelteKit does the grunt work of taking the results of these data sources, merging them together, and making both available in `$page.data`.
 
 ## Our details page
 
@@ -268,4 +268,82 @@ We'll use our details page to edit a todo. First, let's add a column to the tabl
 <td><a href={`/details?id=${t.id}`}>Edit</a></td>
 ```
 
-and now let's build out our details page.
+and now let's build out our details page. SvelteKit has wonderful mutation capabilities built in, so long as you use forms. Remember forms? Here's our details page; I've elided the styles for brevity.
+
+```html
+<script>
+  import { page } from "$app/stores";
+  import { enhance } from "$app/forms";
+
+  $: ({ todo, tags } = $page.data);
+  $: currentTags = todo.tags.map(id => tags[id]);
+</script>
+
+<form use:enhance method="post" action="?/editTodo">
+  <input name="id" type="hidden" value="{todo.id}" />
+  <input name="title" value="{todo.title}" />
+  <div>
+    {#each currentTags as tag}
+    <span style="{`color:" ${tag.color};`}>{tag.name}</span>
+    {/each}
+  </div>
+  <button>Save</button>
+</form>
+```
+
+We're grabbing the tags as before, and the todo from our loader. We're doing a lookup on the actual tag objects, and then rendering everything. We create a form with a hidden input for the id, and a real input for the title. We display the tags, and then provide a button that will submit the form.
+
+If you noticed the `use:enhance`, that just tells SvelteKit to use progressive enhancement, and use ajax to submit our form. You'll likely always use that.
+
+Lastly, notice the `action="?/editTodo"` attribute on the form itself. This tells us where we want to submit our edited data to. For our case, we want to submit to an `editTodo` "action." Let's create it. In the `+page.server.js` file which we already have for details (which currently has a load function, to grab our todo) let's add this
+
+```js
+export const actions = {
+  async editTodo({ request }) {
+    const formData = await request.formData();
+
+    const id = formData.get("id");
+    const newTitle = formData.get("title");
+
+    await wait(250);
+    updateTodo(id, newTitle);
+
+    throw redirect(303, "/list");
+  },
+};
+```
+
+Form actions give us a request object, which then provide access to our formData, which has a `get` method for our various form fields. We added that hidden input for the id value so we could grab it here, in order to look up the todo we're editing. We simulate a delay, call a (new) update method, and then redirect the user back to the `/list` page. Our updateTodo method just updates our static data; in real life you'd run some sort of update in whatever datastore you're using.
+
+```js
+export async function updateTodo(id, newTitle) {
+  const todo = todos.find(t => t.id == id);
+  Object.assign(todo, { title: newTitle });
+}
+```
+
+Let's try it out. We'll go to the list page
+
+![Todo list](/sveltekit-intro/img6a-list-rendering.jpg)
+
+Now let's click the edit button of one of them, to bring up the edit page, in /details.
+
+![Editing a todo](/sveltekit-intro/img6b-edit-before.jpg)
+
+Let's add a new title
+
+![Adding a new title](/sveltekit-intro/img6c-edit-during.jpg)
+
+Now let's click save. After a moment, we should be back on our /list page, with the new todo title applied.
+
+![Adding a new title](/sveltekit-intro/img6d-edit-after.jpg)
+
+How did the new title show up like that? It was automatic. Once we redirected over to the /list page, SvelteKit automatically re-ran all of our loaders, just like it would have, regardless. This is the key advancement next-gen application frameworks like SvelteKit, Remix, and Next 13 provide. Rather than giving you a convenient way to render pages, then wishing you the best of luck fetching to whatever endpoints you might have to update data, they integrate data mutation alongside data loading, allowing the two to work in tandem.
+
+A few things you might be wondering:
+
+What if we hadn't redirected in our form action? SvelteKit would have kept you on the same page, but re-ran all of the loaders for that page, including the loaders in the pages layout(s).
+
+Can we have more targeted means of invalidating our data? For example, our tags never re-ran, so in real life we wouldn't want to re-query them. Yes, what I showed you is just the default behavior for forms in SvelteKit. You can turn the default behavior off by [providing a callback to `use:enhance`](https://kit.svelte.dev/docs/form-actions#progressive-enhancement-use-enhance), and then SvelteKit provides manual [invalidation functions](https://kit.svelte.dev/docs/load#invalidation).
+
+Loading data anew on every navigation is potentially expensive, and unnecessary. Can I cache this data like I do with tools like react-query? Yes, just differently. SvelteKit let's you set (and then respects) the cache-control headers the web already has. This, plus a Vary on a custom header can give you targeted invalidation. Stay tuned for my next post on how this all works.
