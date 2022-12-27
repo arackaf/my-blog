@@ -20,10 +20,89 @@ Creating your project is simple enough. Just run `npm create svelte@latest your-
 
 Once it's created, run `npm i` and `npm run dev` and you should have a dev server running. Fire up `localhost:5173` and you should
 
-## Layout and routing
+## Basic routing
 
-Notice the `routes` folder under src. That holds code for all of our ... routes. There's already a `+page.svelte` file in there. That has content for the root `/` route. No matter where in the file hierarchy you are, the actual page for that path always has the name `+page.svelte`. With that in mind, let's create pages for `/list`, `/details`, `/admin/user-settings` and `admin/paid-plan`.
+Notice the `routes` folder under src. That holds code for all of our ... routes. There's already a `+page.svelte` file in there. That has content for the root `/` route. No matter where in the file hierarchy you are, the actual page for that path always has the name `+page.svelte`. With that in mind, let's create pages for `/list`, `/details`, `/admin/user-settings` and `admin/paid-status`.
 
-In SvelteKit, special files start with a `+` character. +layout.svelte, +page.svelte, +page.server.ts, +server.ts, and so on. We'll cover many of these, the docs cover all of them.
+Your file layout should look something like this
 
-Let's create a root layout to render our header (and in a real app, a footer, mobile hamburger menu, etc).
+![Initial files](/sveltekit-intro/img1-initial-pages.jpg)
+
+and you should be able to navigate around by modifying your url
+
+![Initial files](/sveltekit-intro/img2-initial-page-display.jpg)
+
+## Layouts
+
+Obviously we want some navigational links for our site, and we certainly don't want to copy the same nav markup for each page. So let's create a `+layout.svelte` file in the root of our routes folder, and add some content.
+
+```html
+<nav>
+  <ul>
+    <li>
+      <a href="/">Home</a>
+    </li>
+    <li>
+      <a href="/list">Todo list</a>
+    </li>
+    <li>
+      <a href="/admin/paid-status">Account status</a>
+    </li>
+    <li>
+      <a href="/admin/user-settings">User settings</a>
+    </li>
+  </ul>
+</nav>
+
+<slot />
+
+<style>
+  nav {
+    background-color: beige;
+  }
+  nav ul {
+    display: flex;
+  }
+  li {
+    list-style: none;
+    margin: 15px;
+  }
+  a {
+    text-decoration: none;
+    color: black;
+  }
+</style>
+```
+
+Some rudimentary nav, with some basic styles. Of particular importance is the `<slot />` tag. This is _not_ the slot you use with web components and shadow dom, but rather a Svelte feature indicating where to put our content. When a page renders, the pages content will slide in where the slot is.
+
+And now we have some navigation. We won't win any design competitions, but we're not trying to.
+
+![Initial files](/sveltekit-intro/img3-root-layout.jpg)
+
+## Nested layouts
+
+What if we wanted all of our admin pages to share inherit the normal layout we just built, but to also add some things common to all admin pages (but only admin pages). No problem, we just add another `+layout.svelte+` file in our root `admin` directory, which will be inherited by everything underneath. Let's add this content
+
+```svelte
+<div>This is an admin page</div>
+
+<slot />
+
+<style>
+	div {
+		padding: 15px;
+		margin: 10px 0;
+		background-color: red;
+		color: white;
+	}
+</style>
+```
+
+We add a red banner indicating this is an admin page, and then, like before, a `<slot />` denoting where we want our page content to go.
+
+So our root layout from before renders. Inside of the root layout is a `<slot />` tag. Into the root layout's `<slot />`, the nested layout's content goes. And finally, the nested layout defines its own `<slot />`, into which the page content renders.
+
+If you browse to the admin pages, you should see the new red banner
+
+![Initial files](/sveltekit-intro/img4-nested-layout.jpg)
