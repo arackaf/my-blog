@@ -146,7 +146,7 @@ export async function getTags() {
   }, {});
 }
 
-export async function todo(id: number) {
+export async function getTodo(id) {
   return todos.find(t => t.id == id);
 }
 ```
@@ -254,4 +254,18 @@ export function load() {
 }
 ```
 
-And just like that
+And just like that, our list page is rendering again.
+
+### We're loading data from multiple locations
+
+Let's put a fine point on what's happening. We have a load function defined for our layout group, which we put in `+layout.server.js`. This provides data for **all** pages the layout serves, which in this case means our list and details pages. Our list page also defines a load function, which goes in its `+page.server.js` file. SvelteKit does the grunt work of taking the results of these data sources and merging them together, making both available the `$page.data` object.
+
+## Our details page
+
+We'll use our details page to edit a todo. First, let's add a column to the table in our list page linking to the details page, with the todo in the querystring.
+
+```html
+<td><a href={`/details?id=${t.id}`}>Edit</a></td>
+```
+
+and now let's build out our details page.
