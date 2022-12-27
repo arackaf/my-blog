@@ -4,11 +4,11 @@ date: "2022-12-25T10:00:00.000Z"
 description: A high-level introduction to SvelteKit
 ---
 
-SvelteKit is the latest of what I'd call next-gen application frameworks. It of course scaffolds an application for you, with the file-based routing, deployment, server-side rendering Next has done forever. But SvelteKit also supports nested layouts, server mutations that sync up the data on your page and some other nicities we'll get into.
+SvelteKit is the latest of what I'd call next-gen application frameworks. It of course scaffolds an application for you, with the file-based routing, deployment, server-side rendering Next has done forever. But SvelteKit also supports nested layouts, server mutations that sync up the data on your page and some other niceties we'll get into.
 
-This post is just a high-level introduction, to hopefully build some excitement for anyone who's never used it before. Future posts will take some targetted deep dives, but for now we'll just take a relaxed tour. If you like what you see, the full docs are [here](https://kit.svelte.dev/docs/introduction).
+This post is just a high-level introduction, to hopefully build some excitement for anyone who's never used it before. Future posts will take some targeted deep dives, but for now we'll just take a relaxed tour. If you like what you see, the full docs are [here](https://kit.svelte.dev/docs/introduction).
 
-In some ways this is a challenging post to write. SvelteKit is an _application framework_. It exists to help you build ... appications. That makes it hard to demo. It's not feasible to build an entire application in a blog post. So instead, we'll just use our imaginations a bit. We'll build out a skeleton of an application, have some empty ui placeholders, and some hard-coded static data. The goal of this post isn't to build an actual application, but instead to show you how SvelteKit works, so you can build an application of your own.
+In some ways this is a challenging post to write. SvelteKit is an _application framework_. It exists to help you build ... applications. That makes it hard to demo. It's not feasible to build an entire application in a blog post. So instead, we'll just use our imaginations a bit. We'll build out a skeleton of an application, have some empty ui placeholders, and some hard-coded static data. The goal of this post isn't to build an actual application, but instead to show you how SvelteKit works, so you can build an application of your own.
 
 To that end, we'll build the tried and true todo application. But don't worry, this will be much, much more about seeing how SvelteKit works than in re-implementing yet another TODO app.
 
@@ -111,7 +111,7 @@ If you browse to the admin pages, you should see the new red banner
 
 Ok, let's render some actual data. Or at least, see how we can render some actual data. There's a hundred ways to create and connect to a database. This post is about SvelteKit though, not managing DynamoDB, so we'll just "load" some static data. But, we'll use all the same machinery to read, and update it that you'd use for real data. For a real web app, swap out the functions returning static data with functions connecting to, and querying to whatever database you happen to life.
 
-Let's create a dirt simple module in `lib/data/todoData.ts` that returns some static data, along with some artifical delays to simulate real querying.
+Let's create a dirt simple module in `lib/data/todoData.ts` that returns some static data, along with some artificial delays to simulate real querying.
 
 ```js
 let todos = [
@@ -222,7 +222,7 @@ Before we move on to the details page, and start looking at mutating data, let's
 
 We now have a layout group that covers our list, and details pages. I named it `(todo-management)` but you can name it anything; to be clear, this name will **not** affect the url's of the pages inside of the layout group. The url's will remain the same; layout groups allow you to add shared layouts to some pages without them all comprising the entirety of a directory in `routes`.
 
-We _could_ add a `+layout.svelte` file, and add some silly div banner saying "Hey we're managing todo's" but instead, let's do something more interesting, and new. Layouts can also define `load` functions, in order to provide data for all routes underneath them. Let's use this functionaltiy to load our tags, since we'll be using our tags in our `details` page, in addition to the `list` page we already have. In reality forcing a layout group just to provide a single piece of data is almost certainly not worth it; just duplicate that data in each of your pages. But for this post, it'll provide the excuse we need to see a new SvelteKit feature!
+We _could_ add a `+layout.svelte` file, and add some silly div banner saying "Hey we're managing todo's" but instead, let's do something more interesting, and new. Layouts can also define `load` functions, in order to provide data for all routes underneath them. Let's use this functionality to load our tags, since we'll be using our tags in our `details` page, in addition to the `list` page we already have. In reality forcing a layout group just to provide a single piece of data is almost certainly not worth it; just duplicate that data in each of your pages. But for this post, it'll provide the excuse we need to see a new SvelteKit feature!
 
 First let's go into our `list` page's `+page.server.js` file, and remove the tags from it.
 
