@@ -323,6 +323,10 @@ If you noticed the `use:enhance`, that just tells SvelteKit to use progressive e
 Notice the `action="?/editTodo"` attribute on the form itself? This tells us where we want to submit our edited data. For our case, we want to submit to an `editTodo` "action." Let's create it. In the `+page.server.js` file which we already have for details (which currently has a load function, to grab our todo) let's add this
 
 ```js
+import { redirect } from "@sveltejs/kit";
+
+// ...
+
 export const actions = {
   async editTodo({ request }) {
     const formData = await request.formData();
@@ -367,7 +371,7 @@ How did the new title show up like that? It was automatic. Once we redirected ov
 
 A few things you might be wondering:
 
-This mutation update doesn't seem too impressive. Like you said, the loaders will re-run whenever you navigate; what if we hadn't redirected in our form action, but stayed on the current page? SvelteKit would perform the update in the form action, like before, but would **still** re-run all of the loaders, for the current page, including the loaders in the pages layout(s).
+This mutation update doesn't seem too impressive. The loaders will re-run whenever you navigate; what if we hadn't redirected in our form action, but stayed on the current page? SvelteKit would perform the update in the form action, like before, but would **still** re-run all of the loaders, for the current page, including the loaders in the pages layout(s).
 
 Can we have more targeted means of invalidating our data? For example, our tags never re-ran, so in real life we wouldn't want to re-query them. Yes, what I showed you is just the default behavior for forms in SvelteKit. You can turn the default behavior off by [providing a callback to `use:enhance`](https://kit.svelte.dev/docs/form-actions#progressive-enhancement-use-enhance), and then SvelteKit provides manual [invalidation functions](https://kit.svelte.dev/docs/load#invalidation).
 
