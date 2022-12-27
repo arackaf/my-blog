@@ -106,3 +106,44 @@ So our root layout from before renders. Inside of the root layout is a `<slot />
 If you browse to the admin pages, you should see the new red banner
 
 ![Initial files](/sveltekit-intro/img4-nested-layout.jpg)
+
+## Rendering data
+
+Ok, let's render some actual data. Or at least, see how we can render some actual data. There's a hundred ways to create and connect to a database. This post is about SvelteKit though, not managing DynamoDB, so we'll just "load" some static data. But, we'll use all the same machinery to read, and update it that you'd use for real data. For a real web app, swap out the functions returning static data with functions connecting to, and querying to whatever database you happen to life.
+
+Let's create a dirt simple module in `lib/data/todoData.ts` that returns some static data, along with some artifical delays to simulate real querying.
+
+```ts
+let _todos = [
+  { id: 1, title: "Write SvelteKit intro blog post", assigned: "Adam", tags: [1] },
+  { id: 2, title: "Write SvelteKit advanced data loading blog post", assigned: "Adam", tags: [1] },
+  { id: 3, title: "Prepare RenderATL talk", assigned: "Adam", tags: [2] },
+  { id: 4, title: "Fix all SvelteKit bugs", assigned: "Rich", tags: [3] },
+  { id: 5, title: "Edit Adam's blog posts", assigned: "Geoff", tags: [4] },
+];
+
+let _tags = [
+  { id: 1, name: "SvelteKit Content", color: "ded" },
+  { id: 2, name: "Conferences", color: "purple" },
+  { id: 3, name: "SvelteKit Development", color: "pink" },
+  { id: 4, name: "CSS-Tricks Admin", color: "blue" },
+];
+
+const wait = async () => new Promise(res => setTimeout(res, 100));
+
+export async function todos() {
+  await wait();
+
+  return { todos: _todos };
+}
+
+export async function tags() {
+  await wait();
+
+  return { tags: _tags };
+}
+
+export async function todo(id: number) {
+  return _todos.find(t => t.id == id);
+}
+```
