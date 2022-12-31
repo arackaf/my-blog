@@ -47,7 +47,7 @@ export async function load({ fetch, url, setHeaders }) {
 }
 ```
 
-Before we move on, let's just add one more feature. In our /list page, let's add this simple form
+Let's just add a small feature to our /list page: a simple form
 
 ```html
 <div class="search-form">
@@ -61,3 +61,49 @@ Before we move on, let's just add one more feature. In our /list page, let's add
 Yep, forms can post directly to our normal page loaders. Now we can add a search term in the search box, hit enter, and add a "search" term to the url's querystring, which will re-run our loader, and search our TODOs.
 
 ![Search form](/sveltekit-advanced-caching-invalidation/img1-search-form.jpg)
+
+As icing on the cake, let's increase the delay in our `todoData.js` file in `/lib/data`. This will make it easy to see when data are, and are not cached as we work through this post.
+
+Remember, the full code for this post is all on github, linked in the intro.
+
+## Basic caching
+
+Let's get started, and add some caching to our `/api/todos` endpoint. We'll go back to our `+server.js` file, and add this
+
+```js
+setHeaders({
+  "cache-control": "max-age=60",
+});
+```
+
+which will leave the whole function looking like this
+
+```js
+export async function GET({ url, setHeaders, request }) {
+  const search = url.searchParams.get("search") || "";
+
+  setHeaders({
+    "cache-control": "max-age=60",
+  });
+
+  const todos = await getTodos(search);
+
+  return json(todos);
+}
+```
+
+we'll look at manual invalidation shortly, but this just says to cache these api calls for 60 seconds. Set this to [whatever you want](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control), and depending on your use case, stale-while-revalidate might also be worth looking into.
+
+### What is cached, and where
+
+Right now, with the cache header on the api endpoint, our very first, server-rendered load of our app (assuming we start at the /list page) will be cached. SvelteKit is smart enough to run the `api/todos` endpoint on the server, see the cache invalidation header, and keep those results cached. If you browse to the /list page as your first render (or just refresh while there), search something, and then go back, you'll see nothing at all in your network tab. SvelteKit's internal state tells it that the initially loaded data is still valid for the next 60 seconds. If you refresh the page however, it \*_will_ re-query the endpoint fresh (feel free to validate this by adding logging statements, just be sure to look for them in your network terminal, not your browsers dev console, since, again that code runs on the _server_).
+
+After that initial load, when you start searching on the page, you should see network requests from your browser, over to the /api/todos list. As you search for things you've already searched for (within the last 60 seconds) the responses should load immediately, since they're cached. Moreover, since this is caching via the browser's native caching, these calls will continue to cache even if you reload the page (unlike the initial server-side load, which always calls the endpoint fresh, even if it did it within the last 60 seconds).
+
+![Caching](/sveltekit-advanced-caching-invalidation/img2-caching.jpg)
+
+Obviously data can change anytime, so we need a way to purge this cache manually, which we'll look at next.
+
+## Cache invalidation
+
+Right now,
