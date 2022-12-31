@@ -205,3 +205,101 @@ export const actions = {
   },
 };
 ```
+
+Let's give this a shot. Reload your page, then edit one of the TODOs. You should see the table value update after a moment. If you look in the network tab, you'll see a fetch to the /todos endpoint, which returns your new data. Simple, and works by default.
+
+![Saving](/sveltekit-advanced-caching-invalidation/img3-saved.jpg)
+
+Let's change it up now. Stop, and then restart your dev server to reset our data. Now search for a value, in the search box we added before, _and then hit the back button_. You should be back to the first page. **Now** edit a todo. You should no longer see the value update. What happened. Our network tab should clue us in
+
+![Saving](/sveltekit-advanced-caching-invalidation/img4-saved-with-cached-results.jpg)
+
+After we saved, that fetch went out for our current data. Unfortunately, it was cached. When we hit the back button, that same fetch fired, and is now cached. This wasn't a problem the first time since, again, the very first page load runs our loader on the server, and so there's no browser caching available for that first load.
+
+To solve this, let's clear our cache when we submit our form. We'll add this function to our page
+
+```js
+function runInvalidate() {
+  localStorage.setItem("todos-cache", +new Date());
+}
+```
+
+and then call it when we submit our form to save.
+
+```svelte
+<form use:enhance on:submit={runInvalidate} method="post" action="?/editTodo"></form>
+```
+
+and now things work!
+
+![Saving](/sveltekit-advanced-caching-invalidation/img5-saving-works.jpg)
+
+## Immediate updates
+
+What if we want to avoid that fetch call that happens after we update our todo, and instead, just update the modified todo on the screen. This isn't just a matter of performance. If you search for "post" and then remove the word "post" from any of the todo's in the list, they'll instantly vanish from the list after the edit, since they're no long in that page's search results. You could make the UX better with some tasteful animation for the exiting todo, but let's say we wanted to just not re-run that page's load function, but still clear the cache, and also update the modified todo. SvelteKit makes that possible: let's see how!
+
+First, let's make one little change to our loader. Instead of just returning our todos, let's return a [writeblae store](https://svelte.dev/docs#run-time-svelte-store-writable) containing our todos.
+
+```js
+return {
+  todos: writable(todos),
+};
+```
+
+Before, we were accessing our todo's on the $page.data store, which we do not own, and cannot update. But Svelte let's us return our data in their own store (assuming we're using a universal loader, which we are). We just need to make one more tweak to our /list page. Instead of
+
+```svelte
+{#each todos as t}
+```
+
+we need to do
+
+```svelte
+{#each $todos as t}
+```
+
+since todos is itself a store. Now our data load, as before. But since `todos` is now a writeable store, we can update it.
+
+First, let's provide a function to our `use:enhance` attribute.
+
+```svelte
+<form
+  use:enhance={executeSave}
+  on:submit={runInvalidate}
+  method="post"
+  action="?/editTodo"
+>
+```
+
+this will run after a todo is done editing. Let's write that, next.
+
+```js
+function executeSave({ data }) {
+  const id = data.get("id");
+  const title = data.get("title");
+
+  return async () => {
+    todos.update(list =>
+      list.map(todo => {
+        if (todo.id == id) {
+          return Object.assign({}, todo, { title });
+        } else {
+          return todo;
+        }
+      })
+    );
+  };
+}
+```
+
+This function provides you a data object which has our form data. We _return_ an async function that will run _after_ our edit. [The docs](https://kit.svelte.dev/docs/form-actions#progressive-enhancement-use-enhance) explain all of this, but by doing this, we shut off SvelteKit's default form handling, which would have re-run our loader. This is exactly what we want! (we could easily get that default behavior back, as the docs explain).
+
+And then we call `update` on our todos array, since it's now a store. And that's that. After editing a todo, our changes show up immediately, and our cache is cleared, so if we navigate back to this page, we'll get fresh data from our loader, which will correctly exclude any updated todo's that were updated.
+
+## Wrapping up
+
+This was a long post, but hopefully not overwhelming. We took a deep dive into all the ways we can cache data when using SvelteKit. Much of this was just a matter of using web platform primitives to add the correct cache and Vary headers, knowledge of which will server you in web development in general, beyond just SvelteKit.
+
+Moreover, this is something you absolutely do not need all the time, and arguably, you should only reach for these sort of advanced features when you **actually need them**. If your data store is serving up data quickly and efficiently, and you're not dealing with any kind of scaling problems, please do not bloat your application with needless complexity doing the things we talked about here. As always, write clear, clean, simple code, and optimize when necessary. The purpose of this post was to provide you those optimization tools for when you truly need them. I hope you enjoyed it.
+
+Happy coding!
