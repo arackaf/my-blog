@@ -1,5 +1,5 @@
 ---
-title: Advanced data handling with SvelteKit
+title: Data caching in SvelteKit
 date: "2022-12-27T10:00:00.000Z"
 description: A deep dive into SvelteKit's features for data loading, caching and invalidation
 ---
