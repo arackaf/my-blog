@@ -62,7 +62,11 @@ Yep, forms can post directly to our normal page loaders. Now we can add a search
 
 ![Search form](/sveltekit-advanced-caching-invalidation/img1-search-form.jpg)
 
-As icing on the cake, let's increase the delay in our `todoData.js` file in `/lib/data`. This will make it easy to see when data are, and are not cached as we work through this post.
+Let's also increase the delay in our `todoData.js` file in `/lib/data`. This will make it easy to see when data are, and are not cached as we work through this post.
+
+```js
+export const wait = async amount => new Promise(res => setTimeout(res, amount ?? 500));
+```
 
 Remember, the full code for this post is all on github, linked in the intro.
 
@@ -106,4 +110,62 @@ Obviously data can change anytime, so we need a way to purge this cache manually
 
 ## Cache invalidation
 
-Right now,
+Right now, data are cached for 60 seconds. No matter what, after a minute, fresh data will be pulled from our datastore. You might want a shorter, or longer time period, but what happens if you mutate some data, and want to clear all your caches immediately, so your next query will be up to date? The solution is to add a `Vary` header, next to our cache-control header. This will tell our browser to cache responses, but only if the header specified by Vary is the same as the one that's cached. Let's see how.
+
+First, in our `+server.js` file, we'll add our Vary header next to our cache-control header
+
+```js
+setHeaders({
+  "cache-control": "max-age=60",
+  Vary: "todos-cache",
+});
+```
+
+But now we need to _send_ a header of `todos-cache` when we fetch to this endpoint. We can keep values for this header wherever we want. Let's use `localStorage`. we'll go to our loader, and add some code to do so
+
+```js
+export async function load({ fetch, url, setHeaders }) {
+  const search = url.searchParams.get("search") || "";
+
+  let headers = {};
+  if (typeof window === "object") {
+    headers["todos-cache"] = localStorage.getItem("todos-cache");
+  }
+
+  const resp = await fetch(`/api/todos?search=${encodeURIComponent(search)}`, {
+    headers,
+  });
+
+  const todos = await resp.json();
+
+  return {
+    todos,
+  };
+}
+```
+
+`localStorage` only exists on the client, not the server, so we'll check we're in the right place, and only set it if we are.
+
+But how do we put that value into localStorage? We need an entry point into our entire web app to set this up. And we have just that: our root layout. Layouts are Svelte components, and as such, they have the same `onMount` hook any other component does. Let's pop into our topmost layout, and add this
+
+```js
+import { onMount } from "svelte";
+
+onMount(() => {
+  localStorage.setItem("todos-cache", +new Date());
+});
+```
+
+Now as soon as our app loads (hydrates), we'll set our localStorage value, so the right header value shows up, on which our cache will vary.
+
+As you can see, whenever our app loads, we will always set a new value for this header. This means that reloading the browser will always clear our cache, and provide the latest data. This seems like a sensible approach, but if for some reason you don't want this, you're free to only set this localStorage value if it doesn't exist.
+
+Before we move on, let's make one more tweak. We can only send our vary header from the client, so let's only set our cache header if we're similarly on the client. As we've seen, SvelteKit is smart enough to cache api calls when run form the server. But there's no way to clear those cached values. From my own testing, even manually always sending a different header value that we're Vary'ing on will not clear the cache. I'm not sure if this is by design, but regardless, let's keep it simpler, and only rely on browser cache. Anything from the server will always be fresh and un-cached. That means if we load our /list page, search for something, and hit back, we'll never get cached values. This doesn't seem terrible to me.
+
+Just for completeness, if you truly cared, and for some reason wanted even your initial page load's data to be cacheable, you can add
+
+```js
+export const ssr = false;
+```
+
+to your `+page.js` file. This shuts off server-side rendering, which means even your initial data will fetch from the browser. We won't pursue this option in this post, but see [the docs](https://kit.svelte.dev/docs/page-options#ssr) for more info. It should also be noted that if you do this, your initial load function call will run before your root layout's onMount, so you'd need to seed your localStorage value somewhere else, probably in the load function itself.
