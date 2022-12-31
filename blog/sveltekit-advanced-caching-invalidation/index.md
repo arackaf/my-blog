@@ -4,7 +4,7 @@ date: "2022-12-27T10:00:00.000Z"
 description: A deep dive into SvelteKit's features for data loading, caching and invalidation
 ---
 
-My [previous post](http://todo) covered a broad survey of SvelteKit. We (hopefully) got a decent enough introduction to see what a great tool it is for web development. This post will fork off of what we did in the previous post, and do a deep dive on every developer's favorite topic: caching. So be sure to give my last post a read if you haven't already. The code for this post [is here](https://github.com/arackaf/sveltekit-blog-2-caching), and is deployed [here](https://sveltekit-blog-2-caching.vercel.app/)
+My [previous post](http://todo) covered a broad survey of SvelteKit. We (hopefully) got a decent enough introduction to see what a great tool it is for web development. This post will fork off what we did there, and dive into every developer's favorite topic: caching. So be sure to give my last post a read if you haven't already. The code for this post [is here](https://github.com/arackaf/sveltekit-blog-2-caching), and is deployed [here](https://sveltekit-blog-2-caching.vercel.app/)
 
 This post is all about data handling. We'll add some rudimentary search functionality that will (using built-in SvelteKit features) modify the page's querystring, and re-trigger the page's loader. But, rather than just re-query our (imaginary) database, we'll add some caching, so re-searching prior searches (or using the back button) will show previously retrieved data, quickly, from cache. We'll look at how to control the length of time the cached data stays valid, and more importantly, how to manually invalidate all cached values.
 
@@ -31,7 +31,7 @@ export async function GET({ url, setHeaders, request }) {
 }
 ```
 
-Next, let's take the page loader we had, and simply rename the file from `+page.server.js` to `+page.js` (or .ts if you've scaffolded your project to use TypeScript). This changes our loader to be a "universal" loader, rather than a server loader. The docs [explain the difference](https://kit.svelte.dev/docs/load#universal-vs-server), but a universal runs on both the server, and also the client. One advantage for us is that the `fetch` call into our new endpoint will (after the initial load) run right from our browser, using the browser's native fetch function. We'll start to add standard http caching in a bit, but for now, we'll just call the endpoint.
+Next, let's take the page loader we had, and simply rename the file from `+page.server.js` to `+page.js` (or .ts if you've scaffolded your project to use TypeScript). This changes our loader to be a "universal" loader, rather than a server loader. The docs [explain the difference](https://kit.svelte.dev/docs/load#universal-vs-server), but a universal loader runs on both the server, and also the client. One advantage for us is that the `fetch` call into our new endpoint will (after the initial load) run right from our browser, using the browser's native fetch function. We'll start to add standard http caching in a bit, but for now, we'll just call the endpoint.
 
 ```js
 export async function load({ fetch, url, setHeaders }) {
@@ -100,7 +100,7 @@ we'll look at manual invalidation shortly, but this just says to cache these api
 
 ### What is cached, and where
 
-Right now, with the cache header on the api endpoint, our very first, server-rendered load of our app (assuming we start at the /list page) will be cached. SvelteKit is smart enough to run the `api/todos` endpoint on the server, see the cache invalidation header, and keep those results cached. If you browse to the /list page as your first render (or just refresh while there), search something, and then go back, you'll see nothing at all in your network tab. SvelteKit's internal state tells it that the initially loaded data is still valid for the next 60 seconds. If you refresh the page however, it _will_ re-query the endpoint fresh (feel free to validate this by adding logging statements, just be sure to look for them in your network terminal, not your browsers dev console, since, again that code runs on the _server_).
+Right now, with the cache header on the api endpoint, our very first, server-rendered load of our app (assuming we start at the /list page) will be cached. SvelteKit is smart enough to run the `api/todos` endpoint on the server, see the cache invalidation header, and keep those results cached. If you browse to the /list page as your first render (or just refresh while there), search something, and then go back, you'll see nothing at all in your network tab. SvelteKit's internal state tells it that the initially loaded data is still valid for the next 60 seconds. If you refresh the page however, it _will_ re-query the endpoint fresh (feel free to validate this by adding logging statements, just be sure to look for them in your terminal, not your browser's dev console, since, again that code runs on the _server_).
 
 After that initial load, when you start searching on the page, you should see network requests from your browser, over to the /api/todos list. As you search for things you've already searched for (within the last 60 seconds) the responses should load immediately, since they're cached. Moreover, since this is caching via the browser's native caching, these calls will continue to cache even if you reload the page (unlike the initial server-side load, which always calls the endpoint fresh, even if it did it within the last 60 seconds).
 
@@ -160,7 +160,7 @@ onMount(() => {
 
 Now as soon as our app loads (hydrates), we'll set our localStorage value, so the right header value shows up, on which our cache will vary.
 
-As you can see, whenever our app loads, we will always set a new value for this header. This means that reloading the browser will always clear our cache, and provide the latest data. This seems like a sensible approach, but if for some reason you don't want this, you're free to only set this localStorage value if it doesn't already exist.
+As you can see, whenever our app loads, we will always set a new value for this header. This means reloading the browser will always clear our cache, and provide the latest data. This seems like a sensible approach, but if for some reason you don't want this, you're free to only set this localStorage value if it doesn't already exist.
 
 Before we move on, let's make one more tweak. We can only send our vary header from the client, so let's only set our cache header if we're on the client. As we've seen, SvelteKit is smart enough to cache api calls when run from the server. But there's (currently) no way to clear those cached values. From my own testing, even manually always sending a different header value that we're Vary'ing on will not clear the cache. I'm not sure if this is by design, but regardless, let's keep it simple, and only rely on browser cache. Anything from the server will always be fresh and un-cached. That means if we load our /list page, search for something, and hit the back button, we'll never get cached values. This doesn't seem terrible to me.
 
@@ -170,7 +170,7 @@ Just for completeness, if you truly cared, and for some reason wanted even your 
 export const ssr = false;
 ```
 
-to your `+page.js` file. This shuts off server-side rendering, which means even your initial data will fetch from the browser. We won't pursue this option in this post, but see [the docs](https://kit.svelte.dev/docs/page-options#ssr) for more info. It should also be noted that if you do this, your initial load function call will run before your root layout's onMount, so you'd need to seed your localStorage value somewhere else, probably in the load function itself.
+to your `+page.js` file. This shuts off server-side rendering, and all of its advantages, which means even your initial data will fetch from the browser. We won't pursue this option in this post, but see [the docs](https://kit.svelte.dev/docs/page-options#ssr) for more info. It should also be noted that if you do this, your initial load function call will run before your root layout's onMount, so you'd need to seed your localStorage value somewhere else, probably in the load function itself.
 
 ## The implementation
 
@@ -212,11 +212,11 @@ Let's give this a shot. Reload your page, then edit one of the TODOs. You should
 
 ![Saving](/sveltekit-advanced-caching-invalidation/img3-saved.jpg)
 
-Let's change it up now. Stop, and then restart your dev server to reset all data. Now search for a value, in the search box we added before, _and then hit the back button_. You should be back to the first page. **Now** edit a todo. You should no longer see the value update. What happened. Our network tab should clue us in
+Let's change it up now. Stop, and then restart your dev server to reset all data. Now search for a value, in the search box we added before, _and then hit the back button_. You should be back to the first page. **Now** edit a todo. You should no longer see the value update. What happened? Our network tab should clue us in
 
 ![Saving](/sveltekit-advanced-caching-invalidation/img4-saved-with-cached-results.jpg)
 
-After we saved, that fetch went out for our current data. Unfortunately, it was cached. When we hit the back button, that same fetch fired, and is now cached. This wasn't a problem the first time since, again, the very first page load runs our loader on the server, and so there's no browser caching available for that first load.
+After we saved, that fetch went out for our current data. Unfortunately, it was cached, from when we hit the back button. This wasn't a problem the first time since, again, the very first page load runs our loader on the server, and so there's no browser caching available for that first load.
 
 To solve this, let's clear our cache when we submit our form. We'll add this function to our page
 
@@ -238,7 +238,7 @@ and now things work!
 
 ## Immediate updates
 
-What if we want to avoid that fetch call that happens after we update our todo, and instead, just update the modified todo right on the screen? This isn't just a matter of performance. If you search for "post," and then remove the word "post" from any of the todo's in the list, they'll vanish from the list after the edit, since they're no long in that page's search results. You could make the UX better with some tasteful animation for the exiting todo, but let's say we wanted to just _not_ re-run that page's load function, but still clear the cache, and also update the modified todo, so the user can see the edit they just made. SvelteKit makes that possible: let's see how!
+What if we want to avoid that fetch call that happens after we update our todo, and instead, just update the modified todo right on the screen? This isn't just a matter of performance. If you search for "post," and then remove the word "post" from any of the todo's in the list, they'll vanish from the list after the edit, since they're no longer in that page's search results. You could make the UX better with some tasteful animation for the exiting todo, but let's say we wanted to just _not_ re-run that page's load function, but still clear the cache, and also update the modified todo, so the user can see the edit they just made. SvelteKit makes that possible: let's see how!
 
 First, let's make one little change to our loader. Instead of just returning our todos, let's return a [writeblae store](https://svelte.dev/docs#run-time-svelte-store-writable) containing our todos.
 
