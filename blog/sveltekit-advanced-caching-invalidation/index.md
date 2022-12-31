@@ -160,7 +160,7 @@ Now as soon as our app loads (hydrates), we'll set our localStorage value, so th
 
 As you can see, whenever our app loads, we will always set a new value for this header. This means that reloading the browser will always clear our cache, and provide the latest data. This seems like a sensible approach, but if for some reason you don't want this, you're free to only set this localStorage value if it doesn't exist.
 
-Before we move on, let's make one more tweak. We can only send our vary header from the client, so let's only set our cache header if we're similarly on the client. As we've seen, SvelteKit is smart enough to cache api calls when run form the server. But there's no way to clear those cached values. From my own testing, even manually always sending a different header value that we're Vary'ing on will not clear the cache. I'm not sure if this is by design, but regardless, let's keep it simpler, and only rely on browser cache. Anything from the server will always be fresh and un-cached. That means if we load our /list page, search for something, and hit back, we'll never get cached values. This doesn't seem terrible to me.
+Before we move on, let's make one more tweak. We can only send our vary header from the client, so let's only set our cache header if we're on the client. As we've seen, SvelteKit is smart enough to cache api calls when run form the server. But there's no way to clear those cached values. From my own testing, even manually always sending a different header value that we're Vary'ing on will not clear the cache. I'm not sure if this is by design, but regardless, let's keep it simpler, and only rely on browser cache. Anything from the server will always be fresh and un-cached. That means if we load our /list page, search for something, and hit back, we'll never get cached values. This doesn't seem terrible to me.
 
 Just for completeness, if you truly cared, and for some reason wanted even your initial page load's data to be cacheable, you can add
 
@@ -169,3 +169,39 @@ export const ssr = false;
 ```
 
 to your `+page.js` file. This shuts off server-side rendering, which means even your initial data will fetch from the browser. We won't pursue this option in this post, but see [the docs](https://kit.svelte.dev/docs/page-options#ssr) for more info. It should also be noted that if you do this, your initial load function call will run before your root layout's onMount, so you'd need to seed your localStorage value somewhere else, probably in the load function itself.
+
+## The implementation
+
+It's all downhill from here; we've done all of the hard work, already. We've covered the various web platform primitives we need to, as well as where they go. Now let's write some application code and tie it all together.
+
+For reasons that'll become clear in a bit, let's start by adding edit functionality into our `/list` page. We'll add this second table row for each todo.
+
+```html
+<tr>
+  <td colspan="4">
+    <form use:enhance method="post" action="?/editTodo">
+      <input name="id" value="{t.id}" type="hidden" />
+      <input name="title" value="{t.title}" />
+      <button>Save</button>
+    </form>
+  </td>
+</tr>
+```
+
+and of course we'll need to add a form action for our /list page. Actions can only go in .server pages, so we'll add a `+page.server.js` in our /list folder (yes, a `+page.server.js` file can co-exist next to a `+page.js` file).
+
+```js
+import { getTodo, updateTodo, wait } from "$lib/data/todoData";
+
+export const actions = {
+  async editTodo({ request }) {
+    const formData = await request.formData();
+
+    const id = formData.get("id");
+    const newTitle = formData.get("title");
+
+    await wait(250);
+    updateTodo(id, newTitle);
+  },
+};
+```
