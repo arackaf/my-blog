@@ -298,6 +298,71 @@ This function provides you a data object which has our form data. We _return_ an
 
 We now call `update` on our todos array, since it's a store. And that's that. After editing a todo, our changes show up immediately, and our cache is cleared, so if we search, and then navigate back to this page, we'll get fresh data from our loader, which will correctly exclude any updated todo's that were updated.
 
+## An alternate implementation
+
+Using localStorage to hold these cache busting strings is a simple solution, but it's not the only one, and _possibly_ not the best. The main disadvantage, to me, is that the values can only ever be set on the _client_. That means client-side code that starts these mutations will also need code to clear the related cache busting value. It might be nice to have all code limited to server actions, and loaders. One way to achieve that is by storing these cache busting values in a cookie, rather than localStorage. That value can be set on the server, but still read on the client. Let's look at some sample code.
+
+We can create a `+layout.server.js` file at the very, very root of our `routes` folder. This will run on application startup, and is a perfect place to set an initial cookie value.
+
+```js
+export async function load({ locals, isDataRequest, cookies }: any) {
+  const initialRequest = !isDataRequest;
+  if (initialRequest) {
+    cookies.set("todos-cache", +new Date(), { path: "/", httpOnly: false });
+  }
+
+  // ...
+}
+```
+
+notice the `isDataRequest` value. Remember, layouts will re-run anytime client-code calls `invalidate()`, or anytime we run a server action (assuming we don't turn off default behavior, as we did above). `isDataRequest` indicates such re-runs, and so we only set the cookie if that's false.
+
+Then in our _server actions_ we can bust the cache with the same code
+
+```js
+cookies.set("todos-cache", +new Date(), { path: "/", httpOnly: false });
+```
+
+Naturally a helper function might cut down on the boilerplate
+
+```js
+export const bustCache = (cookies, name) => {
+  cookies.set(name, +new Date(), { path: "/", httpOnly: false });
+};
+```
+
+Notice the `httpOnly: false` flag. This allows our client code to read these cookie values in `document.cookie`. This would normally be a security concern, but in our case these are meaningless numbers that allow us to cache, or cache bust.
+
+A function to read these values on the client might look like this
+
+```js
+export function getCookieLookup(): Record<string, string> {
+  if (typeof document !== "object") {
+    return {};
+  }
+
+  return document.cookie.split("; ").reduce((lookup, v) => {
+    const parts = v.split("=");
+    lookup[parts[0]] = parts[1];
+
+    return lookup;
+  }, {} as any);
+}
+
+const getCurrentCookieValue = (name: string) => {
+  const cookies = getCookieLookup();
+  return cookies[name] ?? "";
+};
+```
+
+That first cookie parsing function is a bit gross, but we'd only need it once.
+
+### Digging deeper
+
+You can set cookies in any server load function (or server action), not just the root layout. So if some data are only used underneath a single layout, or even a single page, you could set that cookie value there. Moreoever, if you're _not_ doing the trick I showed earlier of manually updating on-screen data, and instead want your loader to just re-run after a mutation, then you could just always set a new cookie value right in that load function, without any check against `isDataRequest`. It'll set initially, and then anytime you run a server action, that page / layout will automatically invalidate, and re-call your loader, re-setting the cache bust string, before your universal loader is called, pulling the new value for the Vary header.
+
+Both options have tradeoffs. I hope you found value in seeing both.
+
 ## Wrapping up
 
 This was a long post, but hopefully not overwhelming. We dove into various ways we can cache data when using SvelteKit. Much of this was just a matter of using web platform primitives to add the correct cache, and Vary headers, knowledge of which will serve you in web development in general, beyond just SvelteKit.
