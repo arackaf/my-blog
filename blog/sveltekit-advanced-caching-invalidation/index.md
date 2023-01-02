@@ -300,9 +300,9 @@ We now call `update` on our todos array, since it's a store. And that's that. Af
 
 ## An alternate implementation
 
-Using localStorage to hold these cache busting strings is a simple solution, but it's not the only one, and _possibly_ not the best. The main disadvantage, to me, is that the values can only ever be set on the _client_. That means client-side code that starts these mutations will also need code to clear the related cache busting value. It might be nice to have all code limited to server actions, and loaders. One way to achieve that is by storing these cache busting values in a cookie, rather than localStorage. That value can be set on the server, but still read on the client. Let's look at some sample code.
+Using localStorage to hold these cache busting strings is a simple solution, but it's not the only one, and _possibly_ not the best. The main disadvantage, to me, is that the values can only ever be set on the _client_. That means client-side code that starts mutations will also need code to clear the related cache busting value. It might be nice to have this code limited to actions and loaders. One way to achieve that is by storing our cache busting in a cookie, rather than localStorage. That value can be set on the server, but still read on the client. Let's look at some sample code.
 
-We can create a `+layout.server.js` file at the very, very root of our `routes` folder. This will run on application startup, and is a perfect place to set an initial cookie value.
+We can create a `+layout.server.js` file at the very root of our `routes` folder. This will run on application startup, and is a perfect place to set an initial cookie value.
 
 ```js
 export async function load({ locals, isDataRequest, cookies }: any) {
@@ -315,7 +315,7 @@ export async function load({ locals, isDataRequest, cookies }: any) {
 }
 ```
 
-notice the `isDataRequest` value. Remember, layouts will re-run anytime client-code calls `invalidate()`, or anytime we run a server action (assuming we don't turn off default behavior, as we did above). `isDataRequest` indicates such re-runs, and so we only set the cookie if that's false.
+notice the `isDataRequest` value. Remember, layouts will re-run anytime client-code calls `invalidate()`, or anytime we run a server action (assuming we don't turn off default behavior, as we did earlier in this post). `isDataRequest` indicates such re-runs, and so we only set the cookie if that's false.
 
 Then in our _server actions_ we can bust the cache with the same code
 
@@ -336,7 +336,7 @@ Notice the `httpOnly: false` flag. This allows our client code to read these coo
 A function to read these values on the client might look like this
 
 ```js
-export function getCookieLookup(): Record<string, string> {
+export function getCookieLookup() {
   if (typeof document !== "object") {
     return {};
   }
@@ -346,10 +346,10 @@ export function getCookieLookup(): Record<string, string> {
     lookup[parts[0]] = parts[1];
 
     return lookup;
-  }, {} as any);
+  }, {});
 }
 
-const getCurrentCookieValue = (name: string) => {
+const getCurrentCookieValue = name => {
   const cookies = getCookieLookup();
   return cookies[name] ?? "";
 };
@@ -360,6 +360,8 @@ That first cookie parsing function is a bit gross, but we'd only need it once.
 ### Digging deeper
 
 You can set cookies in any server load function (or server action), not just the root layout. So if some data are only used underneath a single layout, or even a single page, you could set that cookie value there. Moreoever, if you're _not_ doing the trick I showed earlier of manually updating on-screen data, and instead want your loader to just re-run after a mutation, then you could just always set a new cookie value right in that load function, without any check against `isDataRequest`. It'll set initially, and then anytime you run a server action, that page / layout will automatically invalidate, and re-call your loader, re-setting the cache bust string, before your universal loader is called, pulling the new value for the Vary header.
+
+If you'd like to see what the whole solution looks like, there's an example in [this branch](https://github.com/arackaf/sveltekit-blog-2-caching/tree/feature/cookie-implementation).
 
 Both options have tradeoffs. I hope you found value in seeing both.
 
