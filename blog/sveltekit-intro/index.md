@@ -173,15 +173,14 @@ export function load() {
 
 We've defined a load function, which will load the data needed for the page. Notice that we are **not** awaiting our calls to our async functions `getTodos` and `getTags`. Doing so would likely create a data loading waterfall, as we wait for our todos to come in, before loading our tags. Instead we just return the raw promises from `load`, and SveleKit does the work necessary to `await` them.
 
-So how do we access this data from our page component? SvelteKit provides a special `page` store which has our data on it. We'll import that store, and then access our data using a [reactive assignment](https://svelte.dev/docs#component-format-script-3-$-marks-a-statement-as-reactive).
+So how do we access this data from our page component? SvelteKit provides a `data` prop to our component with data on it. We'll access our todos and tags from it using a [reactive assignment](https://svelte.dev/docs#component-format-script-3-$-marks-a-statement-as-reactive).
 
 Our list page component now looks like this.
 
 ```html
 <script>
-  import { page } from "$app/stores";
-
-  $: ({ todos, tags } = $page.data);
+  export let data;
+  $: ({ todo, tags } = data);
 </script>
 
 <table cellspacing="10" cellpadding="10">
@@ -258,7 +257,7 @@ And just like that, our list page is rendering again.
 
 ### We're loading data from multiple locations
 
-Let's put a finer point on what's happening. We have a load function defined for our layout group, which we put in `+layout.server.js`. This provides data for **all** pages the layout serves, which in this case means our list, and details pages. Our list page also defines a load function, which goes in its `+page.server.js` file. SvelteKit does the grunt work of taking the results of these data sources, merging them together, and making both available in `$page.data`.
+Let's put a finer point on what's happening. We have a load function defined for our layout group, which we put in `+layout.server.js`. This provides data for **all** pages the layout serves, which in this case means our list, and details pages. Our list page also defines a load function, which goes in its `+page.server.js` file. SvelteKit does the grunt work of taking the results of these data sources, merging them together, and making both available in `data`.
 
 ## Our details page
 
@@ -293,10 +292,11 @@ SvelteKit has wonderful mutation capabilities built in, so long as you use forms
 
 ```html
 <script>
-  import { page } from "$app/stores";
   import { enhance } from "$app/forms";
 
-  $: ({ todo, tags } = $page.data);
+  export let data;
+
+  $: ({ todo, tags } = data);
   $: currentTags = todo.tags.map(id => tags[id]);
 </script>
 
