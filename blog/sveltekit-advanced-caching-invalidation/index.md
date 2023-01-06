@@ -178,7 +178,11 @@ It's all downhill from here; we've done the hard work. We've covered the various
 
 For reasons that'll become clear in a bit, let's start by adding edit functionality into our `/list` page. We'll add this second table row for each todo.
 
-```html
+```js
+import { enhance } from "$app/forms";
+```
+
+```svelte
 <tr>
   <td colspan="4">
     <form use:enhance method="post" action="?/editTodo">
@@ -365,7 +369,76 @@ If you'd like to see what the whole solution looks like, there's an example in [
 
 Both options have tradeoffs. I hope you found value in seeing both.
 
-## Wrapping up
+### Writing a reload function
+
+Let's wrap up by building one last feature: a reload button. Let's give users a button that will clear cache, and then reload the current query. I mentioned server actions can set cookies, so let's add a new action to do just that
+
+```js
+async reloadTodos({ cookies }) {
+	cookies.set('todos-cache', +new Date(), { path: '/', httpOnly: false });
+},
+```
+
+In a real project you probably wouldn't copy paste the same code to set the same cookie in the same way in multiple places, but for this post we'll optimize for simplicity and readability.
+
+Now let's create a form to post to it
+
+```svelte
+<form method="POST" action="?/reloadTodos" use:enhance>
+  <button>Reload todos</button>
+</form>
+```
+
+and that ... works.
+
+![Reload](/sveltekit-advanced-caching-invalidation/img6-reload.jpg)
+
+We could call this done, and move on, but let's improve this solution a bit. Let's provide some feedback on the page to tell the user the reload is happening. Also, by default, SvelteKit actions invalidate _everything_. Every layout, page, etc in the current page's hierarchy would reload. There might be some data that's loaded once in the root layout that we don't need invalidated / re-loaded. So let's focus things a bit, and only reload our todos when we call this function.
+
+First, let's pass a function to enhance
+
+```svelte
+<form method="POST" action="?/reloadTodos" use:enhance={reloadTodos}>
+```
+
+```js
+import { enhance } from "$app/forms";
+import { invalidate } from "$app/navigation";
+
+let reloading = false;
+const reloadTodos = () => {
+  reloading = true;
+
+  return async () => {
+    invalidate("reload-todos").then(() => {
+      reloading = false;
+    });
+  };
+};
+```
+
+We're setting a new `reloading` variable to true at the _start_ of this action. And then, in order to override the default behavior of invalidating everything, we return an async function. This function will run when our server action is finished (which just sets a new cookie). Without this async function being returned, SvelteKit would just invalidate everything. Since we're providing this function, it will invalidate nothing, so it's up to us to tell it what to reload. We do this with the `invalidate` function. We call it with a value of `reload-todos`. This function returns a promise, which resolves when the invalidation is complete, at which point we set `reloading` back to false.
+
+Lastly, we need to sync our todo's loader up with this new invalidation value of `reload-todos`. We do that with the `depends` function, in our loader.
+
+```js
+export async function load({ fetch, url, setHeaders, depends }) {
+	depends('reload-todos');
+
+  // rest is the same
+```
+
+and that's that. `depends` and `invalidate` are incredibly useful functions. What's especially cool is that `invalidate` doesn't just take arbitrary values we provide, like we just did. You can also provide a url, which SvelteKit will track, and invalidate any loaders that depend on that url. To that end, if you're wondering whether we could skip the call to `depends`, and just invalidate our `/api/todos` endpoint altogether, you can, but you have to provide the _exact_ url, including the `search` term. So you could either put together the url for the current search, or just match on the pathname, like this
+
+```js
+invalidate(url => url.pathname == "/api/todos");
+```
+
+Personally I find the solution with `depends` more explicit, and simple. But of course see [the docs](https://kit.svelte.dev/docs/load#invalidation) for more info, and decide for yourself.
+
+If you'd like to see the reload button in action, the code for it is in [this branch](https://github.com/arackaf/sveltekit-blog-2-caching/tree/feature/reload-button).
+
+## Parting thoughts
 
 This was a long post, but hopefully not overwhelming. We dove into various ways we can cache data when using SvelteKit. Much of this was just a matter of using web platform primitives to add the correct cache, and Vary headers, knowledge of which will serve you in web development in general, beyond just SvelteKit.
 
