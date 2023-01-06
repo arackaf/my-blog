@@ -252,7 +252,7 @@ return {
 };
 ```
 
-Before, we were accessing our todo's on the `$page.data` store, which we do not own, and cannot update. But Svelte lets us return our data in their own store (assuming we're using a universal loader, which we are). We just need to make one more tweak to our /list page. Instead of
+Before, we were accessing our todo's on the `data` prop, which we do not own, and cannot update. But Svelte lets us return our data in their own store (assuming we're using a universal loader, which we are). We just need to make one more tweak to our /list page. Instead of
 
 ```svelte
 {#each todos as t}
