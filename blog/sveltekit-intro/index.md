@@ -264,7 +264,7 @@ Let's put a finer point on what's happening. We have a load function defined for
 We'll use our details page to edit a todo. First, let's add a column to the table in our list page linking to the details page, with the todo in the querystring.
 
 ```html
-<td><a href={`/details?id=${t.id}`}>Edit</a></td>
+<td><a href="/details?id={t.id}">Edit</a></td>
 ```
 
 Now let's build out our details page.
