@@ -10,7 +10,9 @@ This post is all about data handling. We'll add some rudimentary search function
 
 As icing on the cake, we'll look at how we can manually update the data on the current screen after a mutation, while still purging the cache. In other words, we'll see how to modify data on the current screen, have our changes show up immediately, client-side, while still clearing the cache. You might not always (or ever) want to do that, depending on your use case, but we'll see how so you can have that trick if you ever need it.
 
-This will be a longer, more difficult post than most of what I write, since we're covering harder topics. This post essentially show you how to implement common features of popular data utilities like react-query; but instead of pulling in an external library, we'll be using the web platform, and SvelteKit features only. This will absolutely mean a bit more work, and boilerplate at times, compared to what you might be used to with react-query. The upside is that we won't need any external libraries, which will help keep bundle sizes nice and small. If you have different tradeoffs for your project and prefer the nice loader utility like react-query, you'll be happy to know that the Svelte adapter appears to be a [work-in-progress](https://tanstack.com/query/v4/docs/svelte/overview) so keep an eye out for that.
+This will be a longer, more difficult post than most of what I write, since we're covering harder topics. This post essentially show you how to implement common features of popular data utilities like react-query; but instead of pulling in an external library, we'll be using the web platform, and SvelteKit features only.
+
+Unfortunately, the web platform's features are a bit lower level, so we'll be doing a bit more work than you might be used to. There's also no single way to do this, so we'll look at a few different options, and discuss the tradeoffs. The upside is that we won't need any external libraries, which will help keep bundle sizes nice and small. If you have different tradeoffs for your project and prefer the nice loader utility like react-query, you'll be happy to know that the Svelte adapter [was just released!](https://tanstack.com/query/v4/docs/svelte/overview).
 
 ## Setting up
 
@@ -100,18 +102,22 @@ we'll look at manual invalidation shortly, but this just says to cache these api
 
 ### What is cached, and where
 
-Our very first, server-rendered load of our app (assuming we start at the /list page) will be fetched on the server. SvelteKit will serialize, and send this data down to our client. For now, with the current version of SvelteKit, this server-fetched batch of data will _not_ be cached, even if you have a cache header. But that's alright, stay with me.
+Our very first, server-rendered load of our app (assuming we start at the /list page) will be fetched on the server. SvelteKit will serialize, and send this data down to our client. For now, with the current version of SvelteKit, this server-fetched batch of data will be cached if, and only if, there's no `Vary` header. We will be using Vary headers, so this first request will not be cached.
 
-After that initial load, when you start searching on the page, you should see network requests from your browser, over to the `/api/todos` list. As you search for things you've already searched for (within the last 60 seconds) the responses should load immediately, since they're cached. The one exception is that initial render. If you load the page, search something, then click the back button, you should see a fresh (non-cached) fetch for that same, initial data. Again, SvelteKit does not (currently) cache the server-fetched initial load, so expect that if you're following along at home.
+After that initial load, when you start searching on the page, you should see network requests from your browser, over to the `/api/todos` list. As you search for things you've already searched for (within the last 60 seconds) the responses should load immediately, since they're cached. The one exception is that initial render. If you load the page, search something, then click the back button, you should see a fresh (non-cached) fetch for that same, initial data. Again, SvelteKit does not (currently) cache the server-fetched initial load if there are Vary headers, so expect that if you're following along at home.
+
+You might wonder if we can just omit the Vary header when requested from the server. We can, and that entry will cache, but we'd have no way to invalidate that cached entry. So instead, that first request will just re-fetch from your database if you go back to it. This should be an easy imperfection to live with.
 
 -----NOTE
-Just for completeness, if you truly cared, and for some reason wanted even your initial page load's data to be cacheable, you can add
+Just for completeness, if you truly cared, and for some reason wanted even your initial page load's data to be cacheable, you have a few options. You can add
 
 ```js
 export const ssr = false;
 ```
 
-to your `+page.js` file. This shuts off server-side rendering, and all of its advantages, which means even your initial data will fetch from the browser. We won't pursue this option in this post, but see [the docs](https://kit.svelte.dev/docs/page-options#ssr) for more info. It should also be noted that if you do this, your initial load function call will run before your root layout's onMount, so you'd need to seed your localStorage value somewhere else, probably in the load function itself.
+to your `+page.js` file. This shuts off server-side rendering, and all of its advantages, which means even your initial data will fetch from the browser. See [the docs](https://kit.svelte.dev/docs/page-options#ssr) for more info. It should be noted that if you do this, your initial load function call will run before your root layout's onMount, so you'd need to seed your localStorage value somewhere else, probably in the load function itself.
+
+And there's one other option we briefly discuss at the very end.
 /NOTE-----
 
 What's especially cool with this approach is that, since this is caching via the browser's native caching, these calls will continue to cache even if you reload the page (unlike the initial server-side load, which always calls the endpoint fresh, even if it did it within the last 60 seconds).
@@ -439,6 +445,18 @@ invalidate(url => url.pathname == "/api/todos");
 Personally I find the solution with `depends` more explicit, and simple. But of course see [the docs](https://kit.svelte.dev/docs/load#invalidation) for more info, and decide for yourself.
 
 If you'd like to see the reload button in action, the code for it is in [this branch](https://github.com/arackaf/sveltekit-blog-2-caching/tree/feature/reload-button).
+
+-----NOTE
+Earlier I mentioned there was one other option for handling these cache bust values, which would even correctly cache our initial request. It's basically what we just looked at, except instead of putting those cookie values into a header that the endpoint `Vary`'s on, we could put it onto our api call's url, ie
+
+`/api/todos?search=xyz&cache=${CACHE_BUST_VALUE_HERE}`.
+
+No Vary header at all, anywhere. Just a cache-control header, with url's that have the cache-bust key attached to them. If this seems simpler, and you're mad I didn't lead with that, I'll mention that the one catch here is that you'd need to read these cookie values both from a server loader (for that initial load), or on the client, like we have been.
+
+The server value could come from your root layout (server) load function, or a companion server load function for the page. The universal loader would then grab the cookie value from the client, if it's running on the client, as before; but if not, it would read the server generated value I just mentioned. Grabbing the server-read cookie value would happen via `await parent()` if it came from a layout's load function, or `data` if it came from a companion server loader for the page.
+
+There's no one clearly-better way to do this. All have tradeoffs, and I hope I did a good job of explaining them all, so you can choose for yourself.
+-----/NOTE
 
 ## Parting thoughts
 
