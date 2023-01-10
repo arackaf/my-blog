@@ -100,9 +100,21 @@ we'll look at manual invalidation shortly, but this just says to cache these api
 
 ### What is cached, and where
 
-Right now, with the cache header on the api endpoint, our very first, server-rendered load of our app (assuming we start at the /list page) will be cached. SvelteKit is smart enough to run the `api/todos` endpoint on the server, see the cache invalidation header, and keep those results cached. If you browse to the /list page as your first render (or just refresh while there), search something, and then go back, you'll see nothing at all in your network tab. SvelteKit's internal state tells it that the initially loaded data is still valid for the next 60 seconds. If you refresh the page however, it _will_ re-query the endpoint fresh (feel free to validate this by adding logging statements, just be sure to look for them in your terminal, not your browser's dev console, since, again that code runs on the _server_).
+Our very first, server-rendered load of our app (assuming we start at the /list page) will be fetched on the server. SvelteKit will serialize, and send this data down to our client. For now, with the current version of SvelteKit, this server-fetched batch of data will _not_ be cached, even if you have a cache header. But that's alright, stay with me.
 
-After that initial load, when you start searching on the page, you should see network requests from your browser, over to the /api/todos list. As you search for things you've already searched for (within the last 60 seconds) the responses should load immediately, since they're cached. Moreover, since this is caching via the browser's native caching, these calls will continue to cache even if you reload the page (unlike the initial server-side load, which always calls the endpoint fresh, even if it did it within the last 60 seconds).
+After that initial load, when you start searching on the page, you should see network requests from your browser, over to the `/api/todos` list. As you search for things you've already searched for (within the last 60 seconds) the responses should load immediately, since they're cached. The one exception is that initial render. If you load the page, search something, then click the back button, you should see a fresh (non-cached) fetch for that same, initial data. Again, SvelteKit does not (currently) cache the server-fetched initial load, so expect that if you're following along at home.
+
+-----NOTE
+Just for completeness, if you truly cared, and for some reason wanted even your initial page load's data to be cacheable, you can add
+
+```js
+export const ssr = false;
+```
+
+to your `+page.js` file. This shuts off server-side rendering, and all of its advantages, which means even your initial data will fetch from the browser. We won't pursue this option in this post, but see [the docs](https://kit.svelte.dev/docs/page-options#ssr) for more info. It should also be noted that if you do this, your initial load function call will run before your root layout's onMount, so you'd need to seed your localStorage value somewhere else, probably in the load function itself.
+/NOTE-----
+
+What's especially cool with this approach is that, since this is caching via the browser's native caching, these calls will continue to cache even if you reload the page (unlike the initial server-side load, which always calls the endpoint fresh, even if it did it within the last 60 seconds).
 
 **Note** if you're verifying this with your dev tools window open, make sure you **un-check** the checkbox that disables caching.
 
@@ -123,7 +135,7 @@ setHeaders({
 });
 ```
 
-But now we need to _send_ a header of `todos-cache` when we fetch to this endpoint. We can keep values for this header wherever we want. For this post, let's use `localStorage`. We'll go to our loader, and add this
+But now we need to _send_ a header of `todos-cache` when we fetch to this endpoint. We can keep values for this header wherever we want. For now, let's use `localStorage`. We'll go to our loader, and add this
 
 ```js
 export async function load({ fetch, url, setHeaders }) {
@@ -158,23 +170,13 @@ onMount(() => {
 });
 ```
 
-Now as soon as our app loads (hydrates), we'll set our localStorage value, so the right header value shows up, on which our cache will vary.
+Now as soon as our app loads (hydrates), we'll set our localStorage value, so the right header shows up, on which our cache will vary.
 
 As you can see, whenever our app loads, we will always set a new value for this header. This means reloading the browser will always clear our cache, and provide the latest data. This seems like a sensible approach, but if for some reason you don't want this, you're free to only set this localStorage value if it doesn't already exist.
 
-Before we move on, let's make one more tweak. We can only send our vary header from the client, so let's only set our cache header if we're on the client. As we've seen, SvelteKit is smart enough to cache api calls when run from the server. But there's (currently) no way to clear those cached values. From my own testing, even manually always sending a different header value that we're Vary'ing on will not clear the cache. I'm not sure if this is by design, but regardless, let's keep it simple, and only rely on browser cache. Anything from the server will always be fresh and un-cached. That means if we load our /list page, search for something, and hit the back button, we'll never get cached values. This doesn't seem terrible to me.
-
-Just for completeness, if you truly cared, and for some reason wanted even your initial page load's data to be cacheable, you can add
-
-```js
-export const ssr = false;
-```
-
-to your `+page.js` file. This shuts off server-side rendering, and all of its advantages, which means even your initial data will fetch from the browser. We won't pursue this option in this post, but see [the docs](https://kit.svelte.dev/docs/page-options#ssr) for more info. It should also be noted that if you do this, your initial load function call will run before your root layout's onMount, so you'd need to seed your localStorage value somewhere else, probably in the load function itself.
-
 ## The implementation
 
-It's all downhill from here; we've done the hard work. We've covered the various web platform primitives we need, as well as where they go. Now let's write some application code and tie it all together.
+It's all downhill from here; we've done the hard work. We've covered the various web platform primitives we need, as well as where they go. Now let's have some fun and write some application code to tie it all together.
 
 For reasons that'll become clear in a bit, let's start by adding edit functionality into our `/list` page. We'll add this second table row for each todo.
 
