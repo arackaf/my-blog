@@ -316,6 +316,8 @@ This function provides you a data object which has our form data. We _return_ an
 
 We now call `update` on our todos array, since it's a store. And that's that. After editing a todo, our changes show up immediately, and our cache is cleared (as before, since we set a new cookie value in our editTodo form action), so if we search, and then navigate back to this page, we'll get fresh data from our loader, which will correctly exclude any updated todo's that were updated.
 
+The code for the immediate updates [is here](https://github.com/arackaf/sveltekit-blog-2-caching/tree/feature/immediate-updates).
+
 ### Digging deeper
 
 You can set cookies in any server load function (or server action), not just the root layout. So if some data are only used underneath a single layout, or even a single page, you could set that cookie value there. Moreoever, if you're _not_ doing the trick I just showed, of manually updating on-screen data, and instead want your loader to just re-run after a mutation, then you could just always set a new cookie value right in that load function, without any check against `isDataRequest`. It'll set initially, and then anytime you run a server action, that page / layout will automatically invalidate, and re-call your loader, re-setting the cache bust string, before your universal loader is called.
