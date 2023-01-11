@@ -12,13 +12,13 @@ As icing on the cake, we'll look at how we can manually update the data on the c
 
 This will be a longer, more difficult post than most of what I write, since we're covering harder topics. This post essentially show you how to implement common features of popular data utilities like react-query; but instead of pulling in an external library, we'll be using the web platform, and SvelteKit features only.
 
-Unfortunately, the web platform's features are a bit lower level, so we'll be doing a bit more work than you might be used to. The upside is, we won't need any external libraries, which will help keep bundle sizes nice and small. If you have different tradeoffs for your project and prefer the nice loader utility like react-query, you'll be happy to know that the Svelte adapter [was just released!](https://tanstack.com/query/v4/docs/svelte/overview).
+Unfortunately, the web platform's features are a bit lower level, so we'll be doing a bit more work than you might be used to. The upside is, we won't need any external libraries, which will help keep bundle sizes nice and small. If you have different tradeoffs for your project and prefer the nice loader utility like react-query, you'll be happy to know that the Svelte adapter [was just released!](https://tanstack.com/query/v4/docs/svelte/overview)
 
 ## Setting up
 
-Before we start, let's make a few small changes to the code we had before. This will give us an excuse to see some other SvelteKit features, and more importantly, set us up for success for what we're trying to do.
+Before we start, let's make a few small changes to the code we had before. This will give us an excuse to see some other SvelteKit features, and more importantly, set us up for success.
 
-First, let's move our data loading from our loader in `+page.server.js` to an [api route](https://kit.svelte.dev/docs/routing#server). We'll create a `+server.js` file in `routes/api/todos`, and then add a `GET` function. This means we'll now be able to run fetch requests (using the default GET verb) to the `/api/todos` path. We'll add the same data loading code as before.
+First, let's move our data loading from our loader in `+page.server.js` to an [api route](https://kit.svelte.dev/docs/routing#server). We'll create a `+server.js` file in `routes/api/todos`, and then add a `GET` function. This means we'll now be able to fetch (using the default GET verb) to the `/api/todos` path. We'll add the same data loading code as before.
 
 ```js
 import { json } from "@sveltejs/kit";
@@ -49,7 +49,7 @@ export async function load({ fetch, url, setHeaders }) {
 }
 ```
 
-Let's just add a small feature to our `/list` page: a simple form
+Now let's add a small feature to our `/list` page: a simple form
 
 ```html
 <div class="search-form">
@@ -74,7 +74,7 @@ Remember, the full code for this post is all on github, linked in the intro.
 
 ## Basic caching
 
-Let's get started, and add some caching to our `/api/todos` endpoint. We'll go back to our `+server.js` file, and add this
+Let's get started, and add some caching to our `/api/todos` endpoint. We'll go back to our `+server.js` file, and add our first cache-control header.
 
 ```js
 setHeaders({
@@ -98,21 +98,29 @@ export async function GET({ url, setHeaders, request }) {
 }
 ```
 
-we'll look at manual invalidation shortly, but this just says to cache these api calls for 60 seconds. Set this to [whatever you want](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control), and depending on your use case, stale-while-revalidate might also be worth looking into.
+We'll look at manual invalidation shortly, but this just says to cache these api calls for 60 seconds. Set this to [whatever you want](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control), and depending on your use case, stale-while-revalidate might also be worth looking into.
+
+And just like that, our queries are caching.
+
+![Caching](/sveltekit-advanced-caching-invalidation/img2-caching.jpg)
+
+**Note** make sure you **un-check** the checkbox that disables caching in dev tools.
+
+Remember, if your initial navigation onto the app is on the list, those search results will be cached internally to SvelteKit, so don't expect to see anything in dev tools when you return to that search.
 
 ### What is cached, and where
 
 Our very first, server-rendered load of our app (assuming we start at the /list page) will be fetched on the server. SvelteKit will serialize, and send this data down to our client. What's more, it will observe the cache-control header on the response, and will know to use this cached data, for that endpoint call, within the cache window (60 seconds in this case).
 
-After that initial load, when you start searching on the page, you should see network requests from your browser, over to the `/api/todos` list. As you search for things you've already searched for (within the last 60 seconds) the responses should load immediately, since they're cached.
+After that initial load, when you start searching on the page, you should see network requests from your browser, to the `/api/todos` list. As you search for things you've already searched for (within the last 60 seconds) the responses should load immediately, since they're cached.
 
-What's especially cool with this approach is that, since this is caching via the browser's native caching, these calls will continue to cache even if you reload the page (unlike the initial server-side load, which always calls the endpoint fresh, even if it did it within the last 60 seconds).
+What's especially cool with this approach is that, since this is caching via the browser's native caching, these calls could (depending on how you manage the cache busting we'll be looking at) continue to cache even if you reload the page (unlike the initial server-side load, which always calls the endpoint fresh, even if it did it within the last 60 seconds).
 
 Obviously data can change anytime, so we need a way to purge this cache manually, which we'll look at next.
 
 ## Cache invalidation
 
-Right now, data are cached for 60 seconds. No matter what, after a minute, fresh data will be pulled from our datastore. You might want a shorter, or longer time period, but what happens if you mutate some data, and want to clear all your caches immediately, so your next query will be up to date? We'll solve this by adding a query-busting value to the url we send to our new `/todos` endpoint.
+Right now, data are cached for 60 seconds. No matter what, after a minute, fresh data will be pulled from our datastore. You might want a shorter, or longer time period, but what happens if you mutate some data, and want to clear your cache immediately, so your next query will be up to date? We'll solve this by adding a query-busting value to the url we send to our new `/todos` endpoint.
 
 Let's store this cache busting value in a cookie. That value can be set on the server, but still read on the client. Let's look at some sample code.
 
@@ -164,7 +172,7 @@ const getCurrentCookieValue = name => {
 
 Fortunately, we only need it once.
 
-### Sending out cache value
+### Sending out the cache value
 
 But now we need to _send_ this value to our /todos endpoint.
 
@@ -187,14 +195,6 @@ export async function load({ fetch, parent, url, setHeaders }) {
 ```
 
 `getCurrentCookieValue('todos-cache')` has a check in it to see if we're on the client (by checking typeof document), and returns nothing if so, at which point we know we're on the server, and so use the value from our layout.
-
-And just like that, our queries are caching.
-
-![Caching](/sveltekit-advanced-caching-invalidation/img2-caching.jpg)
-
-**Note** make sure you **un-check** the checkbox that disables caching in dev tools.
-
-Remember, if your initial navigation onto the app is on the list, those search results will be cached internally to SvelteKit, so don't expect to see anything in dev tools when you return to that search.
 
 ### Busting the cache
 
@@ -256,7 +256,7 @@ Let's give this a shot. Reload your page, then edit one of the TODOs. You should
 
 ## Immediate updates
 
-What if we want to avoid that fetch call that happens after we update our todo, and instead, just update the modified todo right on the screen? This isn't just a matter of performance. If you search for "post," and then remove the word "post" from any of the todo's in the list, they'll vanish from the list after the edit, since they're no longer in that page's search results. You could make the UX better with some tasteful animation for the exiting todo, but let's say we wanted to just _not_ re-run that page's load function, but still clear the cache, and also update the modified todo, so the user can see the edit they just made. SvelteKit makes that possible: let's see how!
+What if we want to avoid that fetch that happens after we update our todo, and instead, just update the modified todo right on the screen? This isn't just a matter of performance. If you search for "post," and then remove the word "post" from any of the todo's in the list, they'll vanish from the list after the edit, since they're no longer in that page's search results. You could make the UX better with some tasteful animation for the exiting todo, but let's say we wanted to just _not_ re-run that page's load function, but still clear the cache, and also update the modified todo, so the user can see the edit they just made. SvelteKit makes that possible: let's see how!
 
 First, let's make one little change to our loader. Instead of just returning our todos, let's return a [writeblae store](https://svelte.dev/docs#run-time-svelte-store-writable) containing our todos.
 
@@ -318,7 +318,7 @@ We now call `update` on our todos array, since it's a store. And that's that. Af
 
 ### Digging deeper
 
-You can set cookies in any server load function (or server action), not just the root layout. So if some data are only used underneath a single layout, or even a single page, you could set that cookie value there. Moreoever, if you're _not_ doing the trick I showed earlier of manually updating on-screen data, and instead want your loader to just re-run after a mutation, then you could just always set a new cookie value right in that load function, without any check against `isDataRequest`. It'll set initially, and then anytime you run a server action, that page / layout will automatically invalidate, and re-call your loader, re-setting the cache bust string, before your universal loader is called, pulling the new value for the Vary header.
+You can set cookies in any server load function (or server action), not just the root layout. So if some data are only used underneath a single layout, or even a single page, you could set that cookie value there. Moreoever, if you're _not_ doing the trick I just showed, of manually updating on-screen data, and instead want your loader to just re-run after a mutation, then you could just always set a new cookie value right in that load function, without any check against `isDataRequest`. It'll set initially, and then anytime you run a server action, that page / layout will automatically invalidate, and re-call your loader, re-setting the cache bust string, before your universal loader is called.
 
 ## Writing a reload function
 
@@ -393,7 +393,7 @@ If you'd like to see the reload button in action, the code for it is in [this br
 
 ## Parting thoughts
 
-This was a long post, but hopefully not overwhelming. We dove into various ways we can cache data when using SvelteKit. Much of this was just a matter of using web platform primitives to add the correct cache, and Vary headers, knowledge of which will serve you in web development in general, beyond just SvelteKit.
+This was a long post, but hopefully not overwhelming. We dove into various ways we can cache data when using SvelteKit. Much of this was just a matter of using web platform primitives to add the correct cache, and cookie values, knowledge of which will serve you in web development in general, beyond just SvelteKit.
 
 Moreover, this is something you absolutely do not need all the time, and arguably, you should only reach for these sort of advanced features when you **actually need them**. If your data store is serving up data quickly and efficiently, and you're not dealing with any kind of scaling problems, please do not bloat your application code with needless complexity doing the things we talked about here. As always, write clear, clean, simple code, and optimize when necessary. The purpose of this post was to provide you those optimization tools for when you truly need them. I hope you enjoyed it.
 
