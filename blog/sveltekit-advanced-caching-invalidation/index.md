@@ -252,30 +252,6 @@ Let's give this a shot. Reload your page, then edit one of the TODOs. You should
 
 ![Saving](/sveltekit-advanced-caching-invalidation/img3-saved.jpg)
 
-Let's change it up now. Stop, and then restart your dev server to reset all data. Now search for a value, in the search box we added before, _and then hit the back button_. You should be back to the first page. **Now** edit a todo. You should no longer see the value update. What happened? Our network tab should clue us in
-
-![Saving](/sveltekit-advanced-caching-invalidation/img4-saved-with-cached-results.jpg)
-
-After we saved, that fetch went out for our current data. Unfortunately, it was cached, from when we hit the back button. This wasn't a problem the first time since, again, the very first page load runs our loader on the server, and so there's no browser caching available for that first load.
-
-To solve this, let's clear our cache when we submit our form. We'll add this function to our page
-
-```js
-function runInvalidate() {
-  localStorage.setItem("todos-cache", +new Date());
-}
-```
-
-and then call it when we submit our form, to save.
-
-```svelte
-<form use:enhance on:submit={runInvalidate} method="post" action="?/editTodo"></form>
-```
-
-and now things work!
-
-![Saving](/sveltekit-advanced-caching-invalidation/img5-saving-works.jpg)
-
 ## Immediate updates
 
 What if we want to avoid that fetch call that happens after we update our todo, and instead, just update the modified todo right on the screen? This isn't just a matter of performance. If you search for "post," and then remove the word "post" from any of the todo's in the list, they'll vanish from the list after the edit, since they're no longer in that page's search results. You could make the UX better with some tasteful animation for the exiting todo, but let's say we wanted to just _not_ re-run that page's load function, but still clear the cache, and also update the modified todo, so the user can see the edit they just made. SvelteKit makes that possible: let's see how!
