@@ -12,13 +12,13 @@ As icing on the cake, we'll look at how we can manually update the data on the c
 
 This will be a longer, more difficult post than most of what I write, since we're covering harder topics. This post essentially show you how to implement common features of popular data utilities like react-query; but instead of pulling in an external library, we'll be using the web platform, and SvelteKit features only.
 
-Unfortunately, the web platform's features are a bit lower level, so we'll be doing a bit more work than you might be used to. There's also no single way to do this, so we'll look at a few different options, and discuss the tradeoffs. The upside is that we won't need any external libraries, which will help keep bundle sizes nice and small. If you have different tradeoffs for your project and prefer the nice loader utility like react-query, you'll be happy to know that the Svelte adapter [was just released!](https://tanstack.com/query/v4/docs/svelte/overview).
+Unfortunately, the web platform's features are a bit lower level, so we'll be doing a bit more work than you might be used to. The upside is, we won't need any external libraries, which will help keep bundle sizes nice and small. If you have different tradeoffs for your project and prefer the nice loader utility like react-query, you'll be happy to know that the Svelte adapter [was just released!](https://tanstack.com/query/v4/docs/svelte/overview)
 
 ## Setting up
 
-Before we start, let's make a few small changes to the code we had before. This will give us an excuse to see some other SvelteKit features, and more importantly, set us up for success for what we're trying to do.
+Before we start, let's make a few small changes to the code we had before. This will give us an excuse to see some other SvelteKit features, and more importantly, set us up for success.
 
-First, let's move our data loading from our loader in `+page.server.js` to an [api route](https://kit.svelte.dev/docs/routing#server). We'll create a `+server.js` file in `routes/api/todos`, and then add a `GET` function. This means we'll now be able to run fetch requests (using the default GET verb) to the `/api/todos` path. We'll add the same data loading code as before.
+First, let's move our data loading from our loader in `+page.server.js` to an [api route](https://kit.svelte.dev/docs/routing#server). We'll create a `+server.js` file in `routes/api/todos`, and then add a `GET` function. This means we'll now be able to fetch (using the default GET verb) to the `/api/todos` path. We'll add the same data loading code as before.
 
 ```js
 import { json } from "@sveltejs/kit";
@@ -49,7 +49,7 @@ export async function load({ fetch, url, setHeaders }) {
 }
 ```
 
-Let's just add a small feature to our /list page: a simple form
+Now let's add a small feature to our `/list` page: a simple form
 
 ```html
 <div class="search-form">
@@ -74,7 +74,7 @@ Remember, the full code for this post is all on github, linked in the intro.
 
 ## Basic caching
 
-Let's get started, and add some caching to our `/api/todos` endpoint. We'll go back to our `+server.js` file, and add this
+Let's get started, and add some caching to our `/api/todos` endpoint. We'll go back to our `+server.js` file, and add our first cache-control header.
 
 ```js
 setHeaders({
@@ -98,64 +98,94 @@ export async function GET({ url, setHeaders, request }) {
 }
 ```
 
-we'll look at manual invalidation shortly, but this just says to cache these api calls for 60 seconds. Set this to [whatever you want](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control), and depending on your use case, stale-while-revalidate might also be worth looking into.
+We'll look at manual invalidation shortly, but this just says to cache these api calls for 60 seconds. Set this to [whatever you want](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control), and depending on your use case, stale-while-revalidate might also be worth looking into.
+
+And just like that, our queries are caching.
+
+![Caching](/sveltekit-advanced-caching-invalidation/img2-caching.jpg)
+
+**Note** make sure you **un-check** the checkbox that disables caching in dev tools.
+
+Remember, if your initial navigation onto the app is on the list, those search results will be cached internally to SvelteKit, so don't expect to see anything in dev tools when you return to that search.
 
 ### What is cached, and where
 
-Our very first, server-rendered load of our app (assuming we start at the /list page) will be fetched on the server. SvelteKit will serialize, and send this data down to our client. For now, with the current version of SvelteKit, this server-fetched batch of data will be cached if, and only if, there's no `Vary` header. We will be using Vary headers, so this first request will not be cached.
+Our very first, server-rendered load of our app (assuming we start at the /list page) will be fetched on the server. SvelteKit will serialize, and send this data down to our client. What's more, it will observe the cache-control header on the response, and will know to use this cached data, for that endpoint call, within the cache window (60 seconds in this case).
 
-After that initial load, when you start searching on the page, you should see network requests from your browser, over to the `/api/todos` list. As you search for things you've already searched for (within the last 60 seconds) the responses should load immediately, since they're cached. The one exception is that initial render. If you load the page, search something, then click the back button, you should see a fresh (non-cached) fetch for that same, initial data. Again, SvelteKit does not (currently) cache the server-fetched initial load if there are Vary headers, so expect that if you're following along at home.
+After that initial load, when you start searching on the page, you should see network requests from your browser, to the `/api/todos` list. As you search for things you've already searched for (within the last 60 seconds) the responses should load immediately, since they're cached.
 
-You might wonder if we can just omit the Vary header when requested from the server. We can, and that entry will cache, but we'd have no way to invalidate that cached entry. So instead, that first request will just re-fetch from your database if you go back to it. This should be an easy imperfection to live with.
-
------NOTE
-Just for completeness, if you truly cared, and for some reason wanted even your initial page load's data to be cacheable, you have a few options. You can add
-
-```js
-export const ssr = false;
-```
-
-to your `+page.js` file. This shuts off server-side rendering, and all of its advantages, which means even your initial data will fetch from the browser. See [the docs](https://kit.svelte.dev/docs/page-options#ssr) for more info. It should be noted that if you do this, your initial load function call will run before your root layout's onMount, so you'd need to seed your localStorage value somewhere else, probably in the load function itself.
-
-And there's one other option we briefly discuss at the very end.
-/NOTE-----
-
-What's especially cool with this approach is that, since this is caching via the browser's native caching, these calls will continue to cache even if you reload the page (unlike the initial server-side load, which always calls the endpoint fresh, even if it did it within the last 60 seconds).
-
-**Note** if you're verifying this with your dev tools window open, make sure you **un-check** the checkbox that disables caching.
-
-![Caching](/sveltekit-advanced-caching-invalidation/img2-caching.jpg)
+What's especially cool with this approach is that, since this is caching via the browser's native caching, these calls could (depending on how you manage the cache busting we'll be looking at) continue to cache even if you reload the page (unlike the initial server-side load, which always calls the endpoint fresh, even if it did it within the last 60 seconds).
 
 Obviously data can change anytime, so we need a way to purge this cache manually, which we'll look at next.
 
 ## Cache invalidation
 
-Right now, data are cached for 60 seconds. No matter what, after a minute, fresh data will be pulled from our datastore. You might want a shorter, or longer time period, but what happens if you mutate some data, and want to clear all your caches immediately, so your next query will be up to date? The solution is to add a `Vary` header, next to our cache-control header. This will tell our browser to cache responses, but only if the header specified by `Vary` is the same as the one that's cached. Let's see how.
+Right now, data are cached for 60 seconds. No matter what, after a minute, fresh data will be pulled from our datastore. You might want a shorter, or longer time period, but what happens if you mutate some data, and want to clear your cache immediately, so your next query will be up to date? We'll solve this by adding a query-busting value to the url we send to our new `/todos` endpoint.
 
-First, in our `+server.js` file, we'll add our Vary header next to our cache-control header
+Let's store this cache busting value in a cookie. That value can be set on the server, but still read on the client. Let's look at some sample code.
 
-```js
-setHeaders({
-  "cache-control": "max-age=60",
-  Vary: "todos-cache",
-});
-```
-
-But now we need to _send_ a header of `todos-cache` when we fetch to this endpoint. We can keep values for this header wherever we want. For now, let's use `localStorage`. We'll go to our loader, and add this
+We can create a `+layout.server.js` file at the very root of our `routes` folder. This will run on application startup, and is a perfect place to set an initial cookie value.
 
 ```js
-export async function load({ fetch, url, setHeaders }) {
-  const search = url.searchParams.get("search") || "";
+export function load({ cookies, isDataRequest }) {
+  const initialRequest = !isDataRequest;
 
-  let headers = {};
-  if (typeof window === "object") {
-    headers["todos-cache"] = localStorage.getItem("todos-cache");
+  const cacheValue = initialRequest ? +new Date() : cookies.get("todos-cache");
+
+  if (initialRequest) {
+    cookies.set("todos-cache", cacheValue, { path: "/", httpOnly: false });
   }
 
-  const resp = await fetch(`/api/todos?search=${encodeURIComponent(search)}`, {
-    headers,
-  });
+  return {
+    todosCacheBust: cacheValue,
+  };
+}
+```
 
+You may have noticed the `isDataRequest` value. Remember, layouts will re-run anytime client-code calls `invalidate()`, or anytime we run a server action (assuming we don't turn off default behavior). `isDataRequest` indicates such re-runs, and so we only set the cookie if that's false, otherwise we just send along what's already there.
+
+The `httpOnly: false` flag is also significant. This allows our client code to read these cookie values in `document.cookie`. This would normally be a security concern, but in our case these are meaningless numbers that allow us to cache, or cache bust.
+
+### Reading cache values
+
+Our universal loader is what calls our `/todos` endpoint. This runs on both the server, or the client, and we need to read that cache value we just set up no matter where we are. If we're on the server it's easy: we can call `await parent()` to get the data from parent layouts. But on the client, we'll need to use some gross code to parse document.cookie
+
+```js
+export function getCookieLookup() {
+  if (typeof document !== "object") {
+    return {};
+  }
+
+  return document.cookie.split("; ").reduce((lookup, v) => {
+    const parts = v.split("=");
+    lookup[parts[0]] = parts[1];
+
+    return lookup;
+  }, {});
+}
+
+const getCurrentCookieValue = name => {
+  const cookies = getCookieLookup();
+  return cookies[name] ?? "";
+};
+```
+
+Fortunately, we only need it once.
+
+### Sending out the cache value
+
+But now we need to _send_ this value to our /todos endpoint.
+
+```js
+import { getCurrentCookieValue } from "$lib/util/cookieUtils";
+
+export async function load({ fetch, parent, url, setHeaders }) {
+  const parentData = await parent();
+
+  const cacheBust = getCurrentCookieValue("todos-cache") || parentData.todosCacheBust;
+  const search = url.searchParams.get("search") || "";
+
+  const resp = await fetch(`/api/todos?search=${encodeURIComponent(search)}&cache=${cacheBust}`);
   const todos = await resp.json();
 
   return {
@@ -164,21 +194,17 @@ export async function load({ fetch, url, setHeaders }) {
 }
 ```
 
-`localStorage` only exists on the client, not the server, so we'll check we're in the right place, and only set it if we are.
+`getCurrentCookieValue('todos-cache')` has a check in it to see if we're on the client (by checking typeof document), and returns nothing if so, at which point we know we're on the server, and so use the value from our layout.
 
-But how do we put that value into localStorage? We need an entry point into our entire web app to set this up. And we have just that: our root layout. Layouts are Svelte components, and as such, they have the same `onMount` hook as any other component. Let's pop into our topmost layout, and add this
+### Busting the cache
+
+But _how_ do we actually update that cache busting value, when we need to? Since it's stored in a cookie, it's as simple as calling
 
 ```js
-import { onMount } from "svelte";
-
-onMount(() => {
-  localStorage.setItem("todos-cache", +new Date());
-});
+cookies.set("todos-cache", cacheValue, { path: "/", httpOnly: false });
 ```
 
-Now as soon as our app loads (hydrates), we'll set our localStorage value, so the right header shows up, on which our cache will vary.
-
-As you can see, whenever our app loads, we will always set a new value for this header. This means reloading the browser will always clear our cache, and provide the latest data. This seems like a sensible approach, but if for some reason you don't want this, you're free to only set this localStorage value if it doesn't already exist.
+from any server action.
 
 ## The implementation
 
@@ -208,7 +234,7 @@ and of course we'll need to add a form action for our /list page. Actions can on
 import { getTodo, updateTodo, wait } from "$lib/data/todoData";
 
 export const actions = {
-  async editTodo({ request }) {
+  async editTodo({ request, cookies }) {
     const formData = await request.formData();
 
     const id = formData.get("id");
@@ -216,41 +242,21 @@ export const actions = {
 
     await wait(250);
     updateTodo(id, newTitle);
+
+    cookies.set("todos-cache", +new Date(), { path: "/", httpOnly: false });
   },
 };
 ```
+
+We grab the form data, force a delay, update our todo, and then, most importantly, we clear our cache bust cookie.
 
 Let's give this a shot. Reload your page, then edit one of the TODOs. You should see the table value update after a moment. If you look in the network tab, you'll see a fetch to the /todos endpoint, which returns your new data. Simple, and works by default.
 
 ![Saving](/sveltekit-advanced-caching-invalidation/img3-saved.jpg)
 
-Let's change it up now. Stop, and then restart your dev server to reset all data. Now search for a value, in the search box we added before, _and then hit the back button_. You should be back to the first page. **Now** edit a todo. You should no longer see the value update. What happened? Our network tab should clue us in
-
-![Saving](/sveltekit-advanced-caching-invalidation/img4-saved-with-cached-results.jpg)
-
-After we saved, that fetch went out for our current data. Unfortunately, it was cached, from when we hit the back button. This wasn't a problem the first time since, again, the very first page load runs our loader on the server, and so there's no browser caching available for that first load.
-
-To solve this, let's clear our cache when we submit our form. We'll add this function to our page
-
-```js
-function runInvalidate() {
-  localStorage.setItem("todos-cache", +new Date());
-}
-```
-
-and then call it when we submit our form, to save.
-
-```svelte
-<form use:enhance on:submit={runInvalidate} method="post" action="?/editTodo"></form>
-```
-
-and now things work!
-
-![Saving](/sveltekit-advanced-caching-invalidation/img5-saving-works.jpg)
-
 ## Immediate updates
 
-What if we want to avoid that fetch call that happens after we update our todo, and instead, just update the modified todo right on the screen? This isn't just a matter of performance. If you search for "post," and then remove the word "post" from any of the todo's in the list, they'll vanish from the list after the edit, since they're no longer in that page's search results. You could make the UX better with some tasteful animation for the exiting todo, but let's say we wanted to just _not_ re-run that page's load function, but still clear the cache, and also update the modified todo, so the user can see the edit they just made. SvelteKit makes that possible: let's see how!
+What if we want to avoid that fetch that happens after we update our todo, and instead, just update the modified todo right on the screen? This isn't just a matter of performance. If you search for "post," and then remove the word "post" from any of the todo's in the list, they'll vanish from the list after the edit, since they're no longer in that page's search results. You could make the UX better with some tasteful animation for the exiting todo, but let's say we wanted to just _not_ re-run that page's load function, but still clear the cache, and also update the modified todo, so the user can see the edit they just made. SvelteKit makes that possible: let's see how!
 
 First, let's make one little change to our loader. Instead of just returning our todos, let's return a [writeblae store](https://svelte.dev/docs#run-time-svelte-store-writable) containing our todos.
 
@@ -308,78 +314,17 @@ function executeSave({ data }) {
 
 This function provides you a data object which has our form data. We _return_ an async function that will run _after_ our edit is done. [The docs](https://kit.svelte.dev/docs/form-actions#progressive-enhancement-use-enhance) explain all of this, but by doing this, we shut off SvelteKit's default form handling, which would have re-run our loader. This is exactly what we want! (we could easily get that default behavior back, as the docs explain).
 
-We now call `update` on our todos array, since it's a store. And that's that. After editing a todo, our changes show up immediately, and our cache is cleared, so if we search, and then navigate back to this page, we'll get fresh data from our loader, which will correctly exclude any updated todo's that were updated.
-
-## An alternate implementation
-
-Using localStorage to hold these cache busting strings is a simple solution, but it's not the only one, and _possibly_ not the best. The main disadvantage, to me, is that the values can only ever be set on the _client_. That means client-side code that starts mutations will also need code to clear the related cache busting value. It might be nice to have this code limited to actions and loaders. One way to achieve that is by storing our cache busting in a cookie, rather than localStorage. That value can be set on the server, but still read on the client. Let's look at some sample code.
-
-We can create a `+layout.server.js` file at the very root of our `routes` folder. This will run on application startup, and is a perfect place to set an initial cookie value.
-
-```js
-export async function load({ locals, isDataRequest, cookies }: any) {
-  const initialRequest = !isDataRequest;
-  if (initialRequest) {
-    cookies.set("todos-cache", +new Date(), { path: "/", httpOnly: false });
-  }
-
-  // ...
-}
-```
-
-notice the `isDataRequest` value. Remember, layouts will re-run anytime client-code calls `invalidate()`, or anytime we run a server action (assuming we don't turn off default behavior, as we did earlier in this post). `isDataRequest` indicates such re-runs, and so we only set the cookie if that's false.
-
-Then in our _server actions_ we can bust the cache with the same code
-
-```js
-cookies.set("todos-cache", +new Date(), { path: "/", httpOnly: false });
-```
-
-Naturally a helper function might cut down on the boilerplate
-
-```js
-export const bustCache = (cookies, name) => {
-  cookies.set(name, +new Date(), { path: "/", httpOnly: false });
-};
-```
-
-Notice the `httpOnly: false` flag. This allows our client code to read these cookie values in `document.cookie`. This would normally be a security concern, but in our case these are meaningless numbers that allow us to cache, or cache bust.
-
-A function to read these values on the client might look like this
-
-```js
-export function getCookieLookup() {
-  if (typeof document !== "object") {
-    return {};
-  }
-
-  return document.cookie.split("; ").reduce((lookup, v) => {
-    const parts = v.split("=");
-    lookup[parts[0]] = parts[1];
-
-    return lookup;
-  }, {});
-}
-
-const getCurrentCookieValue = name => {
-  const cookies = getCookieLookup();
-  return cookies[name] ?? "";
-};
-```
-
-That first cookie parsing function is a bit gross, but we'd only need it once.
+We now call `update` on our todos array, since it's a store. And that's that. After editing a todo, our changes show up immediately, and our cache is cleared (as before, since we set a new cookie value in our editTodo form action), so if we search, and then navigate back to this page, we'll get fresh data from our loader, which will correctly exclude any updated todo's that were updated.
 
 ### Digging deeper
 
-You can set cookies in any server load function (or server action), not just the root layout. So if some data are only used underneath a single layout, or even a single page, you could set that cookie value there. Moreoever, if you're _not_ doing the trick I showed earlier of manually updating on-screen data, and instead want your loader to just re-run after a mutation, then you could just always set a new cookie value right in that load function, without any check against `isDataRequest`. It'll set initially, and then anytime you run a server action, that page / layout will automatically invalidate, and re-call your loader, re-setting the cache bust string, before your universal loader is called, pulling the new value for the Vary header.
+You can set cookies in any server load function (or server action), not just the root layout. So if some data are only used underneath a single layout, or even a single page, you could set that cookie value there. Moreoever, if you're _not_ doing the trick I just showed, of manually updating on-screen data, and instead want your loader to just re-run after a mutation, then you could just always set a new cookie value right in that load function, without any check against `isDataRequest`. It'll set initially, and then anytime you run a server action, that page / layout will automatically invalidate, and re-call your loader, re-setting the cache bust string, before your universal loader is called.
 
-If you'd like to see what the whole solution looks like, there's an example in [this branch](https://github.com/arackaf/sveltekit-blog-2-caching/tree/feature/cookie-implementation).
+## Writing a reload function
 
-Both options have tradeoffs. I hope you found value in seeing both.
+Let's wrap up by building one last feature: a reload button. Let's give users a button that will clear cache, and then reload the current query.
 
-### Writing a reload function
-
-Let's wrap up by building one last feature: a reload button. Let's give users a button that will clear cache, and then reload the current query. I mentioned server actions can set cookies, so let's add a new action to do just that
+We'll add a dirt simple form action.
 
 ```js
 async reloadTodos({ cookies }) {
@@ -436,7 +381,7 @@ export async function load({ fetch, url, setHeaders, depends }) {
   // rest is the same
 ```
 
-and that's that. `depends` and `invalidate` are incredibly useful functions. What's especially cool is that `invalidate` doesn't just take arbitrary values we provide, like we just did. You can also provide a url, which SvelteKit will track, and invalidate any loaders that depend on that url. To that end, if you're wondering whether we could skip the call to `depends`, and just invalidate our `/api/todos` endpoint altogether, you can, but you have to provide the _exact_ url, including the `search` term. So you could either put together the url for the current search, or just match on the pathname, like this
+and that's that. `depends` and `invalidate` are incredibly useful functions. What's especially cool is that `invalidate` doesn't just take arbitrary values we provide, like we just did. You can also provide a url, which SvelteKit will track, and invalidate any loaders that depend on that url. To that end, if you're wondering whether we could skip the call to `depends`, and just invalidate our `/api/todos` endpoint altogether, you can, but you have to provide the _exact_ url, including the `search` term (and our cache value). So you could either put together the url for the current search, or just match on the pathname, like this
 
 ```js
 invalidate(url => url.pathname == "/api/todos");
@@ -446,21 +391,9 @@ Personally I find the solution with `depends` more explicit, and simple. But of 
 
 If you'd like to see the reload button in action, the code for it is in [this branch](https://github.com/arackaf/sveltekit-blog-2-caching/tree/feature/reload-button).
 
------NOTE
-Earlier I mentioned there was one other option for handling these cache bust values, which would even correctly cache our initial request. It's basically what we just looked at, except instead of putting those cookie values into a header that the endpoint `Vary`'s on, we could put it onto our api call's url, ie
-
-`/api/todos?search=xyz&cache=${CACHE_BUST_VALUE_HERE}`.
-
-No Vary header at all, anywhere. Just a cache-control header, with url's that have the cache-bust key attached to them. If this seems simpler, and you're mad I didn't lead with that, I'll mention that the one catch here is that you'd need to read these cookie values both from a server loader (for that initial load), or on the client, like we have been.
-
-The server value could come from your root layout (server) load function, or a companion server load function for the page. The universal loader would then grab the cookie value from the client, if it's running on the client, as before; but if not, it would read the server generated value I just mentioned. Grabbing the server-read cookie value would happen via `await parent()` if it came from a layout's load function, or `data` if it came from a companion server loader for the page.
-
-There's no one clearly-better way to do this. All have tradeoffs, and I hope I did a good job of explaining them all, so you can choose for yourself.
------/NOTE
-
 ## Parting thoughts
 
-This was a long post, but hopefully not overwhelming. We dove into various ways we can cache data when using SvelteKit. Much of this was just a matter of using web platform primitives to add the correct cache, and Vary headers, knowledge of which will serve you in web development in general, beyond just SvelteKit.
+This was a long post, but hopefully not overwhelming. We dove into various ways we can cache data when using SvelteKit. Much of this was just a matter of using web platform primitives to add the correct cache, and cookie values, knowledge of which will serve you in web development in general, beyond just SvelteKit.
 
 Moreover, this is something you absolutely do not need all the time, and arguably, you should only reach for these sort of advanced features when you **actually need them**. If your data store is serving up data quickly and efficiently, and you're not dealing with any kind of scaling problems, please do not bloat your application code with needless complexity doing the things we talked about here. As always, write clear, clean, simple code, and optimize when necessary. The purpose of this post was to provide you those optimization tools for when you truly need them. I hope you enjoyed it.
 
