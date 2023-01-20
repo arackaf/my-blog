@@ -4,11 +4,11 @@ date: "2022-12-25T10:00:00.000Z"
 description: A high-level introduction to SvelteKit
 ---
 
-[SvelteKit]("https://kit.svelte.dev") is the latest of what I'd call next-gen application frameworks. It, of course, scaffolds an application for you, with the file-based routing, deployment, server-side rendering that Next has done forever. But SvelteKit also supports nested layouts, server mutations that sync up the data on your page, and some other niceties we'll get into.
+[SvelteKit]("https://kit.svelte.dev") is the latest of what I'd call next-gen application frameworks. It, of course, scaffolds an application for you, with the file-based routing, deployment, and server-side rendering Next has done forever. But SvelteKit also supports nested layouts, server mutations that sync up the data on your page, and some other niceties we'll get into.
 
 This post is meant to be a high-level introduction to hopefully build some excitement for anyone who's never used SvelteKit. It'll be a relaxed tour. If you like what you see, the [full docs are here](https://kit.svelte.dev/docs/introduction).
 
-In some ways this is a challenging post to write. SvelteKit is an _application framework_. It exists to help you build... well, applications. That makes it hard to demo. It's unfeasible to build an entire application in a blog post. So instead, we'll use our imaginations a bit. We'll build the skeleton of an application, have some empty <abbr>UI</abbr> placeholders, and hard-coded static data. The goal isn't to build an actual application, but instead to show you how SvelteKit's moving pieces work so you can build an application of your own.
+In some ways this is a challenging post to write. SvelteKit is an _application framework_. It exists to help you build... well, applications. That makes it hard to demo. It's not feasible to build an entire application in a blog post. So instead, we'll use our imaginations a bit. We'll build the skeleton of an application, have some empty <abbr>UI</abbr> placeholders, and hard-coded static data. The goal isn't to build an actual application, but instead to show you how SvelteKit's moving pieces work so you can build an application of your own.
 
 To that end, we'll build the tried and true To-Do application as an example. But don't worry, this will be much, much more about seeing how SvelteKit works than creating yet another To-Do app.
 
@@ -34,7 +34,7 @@ You should be able to navigate around by changing URL paths in the browser addre
 
 ### Layouts
 
-We definitely want navigation links in our app, and we certainly don't want to copy the markup for them on each page we create. So, let's create a `+layout.svelte` file in the root of our `routes` folder we can use as a template, and add some content to it:
+We'll want navigation links in our app, but we certainly don't want to copy the markup for them on each page. So let's create a `+layout.svelte` file in the root of our `routes` folder, which SvelteKit will treat as a global template for all pages. Let's and add some content to it:
 
 ```html
 <nav>
@@ -82,7 +82,7 @@ And now we have some navigation! We won't win any design competitions, but we're
 
 ### Nested layouts
 
-What if we wanted all our admin pages to inherit the normal layout we just built and to also share some things common to all admin pages (but only admin pages)? No problem, we add another `+layout.svelte` file in our root `admin` directory, which will be inherited by everything underneath it. Let's do that and add this content:
+What if we wanted all our admin pages to inherit the normal layout we just built, but also share some things common to all admin pages (but only admin pages)? No problem, we add another `+layout.svelte` file in our root `admin` directory, which will be inherited by everything underneath it. Let's do that and add this content:
 
 ```html
 <div>This is an admin page</div>
@@ -171,7 +171,7 @@ export function load() {
 }
 ```
 
-We've defined a `load()` function that pulls in the data needed for the page. Notice that we are _not_ `await`-ing calls to our `getTodos` and `getTags` async functions. Doing so would likely create a data loading waterfall as we wait for our to-do items to come in before loading our tags. Instead, we return the raw promises from `load`, and SvelteKit does the necessary work to `await` them.
+We've defined a `load()` function that pulls in the data needed for the page. Notice that we are _not_ `await`-ing calls to our `getTodos` and `getTags` async functions. Doing so would create a data loading waterfall as we wait for our to-do items to come in before loading our tags. Instead, we return the raw promises from `load`, and SvelteKit does the necessary work to `await` them.
 
 So, how do we access this data from our page component? SvelteKit provides a `data` prop for our component with data on it. We'll access our to-do items and tags from it using a [reactive assignment](https://svelte.dev/docs#component-format-script-3-$-marks-a-statement-as-reactive).
 
@@ -211,7 +211,7 @@ Our List page component now looks like this.
 
 And this should render our to-do items!
 
-![List rendering](/sveltekit-intro/img6-list-rendering.jpg)
+![List rendering](/sveltekit-intro/img6a-list-rendering.jpg)
 
 ### Layout groups
 
@@ -260,8 +260,8 @@ And, just like that, our List page is rendering again!
 Let's put a fine point on what's happening here:
 
 - We defined a `load()` function for our layout group, which we put in `+layout.server.js`.
-- This provides data for **all** of the pages the layout serves — which in this case means our List and Details pages. 
-- Our List page also defines a `load()` function that goes in its `+page.server.js` file. 
+- This provides data for **all** of the pages the layout serves — which in this case means our List and Details pages.
+- Our List page also defines a `load()` function that goes in its `+page.server.js` file.
 - SvelteKit does the grunt work of taking the results of these data sources, merging them together, and making both available in `data`.
 
 ### Our Details page
@@ -280,7 +280,6 @@ import { getTodo, updateTodo, wait } from "$lib/data/todoData";
 export function load({ url }) {
   const id = url.searchParams.get("id");
 
-  console.log(id);
   const todo = getTodo(id);
 
   return {
@@ -325,7 +324,7 @@ If you noticed the `use:enhance`, that simply tells SvelteKit to use progressive
 
 Notice the `action="?/editTodo"` attribute on the form itself? This tells us where we want to submit our edited data. For our case, we want to submit to an `editTodo` "action."
 
-Let's create it and add the following to the `+page.server.js` file we already have for Details (which currently has a `load()` function, to grab our to-do):
+Let's create it by adding the following to the `+page.server.js` file we already have for Details (which currently has a `load()` function, to grab our to-do):
 
 ```js
 import { redirect } from "@sveltejs/kit";
@@ -378,9 +377,9 @@ A few things you might be wondering...
 
 **This mutation update doesn't seem too impressive.** The loaders will re-run whenever you navigate. What if we hadn't added a redirect in our form action, but stayed on the current page? SvelteKit would perform the update in the form action, like before, but would **still** re-run all of the loaders for the current page, including the loaders in the page layout(s).
 
-**Can we have more targeted means of invalidating our data?** For example, our tags never re-ran, so in real life we wouldn't want to re-query them. Yes, what I showed you is just the default forms behavior in SvelteKit. You can turn the default behavior off by [providing a callback to `use:enhance`](https://kit.svelte.dev/docs/form-actions#progressive-enhancement-use-enhance). Then SvelteKit provides manual [invalidation functions](https://kit.svelte.dev/docs/load#invalidation).
+**Can we have more targeted means of invalidating our data?** For example, our tags were not edited, so in real life we wouldn't want to re-query them. Yes, what I showed you is just the default forms behavior in SvelteKit. You can turn the default behavior off by [providing a callback to `use:enhance`](https://kit.svelte.dev/docs/form-actions#progressive-enhancement-use-enhance). Then SvelteKit provides manual [invalidation functions](https://kit.svelte.dev/docs/load#invalidation).
 
-**Loading data on every navigation is potentially expensive, and unnecessary.** Can I cache this data like I do with tools like [`react-query`]("https://www.npmjs.com/package/react-query")? Yes, just differently. SvelteKit lets you set (and then it respects) the cache-control headers the web already provides. This, plus a [`Vary`]("https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Vary") on a custom header can give you targeted invalidation.
+**Loading data on every navigation is potentially expensive, and unnecessary.** Can I cache this data like I do with tools like [`react-query`]("https://www.npmjs.com/package/react-query")? Yes, just differently. SvelteKit lets you set (and then respects) the cache-control headers the web already provides. And I'll be covering cache invalidation mechanisms in a follow-on post
 
 Everything we've done throughout this article uses static data and modifies values in memory. If you need to revert everything and start over, stop and restart the `npm run dev` Node process.
 
@@ -388,7 +387,7 @@ Everything we've done throughout this article uses static data and modifies valu
 
 We've barely scratched the surface of SvelteKit, but hopefully you've seen enough to get excited about it. I can't remember the last time I've found web development this much fun. With things like bundling, routing, SSR, and deployment all handled out of the box, I get to spend more time coding than configuring.
 
-Here are a few more resources you can use as next steps in your SvelteKit learning journey:
+Here are a few more resources you can use as next steps learning SvelteKit:
 
 - [Announcing SvelteKit 1.0]("https://svelte.dev/blog/announcing-sveltekit-1.0") (Svelte Blog)
 - [Beginner SvelteKit Course]("https://vercel.com/docs/beginner-sveltekit") (Vercel)
