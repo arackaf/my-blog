@@ -242,21 +242,23 @@ And now our logged-in page works
 
 ## Persisting our authentication
 
-We could end this post here. Our authentication works, and we have integrated it into application state. Sure, there's a myriad of other auth providers (GitHub, Facebook, Twitter, etc), but those are just variations on the same theme (plus now might not be a good time to start depending on Twitter infrastructure ...).
+We could end this post here. Our authentication works, and we integrated it into application state. Sure, there's a myriad of other auth providers (GitHub, Facebook, Twitter, etc), but those are just variations on the same theme (plus now might not be a good time to start depending on Twitter infrastructure ...).
 
-But one topic we haven't discussed is authentication persistence. Right now our entire authentication session is stored in a JWT, on our user's machine. These is convenient, but it does offer some downsides, namely that this data could be stolen. An alternative is to persist our users' session in an external database. [This post](https://www.openidentityplatform.org/blog/stateless-vs-stateful-authentication) discusses the various tradeoffs, but most of the downsides of stateful (ie, stored in a database) solutions are complexity, and the burden of having to reach out to an external storage to grab session info. Fortunately, next-auth removes the complexity burden for us. As far as perf concerns, we can choose a storage mechanism that's known for being fast and effective: DynamoDB.
+But one topic we haven't discussed is authentication persistence. Right now our entire session is stored in a JWT, on our user's machine. This is convenient, but it does offer some downsides, namely that this data could be stolen. An alternative is to persist our users' sessions in an external database. [This post](https://www.openidentityplatform.org/blog/stateless-vs-stateful-authentication) discusses the various tradeoffs, but most of the downsides of stateful (ie, stored in a database) solutions are complexity, and the burden of having to reach out to an external storage to grab session info. Fortunately, next-auth removes the complexity burden for us. As far as perf concerns, we can choose a storage mechanism that's known for being fast and effective: in our case we'll look at DynamoDB.
 
 ### Adapters
 
-The mechanism by which next-auth persists our authentication sessions is [adapters](https://next-auth.js.org/adapters/overview). As before, there are many to choose from, but as we alluded above, we'll use [DynamoDB](https://next-auth.js.org/adapters/dynamodb). The docs do a great job of explaining everything, but we'll cover the high points. You'll need an AWS account, and store its credentials in environment variables like before. Beyond that, you'll need a DynamoDB instance created, with keys, indexes and a ttl field configured as the adapter expects. The [adapter docs](https://next-auth.js.org/adapters/dynamodb#schema) spell out the expected schema, and even provide a CloudFormation template.
+The mechanism by which next-auth persists our authentication sessions is [adapters](https://next-auth.js.org/adapters/overview). As before, there are many to choose from, but as we alluded above, we'll use [DynamoDB](https://next-auth.js.org/adapters/dynamodb). Compared to providers, the setup for database adapters is a bit more involved, and a bit more tedious. In order to keep the focus of this post on next-auth, we won't walk through setting up each and every key field, ttl setting, and gsi—to say nothing of AWS credentials if you don't have them already. If you've never used Dynamo and are curious, I wrote an introduction [here](https://adamrackis.dev/blog/dynamo-introduction). If you're not really interested in Dynamo, this section will show you the basics of setting up database adapters, which you can apply to any of the (many) others you might prefer to use.
 
-To my knowledge there's no turnkey way to take a Cloudformation template for a resource, and just make it exist. That said, manually creating the various keys, index, and ttl field does not take long. For brevity, we'll leave that out of this post.
+That said, if you're interested in implementing this yourself, the [adapter docs](https://next-auth.js.org/adapters/dynamodb#schema) provide CDK and CloudFormation templates for the Dynamo table you need, or if you want a low-dev-ops solution, it even lists out the keys, ttl and gsi structure, and makes manual setup pretty painless.
 
 We'll assume you've got your DynamoDB instance set up, and look at the code to connect it. First, we'll install some new libraries
 
 ```
 npm i @next-auth/dynamodb-adapter @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb
 ```
+
+First, make sure your dynamo table name, as well as your AWS credentials are in environment variables
 
 Now we'll go back to our hooks.server.ts file, and whip up some boilerplate (which, to be honest, it mostly copied right from the docs).
 
@@ -296,11 +298,11 @@ and now, after logging out, and logging back in, we should see some entries in o
 
 ![Dynamo working](/sveltekit-auth/img11-saving-in-dynamo.jpg)
 
-## Odds and ends
+## Authentication hooks
 
 Next-auth provides a number of callbacks you can hook into, if you want to do some custom processing.
 
-The signIn callback is invoked, predictably, right after a successful login. It's passed an account object from whatever provider was used, Google in our case. One use case with this callback could be to optionally look up, and sync legacy user metadata you might have stored for your users before switching over to OUath authentication with established providers.
+The `signIn` callback is invoked, predictably, after a successful login. It's passed an account object from whatever provider was used, Google in our case. One use case with this callback could be to optionally look up, and sync legacy user metadata you might have stored for your users before switching over to OUath authentication with established providers.
 
 ```ts
 async signIn({ account }) {
@@ -313,7 +315,7 @@ async signIn({ account }) {
 },
 ```
 
-The `jwt` callback gives you the ability to store additional info in the authentication token (you can use this regardless of whether you're using a database adapter).
+The `jwt` callback gives you the ability to store additional info in the authentication token (you can use this regardless of whether you're using a database adapter). It's passed the (possibly mutated) account object from the signIn callback.
 
 ```ts
 async jwt({ token, account }) {
@@ -325,9 +327,9 @@ async jwt({ token, account }) {
 }
 ```
 
-here we're setting a single userId onto our token that's either the syndId we just looked up, or the providerAccountId already attached to the provider account. If you're curious about the `??=` operator, that's the [nullish coalescing assignment operator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Nullish_coalescing_assignment).
+here we're setting a single `userId` onto our token that's either the syndId we just looked up, or the `providerAccountId` already attached to the provider account. If you're curious about the `??=` operator, that's the [nullish coalescing assignment operator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Nullish_coalescing_assignment).
 
-Lastly, the session callback gives you an opportunity to shape the session object that's returned when your application code calls `locals.getSession()`
+Lastly, the `session` callback gives you an opportunity to shape the session object that's returned when your application code calls `locals.getSession()`
 
 ```ts
 async session({ session, user, token }: any) {
