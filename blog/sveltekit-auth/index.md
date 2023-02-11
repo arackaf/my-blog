@@ -4,25 +4,23 @@ date: "2023-02-10T10:00:00.000Z"
 description: An introduction to next-auth, with SvelteKit
 ---
 
-SvelteKit is an exciting, recent new application framework for shipping performant web applications using Svelte. I've previously written an introduction on it [here](TODO), as well as a deeper dive on data handling and caching [here](TODO).
+SvelteKit is an exciting, recent application framework for shipping performant web applications with Svelte. I've previously written an introduction on it [here](https://css-tricks.com/getting-started-with-sveltekit/), as well as a deeper dive on data handling and caching [here](https://css-tricks.com/caching-data-in-sveltekit/).
 
-For this post we'll see how to integrate next-auth into a SvelteKit web app. It might seem surprising to hear that next-auth can work with SvelteKit, but next-auth has gotten popular enough that much of it has been split into a framework-agnostic package of [@auth/core](https://www.npmjs.com/package/@auth/core). To my knowledge, SvelteKit is the first framework to be extended to work with this, which isn't too surprising, since Vercel employs the lead maintainers of SvelteKit.
+For this post we'll see how to integrate next-auth into a SvelteKit web app. It might seem surprising to hear that next-auth can work with SvelteKit, but next-auth has gotten popular enough that much of it has been split into a framework-agnostic package of [@auth/core](https://www.npmjs.com/package/@auth/core). To my knowledge, SvelteKit is the first framework to be extended to work with this, which isn't too surprising since Vercel employs the lead maintainers of SvelteKit.
 
-For this post we'll cover the basic config for @auth/core, we'll add a Google Provider, and configure our sessions to persist in DynamoDB.
+For this post we'll cover the basic config for `@auth/core`: we'll add a Google Provider, and configure our sessions to persist in DynamoDB.
 
-The code for everything [is here](https://github.com/arackaf/sveltekit-next-auth-post), but you won't be able to run it without setting up your own Google Application credentials, as well as a Dynamo table (we'll cover how to do all of that).
+The code for everything [is here](https://github.com/arackaf/sveltekit-next-auth-post), but you won't be able to run it without setting up your own Google Application credentials, as well as a Dynamo table (which we'll get into).
 
 ## The initial setup
 
-We'll build the absolute minimum skeleton app needed to demonstrate authentication. We'll have our root layout read whether the user is logged in, and show a link to content that's limited to logged in users if so, or a login button if not. We'll also set up an auth check with redirect in the logged-in content in case the user tries to manually browse to it.
+We'll build the absolute minimum skeleton app needed to demonstrate authentication. We'll have our root layout read whether the user is logged in, and show a link to content that's limited to logged in users, and a logout button if so; or a login button if not. We'll also set up an auth check with redirect in the logged-in content in case the user tries to manually browse to it.
 
 Let's install some packages we'll be using
 
 ```
 npm i @auth/core @auth/sveltekit
 ```
-
-Yes, the Dynamo adapter is still under the @next-auth namespace. I imagine that might change at some point in the future, so be aware of that depending on how long after writing you're reading this.
 
 Let's quickly cover the setup code, and then dive into the auth.
 
@@ -65,7 +63,7 @@ and now some layout code
 </main>
 ```
 
-Let's put this into the root +page.svelte file, just so there's something there.
+Let's put this into the root `+page.svelte` file, just so there's something there.
 
 ```html
 <h1>This is the home page</h1>
@@ -96,7 +94,9 @@ Let's get started. We'll take things step by step.
 
 First, create an environment variable in your .env file. I'll call it `AUTH_SECRET` but you can of course call it whatever you want. If you're looking to deploy this to Vercel, be sure to add your environment variable in your project's settings.
 
-Next, create a `hooks.server.ts` (or .js) file directly under `src`. The docs for this file [are here](https://kit.svelte.dev/docs/hooks#server-hooks), but essentially this file allows you to add application-wide wide side effects. Authentication easily falls under this, which is why we configure it here. Now let's start creating our authentication config.
+Next, create a `hooks.server.ts` (or .js) file directly under `src`. The docs for this file [are here](https://kit.svelte.dev/docs/hooks#server-hooks), but it essentially allows you to add application-wide wide side effects. Authentication easily falls under this, which is why we configure it here.
+
+Now let's start integrating next-auth. We'll start with a very basic config
 
 ```ts
 import { SvelteKitAuth } from "@auth/sveltekit";
@@ -156,7 +156,7 @@ and then add our provider
 	],
 ```
 
-the `@ts-ignore` is unfortunate, and the result in a bug in the auth typings which is documented in [this issue](https://github.com/nextauthjs/next-auth/issues/2681).
+the `@ts-ignore` is unfortunate, and the result of a bug in the auth typings which is documented in [this issue](https://github.com/nextauthjs/next-auth/issues/2681).
 
 Unfortunately if we try to login now, we're greeted by an error
 
@@ -258,6 +258,8 @@ We'll assume you've got your DynamoDB instance set up, and look at the code to c
 npm i @next-auth/dynamodb-adapter @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb
 ```
 
+Yes, the Dynamo adapter is still under the @next-auth namespace. I imagine that might change at some point in the future, so be aware of that depending on how long after publication you're reading this.
+
 First, make sure your dynamo table name, as well as your AWS credentials are in environment variables
 
 Now we'll go back to our hooks.server.ts file, and whip up some boilerplate (which, to be honest, it mostly copied right from the docs).
@@ -315,7 +317,7 @@ async signIn({ account }) {
 },
 ```
 
-The `jwt` callback gives you the ability to store additional info in the authentication token (you can use this regardless of whether you're using a database adapter). It's passed the (possibly mutated) account object from the signIn callback.
+The `jwt` callback gives you the ability to store additional info in the authentication token (you can use this regardless of whether you're using a database adapter). It's passed the (possibly mutated) account object from the `signIn` callback.
 
 ```ts
 async jwt({ token, account }) {
@@ -327,7 +329,7 @@ async jwt({ token, account }) {
 }
 ```
 
-here we're setting a single `userId` onto our token that's either the syndId we just looked up, or the `providerAccountId` already attached to the provider account. If you're curious about the `??=` operator, that's the [nullish coalescing assignment operator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Nullish_coalescing_assignment).
+We're setting a single `userId` onto our token that's either the syndId we just looked up, or the `providerAccountId` already attached to the provider account. If you're curious about the `??=` operator, that's the [nullish coalescing assignment operator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Nullish_coalescing_assignment).
 
 Lastly, the `session` callback gives you an opportunity to shape the session object that's returned when your application code calls `locals.getSession()`
 
@@ -345,6 +347,6 @@ now our code could look for the `legacySync` property, to discern that a given l
 
 ## Wrapping up
 
-We've covered a broad swatch of topics in this post. We've seen how to set up Next auth in a SvelteKit project using the new @auth/core library. We saw how to set up providers, adapters, and then took a look at various callbacks that allow us to customize our authentication flows.
+We've covered a broad range of topics in this post. We've seen how to set up Next auth in a SvelteKit project using the new `@auth/core` library. We saw how to set up providers, adapters, and then took a look at various callbacks that allow us to customize our authentication flows.
 
 Best of all, the tools we saw will work with SvelteKit, or Next, so if you're already an experienced Next user, a lot of this was probably familiar. If not, much of what you saw will be portable to Next if you ever find yourself using that.
