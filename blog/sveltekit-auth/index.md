@@ -248,15 +248,17 @@ But one topic we haven't discussed is authentication persistence. Right now our 
 
 ### Adapters
 
-The mechanism by which next-auth persists our authentication sessions is via [adapters](https://next-auth.js.org/adapters/overview). As before, there are many to choose from, but alluded to above, we'll use [DynamoDB](https://next-auth.js.org/adapters/dynamodb). The docs do a great job of explaining everything, but we'll cover the high points. You'll need an AWS account, and store its credentials in environment variables like before. Beyond that, you'll need a DynamoDB instance created, with keys, indexes and a ttl field configured as the adapter expects. The [adapter docs](https://next-auth.js.org/adapters/dynamodb#schema) spell out the expected schema, and even provide a CloudFormation template.
+The mechanism by which next-auth persists our authentication sessions is via [adapters](https://next-auth.js.org/adapters/overview). As before, there are many to choose from, but as we alluded above, we'll use [DynamoDB](https://next-auth.js.org/adapters/dynamodb). The docs do a great job of explaining everything, but we'll cover the high points. You'll need an AWS account, and store its credentials in environment variables like before. Beyond that, you'll need a DynamoDB instance created, with keys, indexes and a ttl field configured as the adapter expects. The [adapter docs](https://next-auth.js.org/adapters/dynamodb#schema) spell out the expected schema, and even provide a CloudFormation template.
 
-We'll assume you've got your DynamoDB set up, and look at the code to connect it. First, we'll install some new libraries
+To my knowledge there's no turnkey way to take a Cloudformation template for a resource, and just make it exist. That said, manually creating the various keys, index, and ttl field does not take long. For brevity, we'll leave that tedium out of this post.
+
+We'll assume you've got your DynamoDB instance set up, and look at the code to connect it. First, we'll install some new libraries
 
 ```
 npm i @next-auth/dynamodb-adapter @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb
 ```
 
-Now we'll go back to our hooks.server.ts file, and whip up the boilerplate (which, to be honest, it mostly copied right from the docs).
+Now we'll go back to our hooks.server.ts file, and whip up some boilerplate (which, to be honest, it mostly copied right from the docs).
 
 ```ts
 import { GOOGLE_AUTH_CLIENT_ID, GOOGLE_AUTH_SECRET, AMAZON_ACCESS_KEY, AMAZON_SECRET_KEY, DYNAMO_AUTH_TABLE, AUTH_SECRET } from "$env/static/private";
