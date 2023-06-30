@@ -14,8 +14,6 @@ const { title: titleStyles, list: listStyles, avatar: avatarStyles } = styles;
 
 import AvatarImg from "../public/assets/home/avatar.jpg";
 
-import { NextWrapper } from "next-blurhash-previews";
-
 export default function Index({ allPosts }) {
   return (
     <>
@@ -27,9 +25,7 @@ export default function Index({ allPosts }) {
           <section className={titleStyles}>
             <div className="blog-header">
               <span>
-                <NextWrapper sync={true} blurhash="L9Fhx14T144o5Q01~p-5lVD%x[tl" width="125" height="125">
-                  <Image src={AvatarImg} height={125} width={125} loading="eager" />
-                </NextWrapper>
+                <Image src={AvatarImg} height={125} width={125} placeholder="blur" />
               </span>
               <div className="titles">
                 <h1>Strangely Typed</h1>
