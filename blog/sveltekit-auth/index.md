@@ -1,6 +1,6 @@
 ---
 title: Using NextAuth with SvelteKit
-date: "2023-02-10T10:00:00.000Z"
+date: "2024-04-16T10:00:00.000Z"
 description: An introduction to next-auth, with SvelteKit
 ---
 
