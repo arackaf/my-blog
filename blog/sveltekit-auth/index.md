@@ -4,9 +4,9 @@ date: "2024-04-16T10:00:00.000Z"
 description: An introduction to next-auth, with SvelteKit
 ---
 
-SvelteKit is an exciting, recent application framework for shipping performant web applications with Svelte. I've previously written an introduction on it [here](https://css-tricks.com/getting-started-with-sveltekit/), as well as a deeper dive on data handling and caching [here](https://css-tricks.com/caching-data-in-sveltekit/).
+SvelteKit is an exciting, somewhat recent application framework for shipping performant web applications with Svelte. I've previously written an introduction on it [here](https://css-tricks.com/getting-started-with-sveltekit/), as well as a deeper dive on data handling and caching [here](https://css-tricks.com/caching-data-in-sveltekit/).
 
-For this post we'll see how to integrate next-auth into a SvelteKit web app. It might seem surprising to hear that next-auth can work with SvelteKit, but next-auth has gotten popular enough that much of it has been split into a framework-agnostic package of [@auth/core](https://www.npmjs.com/package/@auth/core). To my knowledge, SvelteKit is the first framework to be extended to work with this, which isn't too surprising since Vercel employs the lead maintainers of SvelteKit.
+For this post we'll see how to integrate next-auth into a SvelteKit app. It might seem surprising to hear that next-auth can work with SvelteKit, but next-auth has gotten popular enough that much of it has been split into a framework-agnostic package of [@auth/core](https://www.npmjs.com/package/@auth/core).
 
 For this post we'll cover the basic config for `@auth/core`: we'll add a Google Provider, and configure our sessions to persist in DynamoDB.
 
@@ -14,17 +14,17 @@ The code for everything [is here](https://github.com/arackaf/sveltekit-next-auth
 
 ## The initial setup
 
-We'll build the absolute minimum skeleton app needed to demonstrate authentication. We'll have our root layout read whether the user is logged in, and show a link to content that's limited to logged in users, and a logout button if so; or a login button if not. We'll also set up an auth check with redirect in the logged-in content in case the user tries to manually browse to it.
+We'll build the absolute minimum skeleton app needed to demonstrate authentication. We'll have our root layout read whether the user is logged in, and show a link to content that's limited to logged in users, and a logout button if so; or a login button if not. We'll also set up an auth check with redirect in the logged-in content in case the user browses to our root url when logged in (which they usually will).
 
-Let's install some packages we'll be using
+Let's create a SvelteKit project if we don't have one already, using the insutructions [here](https://kit.svelte.dev/docs/creating-a-project). Chose "Skeleton Project" when prompted.
+
+Now let's install some packages we'll be using
 
 ```
 npm i @auth/core @auth/sveltekit
 ```
 
-Let's quickly cover the setup code, and then dive into the auth.
-
-We'll create a layout server loader to hold our logged-in state, which for now is always false.
+Let's create a top-level layout that will use our auth data. First, our server loader, in a file named `+layout.server.ts`. This will hold our logged-in state, which for now is always false.
 
 ```ts
 export const load = async ({ locals }) => {
@@ -34,7 +34,7 @@ export const load = async ({ locals }) => {
 };
 ```
 
-and now some layout code
+Now let's make the actual layout, in `+layout.svelte` and now some markup
 
 ```html
 <script lang="ts">
@@ -63,24 +63,26 @@ and now some layout code
 </main>
 ```
 
-Let's put this into the root `+page.svelte` file, just so there's something there.
+There should be a root `+page.svelte` file that was generated when you scaffolded the project, with something like this in there
 
 ```html
 <h1>This is the home page</h1>
 <p>Visit <a href="https://kit.svelte.dev">kit.svelte.dev</a> to read the SvelteKit docs</p>
 ```
 
-Next, we'll create a route called `logged-in` and add our loader to it
+Feel free to just leave it.
+
+Next, we'll create a route called `logged-in`. Create a folder in `routes` called `logged-in` and create a `+page.server.ts`.
 
 ```ts
 import { redirect } from "@sveltejs/kit";
 
 export const load = async ({}) => {
-  throw redirect(302, "/");
+  redirect(302, "/");
 };
 ```
 
-and some very basic markup
+Now let's create the page itself, in `+page.svelte` and add some markup
 
 ```html
 <h3>This is the logged in page</h3>
@@ -92,7 +94,7 @@ And that's about it. I've omitted some styles for brevity. Check out the GitHub 
 
 Let's get started. We'll take things step by step.
 
-First, create an environment variable in your .env file. I'll call it `AUTH_SECRET` but you can of course call it whatever you want. If you're looking to deploy this to Vercel, be sure to add your environment variable in your project's settings.
+First, create an environment variable in your .env file called `AUTH_SECRET`. If you're looking to deploy this to Vercel, be sure to add your environment variable in your project's settings, and add a random string that's at least 32 characters.
 
 Next, create a `hooks.server.ts` (or .js) file directly under `src`. The docs for this file [are here](https://kit.svelte.dev/docs/hooks#server-hooks), but it essentially allows you to add application-wide wide side effects. Authentication easily falls under this, which is why we configure it here.
 
@@ -112,7 +114,7 @@ const auth = SvelteKitAuth({
   secret: AUTH_SECRET,
 });
 
-export const handle = auth;
+export const handle = auth.handle;
 ```
 
 We tell next-auth to store our authentication info in a jwt token, and configure a max age for the session as 1 year. We provide our secret. And we provide a (currently empty) array of providers.
@@ -148,15 +150,12 @@ and then add our provider
 
 ```ts
 	providers: [
-		// @ts-ignore
 		GoogleProvider({
 			clientId: GOOGLE_AUTH_CLIENT_ID,
 			clientSecret: GOOGLE_AUTH_SECRET
 		})
 	],
 ```
-
-the `@ts-ignore` is unfortunate, and the result of a bug in the auth typings which is documented in [this issue](https://github.com/nextauthjs/next-auth/issues/2681).
 
 Unfortunately if we try to login now, we're greeted by an error
 
@@ -231,7 +230,7 @@ export const load = async ({ parent }) => {
   const parentData = await parent();
 
   if (!parentData.loggedIn) {
-    throw redirect(302, "/");
+    redirect(302, "/");
   }
 };
 ```
@@ -248,9 +247,9 @@ But one topic we haven't discussed is authentication persistence. Right now our 
 
 ### Adapters
 
-The mechanism by which next-auth persists our authentication sessions is [adapters](https://next-auth.js.org/adapters/overview). As before, there are many to choose from, but as we alluded above, we'll use [DynamoDB](https://next-auth.js.org/adapters/dynamodb). Compared to providers, the setup for database adapters is a bit more involved, and a bit more tedious. In order to keep the focus of this post on next-auth, we won't walk through setting up each and every key field, ttl setting, and gsi—to say nothing of AWS credentials if you don't have them already. If you've never used Dynamo and are curious, I wrote an introduction [here](https://adamrackis.dev/blog/dynamo-introduction). If you're not really interested in Dynamo, this section will show you the basics of setting up database adapters, which you can apply to any of the (many) others you might prefer to use.
+The mechanism by which next-auth persists our authentication sessions is [database adapters](https://authjs.dev/getting-started/database). As before, there are many to choose from, but as we alluded above, we'll use [DynamoDB](https://authjs.dev/getting-started/adapters/dynamodb). Compared to providers, the setup for database adapters is a bit more involved, and a bit more tedious. In order to keep the focus of this post on next-auth, we won't walk through setting up each and every key field, ttl setting, and gsi—to—say nothing of AWS credentials if you don't have them already. If you've never used Dynamo and are curious, I wrote an introduction [here](https://adamrackis.dev/blog/dynamo-introduction). If you're not really interested in Dynamo, this section will show you the basics of setting up database adapters, which you can apply to any of the (many) others you might prefer to use.
 
-That said, if you're interested in implementing this yourself, the [adapter docs](https://next-auth.js.org/adapters/dynamodb#schema) provide CDK and CloudFormation templates for the Dynamo table you need, or if you want a low-dev-ops solution, it even lists out the keys, ttl and gsi structure, and makes manual setup pretty painless.
+That said, if you're interested in implementing this yourself, the [adapter docs](https://authjs.dev/getting-started/adapters/dynamodb#advanced-usage) provide CDK and CloudFormation templates for the Dynamo table you need, or if you want a low-dev-ops solution, it even lists out the keys, ttl and gsi structure [here](https://authjs.dev/getting-started/adapters/dynamodb#default-schema), which is pretty painless to just set up.
 
 We'll assume you've got your DynamoDB instance set up, and look at the code to connect it. First, we'll install some new libraries
 
