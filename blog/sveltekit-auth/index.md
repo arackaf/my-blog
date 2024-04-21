@@ -157,6 +157,20 @@ and then add our provider
 	],
 ```
 
+and then export our auth handler as our hooks handler.
+
+```ts
+export const handle = auth.handle;
+```
+
+Note that if you had other handlers you wanted SvelteKit to run, you can use the sequence helper:
+
+```ts
+import { sequence } from "@sveltejs/kit/hooks";
+
+export const handle = sequence(otherHandleFn, auth.handle);
+```
+
 Unfortunately if we try to login now, we're greeted by an error
 
 ![Login error](/sveltekit-auth/img4-bad-login.jpg)
@@ -254,10 +268,8 @@ That said, if you're interested in implementing this yourself, the [adapter docs
 We'll assume you've got your DynamoDB instance set up, and look at the code to connect it. First, we'll install some new libraries
 
 ```
-npm i @next-auth/dynamodb-adapter @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb
+npm i @auth/dynamodb-adapter @aws-sdk/lib-dynamodb @aws-sdk/client-dynamodb
 ```
-
-Yes, the Dynamo adapter is still under the @next-auth namespace. I imagine that might change at some point in the future, so be aware of that depending on how long after publication you're reading this.
 
 First, make sure your dynamo table name, as well as your AWS credentials are in environment variables
 
@@ -301,7 +313,7 @@ and now, after logging out, and logging back in, we should see some entries in o
 
 ## Authentication hooks
 
-Next-auth provides a number of callbacks you can hook into, if you want to do some custom processing.
+auth-core provides a number of callbacks you can hook into, if you want to do some custom processing.
 
 The `signIn` callback is invoked, predictably, after a successful login. It's passed an account object from whatever provider was used, Google in our case. One use case with this callback could be to optionally look up, and sync legacy user metadata you might have stored for your users before switching over to OUath authentication with established providers.
 
@@ -343,6 +355,24 @@ async session({ session, user, token }: any) {
 ```
 
 now our code could look for the `legacySync` property, to discern that a given login has already sync'd with a legacy account, and therefore know not to ever prompt the user about this.
+
+## Extending the types
+
+Let's say we do extand the default session type, like we did above. Let's see how we can tell TypeScript about the things we're adding in. Basically we need to use a TypeScript feature called interface merging. We can basically just re-declare an interface that already exists, add stuff, and then TypeScript does the grunt work of merging (hence the name) the _original type_ along with the changes we've made.
+
+Let's see it in action.
+
+```ts
+import { DefaultSession } from "@auth/core/types";
+
+declare module "@auth/core/types" {
+  interface Session {
+    userId: string;
+    legacySync: boolean;
+    user: DefaultSession["user"];
+  }
+}
+```
 
 ## Wrapping up
 
