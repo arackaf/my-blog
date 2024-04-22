@@ -360,7 +360,7 @@ now our code could look for the `legacySync` property, to discern that a given l
 
 Let's say we do extand the default session type, like we did above. Let's see how we can tell TypeScript about the things we're adding. Basically, we need to use a TypeScript feature called interface merging. We essentially re-declare an interface that already exists, add stuff, and then TypeScript does the grunt work of merging (hence the name) the _original type_ along with the changes we've made.
 
-Let's see it in action.
+Let's see it in action. Go to the `app.d.ts` file SvelteKit adds to the root src folder, and add this
 
 ```ts
 import { DefaultSession } from "@auth/core/types";
