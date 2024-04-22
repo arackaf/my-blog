@@ -358,7 +358,7 @@ now our code could look for the `legacySync` property, to discern that a given l
 
 ## Extending the types
 
-Let's say we do extand the default session type, like we did above. Let's see how we can tell TypeScript about the things we're adding in. Basically we need to use a TypeScript feature called interface merging. We can basically just re-declare an interface that already exists, add stuff, and then TypeScript does the grunt work of merging (hence the name) the _original type_ along with the changes we've made.
+Let's say we do extand the default session type, like we did above. Let's see how we can tell TypeScript about the things we're adding. Basically, we need to use a TypeScript feature called interface merging. We essentially re-declare an interface that already exists, add stuff, and then TypeScript does the grunt work of merging (hence the name) the _original type_ along with the changes we've made.
 
 Let's see it in action.
 
@@ -373,6 +373,23 @@ declare module "@auth/core/types" {
   }
 }
 ```
+
+We have to put the interface in the right module, and then we add what we need to add.
+
+The astute among you might wonder why we have to re-add the user object. It's already defined in the original type, so we shouldn't have to add it again. At time of writing I'm seeing odd behavior, where svelte-check reports an error if I don't add it, here. Oddly enough, just _importing_ `DefaultSession` is enough to make the error go away, like this
+
+```ts
+import { DefaultSession } from "@auth/core/types";
+
+declare module "@auth/core/types" {
+  interface Session {
+    userId: string;
+    legacySync: boolean;
+  }
+}
+```
+
+which is incredibly weird. So I just opted to be explicit, and re-add a property I shouldn't have to add.
 
 ## Wrapping up
 
