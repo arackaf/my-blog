@@ -34,7 +34,7 @@ export const load = async ({ locals }) => {
 };
 ```
 
-Now let's make the actual layout, in `+layout.svelte` and now some markup
+Now let's make the actual layout, in `+layout.svelte` with some basic markup
 
 ```html
 <script lang="ts">
@@ -72,7 +72,7 @@ There should be a root `+page.svelte` file that was generated when you scaffolde
 
 Feel free to just leave it.
 
-Next, we'll create a route called `logged-in`. Create a folder in `routes` called `logged-in` and create a `+page.server.ts`.
+Next, we'll create a route called `logged-in`. Create a folder in `routes` called `logged-in` and create a `+page.server.ts` which for now will always just redirect you out.
 
 ```ts
 import { redirect } from "@sveltejs/kit";
@@ -92,9 +92,9 @@ And that's about it. I've omitted some styles for brevity. Check out the GitHub 
 
 ## Adding Auth
 
-Let's get started. We'll take things step by step.
+Let's get started with the actual authentication. We'll take things step by step.
 
-First, create an environment variable in your .env file called `AUTH_SECRET`. If you're looking to deploy this to Vercel, be sure to add your environment variable in your project's settings, and add a random string that's at least 32 characters.
+First, create an environment variable in your .env file called `AUTH_SECRET` and set it to a random string that's at least 32 characters. If you're looking to deploy this to Vercel, be sure to add your environment variable in your project's settings.
 
 Next, create a `hooks.server.ts` (or .js) file directly under `src`. The docs for this file [are here](https://kit.svelte.dev/docs/hooks#server-hooks), but it essentially allows you to add application-wide wide side effects. Authentication easily falls under this, which is why we configure it here.
 
@@ -117,7 +117,7 @@ const auth = SvelteKitAuth({
 export const handle = auth.handle;
 ```
 
-We tell next-auth to store our authentication info in a jwt token, and configure a max age for the session as 1 year. We provide our secret. And we provide a (currently empty) array of providers.
+We tell next-auth to store our authentication info in a jwt token, and configure a max age for the session as 1 year. We provide our secret, and a (currently empty) array of providers.
 
 ## Adding our provider
 
@@ -261,7 +261,7 @@ But one topic we haven't discussed is authentication persistence. Right now our 
 
 ### Adapters
 
-The mechanism by which next-auth persists our authentication sessions is [database adapters](https://authjs.dev/getting-started/database). As before, there are many to choose from, but as we alluded above, we'll use [DynamoDB](https://authjs.dev/getting-started/adapters/dynamodb). Compared to providers, the setup for database adapters is a bit more involved, and a bit more tedious. In order to keep the focus of this post on next-auth, we won't walk through setting up each and every key field, ttl setting, and gsi—to—say nothing of AWS credentials if you don't have them already. If you've never used Dynamo and are curious, I wrote an introduction [here](https://adamrackis.dev/blog/dynamo-introduction). If you're not really interested in Dynamo, this section will show you the basics of setting up database adapters, which you can apply to any of the (many) others you might prefer to use.
+The mechanism by which next-auth persists our authentication sessions is [database adapters](https://authjs.dev/getting-started/database). As before, there are many to choose from; we'll use [DynamoDB](https://authjs.dev/getting-started/adapters/dynamodb). Compared to providers, the setup for database adapters is a bit more involved, and a bit more tedious. In order to keep the focus of this post on next-auth, we won't walk through setting up each and every key field, ttl setting, and gsi—to say nothing of AWS credentials if you don't have them already. If you've never used Dynamo and are curious, I wrote an introduction [here](https://adamrackis.dev/blog/dynamo-introduction). If you're not really interested in Dynamo, this section will show you the basics of setting up database adapters, which you can apply to any of the (many) others you might prefer to use.
 
 That said, if you're interested in implementing this yourself, the [adapter docs](https://authjs.dev/getting-started/adapters/dynamodb#advanced-usage) provide CDK and CloudFormation templates for the Dynamo table you need, or if you want a low-dev-ops solution, it even lists out the keys, ttl and gsi structure [here](https://authjs.dev/getting-started/adapters/dynamodb#default-schema), which is pretty painless to just set up.
 
