@@ -363,33 +363,20 @@ Let's say we do extand the default session type, like we did above. Let's see ho
 Let's see it in action. Go to the `app.d.ts` file SvelteKit adds to the root src folder, and add this
 
 ```ts
-import { DefaultSession } from "@auth/core/types";
-
 declare module "@auth/core/types" {
   interface Session {
     userId: string;
+    provider: string;
     legacySync: boolean;
-    user: DefaultSession["user"];
   }
 }
+
+export {};
 ```
 
 We have to put the interface in the right module, and then we add what we need to add.
 
-The astute among you might wonder why we have to re-add the user object. It's already defined in the original type, so we shouldn't have to add it again. At time of writing I'm seeing odd behavior, where svelte-check reports an error if I don't add it, here. Oddly enough, just _importing_ `DefaultSession` is enough to make the error go away, like this
-
-```ts
-import { DefaultSession } from "@auth/core/types";
-
-declare module "@auth/core/types" {
-  interface Session {
-    userId: string;
-    legacySync: boolean;
-  }
-}
-```
-
-which is incredibly weird. So I just opted to be explicit, and re-add a property I shouldn't have to add.
+Note the odd `export {};` at the end. There has to be at least one esm import or export, so TypeScript treats the file correctly. SvelteKit by default adds this, but make sure it's present in your final product.
 
 ## Wrapping up
 
