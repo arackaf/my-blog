@@ -1,5 +1,35 @@
 export const externalPosts = [
   {
+    title: "Using Auth.js with SvelteKit",
+    date: "2024-04-29T10:00:00.000Z",
+    description: "A guide to implementing authentication with Auth.js in SvelteKit",
+    url: "https://frontendmasters.com/blog/using-nextauth-now-auth-js-with-sveltekit/",
+  },
+  {
+    title: "Caching Data in SvelteKit",
+    date: "2023-02-01T10:00:00.000Z",
+    description: "A deep dive into the various ways data can be cached in SvelteKit",
+    url: "https://css-tricks.com/caching-data-in-sveltekit/",
+  },
+  {
+    title: "Getting Started With SvelteKit",
+    date: "2023-01-23T10:00:00.000Z",
+    description: "An introduction to SvelteKit, a Svelte-based application Meta Framework",
+    url: "https://css-tricks.com/getting-started-with-sveltekit/",
+  },
+  {
+    title: "Using Web Components With Next (or Any SSR Framework)",
+    date: "2022-10-05T10:00:00.000Z",
+    description: "A guide to using web components in application metaframeworks like Next",
+    url: "https://css-tricks.com/using-web-components-with-next-or-any-ssr-framework/",
+  },
+  {
+    title: "Introducing Shoelace, a Framework-Independent Component-Based UX Library",
+    date: "2022-10-04T10:00:00.000Z",
+    description: "An introduction to Shoelace, a web component-based, ux component library",
+    url: "https://css-tricks.com/shoelace-component-frameowrk-introduction/",
+  },
+  {
     title: "Building Interoperable Web Components That Even Work With React",
     date: "2022-06-07T10:00:00.000Z",
     description: "An introduction to building web components, and then using them with JavaScript frameworks like Svelte and React",

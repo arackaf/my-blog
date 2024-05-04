@@ -79,7 +79,7 @@ export default function Index({ allPosts }) {
                 </h3>
                 <small>
                   <DateFormatter dateString={post.date}></DateFormatter>
-                  {post.url ? <span> on css-tricks.com</span> : ""}
+                  {post.url ? <span> on {post.url.indexOf("css-tricks.com") >= 0 ? "css-tricks.com" : "Frontend Masters"}</span> : ""}
                 </small>
                 <p>{post.description}</p>
               </div>
