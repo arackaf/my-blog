@@ -80,9 +80,33 @@ To see pre-fetching in action, we'll use [Astro](https://astro.build/). Astro is
 
 The repo for the code I'll be showing is [here](https://github.com/arackaf/prefetch-blog-post-astro). It's not deployed anywhere, for fear of this blog posting getting popular, and me getting a big bill from Vercel, or similar. BUT the project has no external dependencies, so you can clone, install, and run locally. You could also deploy this to Vercel yourself if you really want to see it in action.
 
-I whipped up a very basic, very ugly web page that hits some endpoints to pull down an hypothetical list of books, and some metadata about the library, which renders the books once ready. The endpoints return static data, so which is why there's no external dependencies. I added a manual delay of 700ms to these endpoints (sometimes you have slow services and there's nothing you can do about it), and I also installed and imported some large JavaScript libraries (d3, framer-mostion, and recharts) to make sure hydration would take a moment or two, like with most production applications. And since these endpoints are slow, they're a poor candidate for server fetching.
+I whipped up a very basic, very ugly web page that hits some endpoints to pull down an hypothetical list of books, and some metadata about the library, which renders the books once ready. It looks like this
+
+![Network diagram](/prefetch/img7a-book-list.jpg)
+
+The endpoints return static data, which is why there's no external dependencies. I added a manual delay of 700ms to these endpoints (sometimes you have slow services and there's nothing you can do about it), and I also installed and imported some large JavaScript libraries (d3, framer-mostion, and recharts) to make sure hydration would take a moment or two, like with most production applications. And since these endpoints are slow, they're a poor candidate for server fetching.
 
 So let's by necessity request them client-side, see the performance of the page, and then add pre-fetching to see how that improves things.
+
+The client-side fetching looks like this:
+
+```tsx
+useEffect(() => {
+  fetch("/api/books")
+    .then(resp => resp.json())
+    .then(books => {
+      setBooks(books);
+    });
+
+  fetch("/api/books-count")
+    .then(resp => resp.json())
+    .then(booksCountResp => {
+      setCount(booksCountResp.count);
+    });
+}, []);
+```
+
+nothing fancy, or even resilient to error handling for that matter. But perfect for our purposes.
 
 ### Network diagram without pre-fetching
 
