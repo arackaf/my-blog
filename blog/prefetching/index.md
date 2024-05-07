@@ -70,7 +70,7 @@ But Astro, and Next pages directory do not support this. What if we're using tho
 
 ## Prefetching to the rescue
 
-The web platform has a feature called [prefetching](https://caniuse.com/link-rel-prefetch). More specifically, the web platform lets us add a `<link>` tag to the head section of our html page, with a `rel="prefetch"` attribute, and an `href` attribute of the url we want to prefetch. We can even put service endpoint calls here, so long as they use the GET verb. If we need to pre-fetch data from an endpoint that uses POST, you'll need to proxy it through an endpoint that uses GET.
+The web platform has a feature called [prefetching](https://caniuse.com/link-rel-prefetch). This lets us add a `<link>` tag to the head section of our html page, with a `rel="prefetch"` attribute, and an `href` attribute of the url we want to prefetch. We can put service endpoint calls here, so long as they use the GET verb. If we need to pre-fetch data from an endpoint that uses POST, you'll need to proxy it through an endpoint that uses GET. It's worth noting that you can also prefetch with an http header if that's more convenient; see [this post](https://web.dev/articles/codelab-two-ways-to-prefetch) for more info.
 
 When we do this, our page will start pre-fetching our resources as soon as the browser parses the link tag. Since it's in the `<head>`, that means it'll start pre-fetching at the same time our script, and css tags and requested. So we no longer need to wait until our script tags load, parse, and hydrate our app. Now the data we need will start pre-fetching immediately. When hydration does complete, and our application code requests those same endpoints, the browser will be smart enough to serve that data from the _prefetch cache_.
 
@@ -78,9 +78,9 @@ When we do this, our page will start pre-fetching our resources as soon as the b
 
 To see pre-fetching in action, we'll use [Astro](https://astro.build/). Astro is a wonderful web framework that doesn't get nearly enough attention. One of the very few things it can't do is out-of-order streaming (for now). But let's see how we can improve life with pre-fetching.
 
-The repo for the code I'll be showing is [here](https://github.com/arackaf/prefetch-blog-post-astro). It's not deployed anywhere, for fear of this blog posting getting popular, and me getting a big bill from Vercel, or similar. BUT the project has no external dependencies, so you can clone, install, and run locally. You could also deploy this to Vercel yourself if you really want to see it in action.
+The repo for the code I'll be showing is [here](https://github.com/arackaf/prefetch-blog-post-astro). It's not deployed anywhere, for fear of this blog posting getting popular, and me getting a big bill from Vercel. BUT the project has no external dependencies, so you can clone, install, and run locally. You could also deploy this to Vercel yourself if you really want to see it in action.
 
-I whipped up a very basic, very ugly web page that hits some endpoints to pull down an hypothetical list of books, and some metadata about the library, which renders the books once ready. It looks like this
+I whipped up a very basic, very ugly web page that hits some endpoints to pull down a hypothetical list of books, and some metadata about the library, which renders the books once ready. It looks like this
 
 ![Network diagram](/prefetch/img7a-book-list.jpg)
 
@@ -114,7 +114,7 @@ Running this project, deployed to Vercel, my network diagram looks like this
 
 ![Network diagram](/prefetch/img8-network-diagram-no-prefetch.jpg)
 
-Notice all of the js, and css resources which need to be requested, and processed before our client-side fetch is started.
+Notice all of the js, and css resources which need to be requested, and processed before our client-side fetches start (on the last two lines).
 
 ### Adding pre-fetching
 
@@ -126,7 +126,7 @@ First, in the root layout, let's add this in the head section
 <slot name="head"></slot>
 ```
 
-this gives us the ability to (but does not require us to) add content to our document's head. This is exactly what we need. Now we can make a PrefetchBooks React component, like this
+this gives us the ability to (but does not require us to) add content to our document's head. This is exactly what we need. Now we can make a PrefetchBooks React component
 
 ```tsx
 import type { FC } from "react";
@@ -149,7 +149,7 @@ and simply render it in our prefetching page, like so
 
 note the slot attribute on the React component, which tells Astro (not React) where to put this content.
 
-And with that, if we run that page, we will see our link tags in the head
+And with that, if we run _that_ page, we'll see our link tags in the head
 
 ![Network diagram](/prefetch/img9-link-in-head.jpg)
 
@@ -169,7 +169,7 @@ When I re-run the same test on the pre-fetched version, things improved about a 
 
 ![Network diagram](/prefetch/img12-lighthouse-after.jpg)
 
-It's still not _good_ but it never will be until you can get your backend fast. But with some intelligent, targetted pre-fetching, you can at least improve things.
+Definitely much better, but still not _good_; but it never will be until you can get your backend fast. But with some intelligent, targetted pre-fetching, you can at least improve things.
 
 ## Parting thoughts
 
