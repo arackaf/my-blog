@@ -32,13 +32,13 @@ This act of re-rendering the app client side is called _hydration_. And once it'
 
 Let's take a look at what our request looks like in this new (old) server rendered world
 
-![SPA request](/prefetch/img2-ssr-request.jpg)
+![SSR](/prefetch/img2-ssr-request.jpg)
 
 And that's _great_. The user sees the full page much, much sooner. Sure, it's not _interactive_ yet, but if you're not shipping down obscene amount of JavaScript, there's a _really_ good chance hydration will finish before the user can manage to click on any buttons.
 
 So, what's the catch? Well, what if our data are slow to load (on the server, or otherwise).
 
-![SPA request](/prefetch/img3-ssr-slow-request.jpg)
+![Slow ssr request](/prefetch/img3-ssr-slow-request.jpg)
 
 If you think about it, depending on circumstances this could be _worse_ than the client rendered page we started with. Even though we needed multiple round trips to the server to get data, at least we were displaying a shell of a page quickly. Here, the initial request to the server will just hang and wait as long as needed for that data to load on the server, before sending down the full page. To the user, their browser (and your page) could appear unresponsive, and they might just give up and go back.
 
@@ -48,19 +48,19 @@ What if we could have the best of all worlds. What if we could server render, li
 
 Let's take a hypothetical example:
 
-![SPA request](/prefetch/img4-ooo-streaming-1.jpg)
+![Streaming](/prefetch/img4-ooo-streaming-1.jpg)
 
 Now let's pretend the `data abd`, and `data xyz` are slow to load.
 
-![SPA request](/prefetch/img5-ooo-streaming-2.jpg)
+![Streaming](/prefetch/img5-ooo-streaming-2.jpg)
 
 With out-of-order streaming we can load the todo data load on the server, and send the page with just that data down to the user, immediately. The other two pieces of data have not loaded, yet, so our UI will display some manner of loading indicator. When the next piece of data is ready, the server pushes it down
 
-![SPA request](/prefetch/img6-ooo-streaming-3.jpg)
+![Streaming](/prefetch/img6-ooo-streaming-3.jpg)
 
 and again
 
-![SPA request](/prefetch/img7-ooo-streaming-4.jpg)
+![Streaming](/prefetch/img7-ooo-streaming-4.jpg)
 
 ### What's the catch?
 
@@ -74,6 +74,81 @@ The web platform has a feature called [prefetching](https://caniuse.com/link-rel
 
 When we do this, our page will start pre-fetching our resources as soon as the browser parses the link tag. Since it's in the `<head>`, that means it'll start pre-fetching at the same time our script, and css tags and requested. So we no longer need to wait until our script tags load, parse, and hydrate our app. Now the data we need will start pre-fetching immediately. When hydration does complete, and our application code requests those same endpoints, the browser will be smart enough to serve that data from the _prefetch cache_.
 
-TODO:
+### Let's see prefetching in action
 
-Show real application code, without prefetch, with prefetch, and the lighthouse LCP values either way. Also show the network tab, with the prefetch, and real request, with prefetch cache being used. The code is written, but in SvelteKit. I want to try to move it to Astro, since Astro actually doesn't support streaming, so is a better fit.
+To see pre-fetching in action, we'll use [Astro](https://astro.build/). Astro is a wonderful web framework that doesn't get nearly enough attention. One of the very few things it can't do is out-of-order streaming (for now). But let's see how we can improve life with pre-fetching.
+
+The repo for the code I'll be showing is [here](https://github.com/arackaf/prefetch-blog-post-astro). It's not deployed anywhere, for fear of this blog posting getting popular, and me getting a big bill from Vercel, or similar. BUT the project has no external dependencies, so you can clone, install, and run locally. You could also deploy this to Vercel yourself if you really want to see it in action.
+
+I whipped up a very basic, very ugly web page that hits some endpoints to pull down an hypothetical list of books, and some metadata about the library, which renders the books once ready. The endpoints return static data, so which is why there's no external dependencies. I added a manual delay of 700ms to these endpoints (sometimes you have slow services and there's nothing you can do about it), and I also installed and imported some large JavaScript libraries (d3, framer-mostion, and recharts) to make sure hydration would take a moment or two, like with most production applications. And since these endpoints are slow, they're a poor candidate for server fetching.
+
+So let's by necessity request them client-side, see the performance of the page, and then add pre-fetching to see how that improves things.
+
+### Network diagram without pre-fetching
+
+Running this project, deployed to Vercel, my network diagram looks like this
+
+![Network diagram](/prefetch/img8-network-diagram-no-prefetch.jpg)
+
+Notice all of the js, and css resources which need to be requested, and processed before our client-side fetch is started.
+
+### Adding pre-fetching
+
+I've added a second page to this project, called `with-prefetch`, which is the same as the index page. Except now, let's see how we can add some `<link>` tags to request these resources sooner.
+
+First, in the root layout, let's add this in the head section
+
+```html
+<slot name="head"></slot>
+```
+
+this gives us the ability to (but does not require us to) add content to our document's head. This is exactly what we need. Now we can make a PrefetchBooks React component, like this
+
+```tsx
+import type { FC } from "react";
+
+export const PrefetchBooks: FC<{}> = props => {
+  return (
+    <>
+      <link rel="prefetch" href="/api/books" as="fetch" />
+      <link rel="prefetch" href="/api/books-count" as="fetch" />
+    </>
+  );
+};
+```
+
+and simply render it in our prefetching page, like so
+
+```tsx
+<PrefetchBooks slot="head" />
+```
+
+note the slot attribute on the React component, which tells Astro (not React) where to put this content.
+
+And with that, if we run that page, we will see our link tags in the head
+
+![Network diagram](/prefetch/img9-link-in-head.jpg)
+
+And now let's look at our updated network diagram
+
+![Network diagram](/prefetch/img10-network-diagram-with-prefetch.jpg)
+
+Notice our endpoint calls now start immediately, on lines 3 and 4. Then later, in the last two lines, we see the real fetches being executed, at which point they just latch onto the pre-fetch calls already in flight.
+
+Let's put some hard numbers on this. When I ran a webpagetest mobile lighthouse analysis on the version of this page without the pre-fetch, I got the following.
+
+![Network diagram](/prefetch/img11-lighthouse-before.jpg)
+
+Note the LCP value: that's largest contentful paint. That's essentially telling us when things are _finished_ rendering. Remember, the lighthouse test simulates your site in the slowest mobile device imagineable, which is why it's 4.6 seconds.
+
+When I re-run the same test on the pre-fetched version, things improved about a second
+
+![Network diagram](/prefetch/img12-lighthouse-after.jpg)
+
+It's still not _good_ but it never will be until you can get your backend fast. But with some intelligent, targetted pre-fetching, you can at least improve things.
+
+## Parting thoughts
+
+I hope this post was useful. Hopefully all of your backend data requirements will be forever fast in your developer journies. But when they're not, prefetching resources is a useful tool to keep in your toolbelt.
+
+Happy coding!
