@@ -4,9 +4,13 @@ date: "2024-05-04T10:00:00.000Z"
 description: A guide to prefetching data for faster rendering, when ssr loading doesn't work
 ---
 
-This is a post about a seemingly boring topic: loading data. But not loading data using any particular framework or library; that's easy enough. For this post I'd like to take a step back, and look at _where_ data are loaded in various kinds of web application architectures, and how that impacts performance.
+This is a post about a boring\* topic: loading data.
 
-We'll start with client rendered single page applications, or spa's, and talk about some of the negative performance characteristics therein. Then we'll move on to server-rendered apps, and then talk about out-of-order streaming. To wrap things up, we'll talk about a surprisingly old, rarely talked about way to effectively load _slow_ data in a server-rendered application. Let's get started!
+<small>(\* Just kidding it will be amazing and engaging.)</small>
+
+Not _how_ to load data, but instead we'll take a step back, and look at _where_ to load data. Not in any particular framework, either, this is going to be more broadly about data loading in different web application architectures, and paricularly how that impacts performance.
+
+We'll start with client-rendered single-page applications (SPAs) and talk about some of the negative performance characteristics they may have. Then we'll move on to server-rendered apps, and then to the lesser-known out-of-order streaming model. To wrap up, we'll talk about a surprisingly old, rarely talked about way to effectively load _slow_ data in a server-rendered application. Let's get started!
 
 ## Client Rendering
 
