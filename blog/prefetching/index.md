@@ -38,7 +38,7 @@ There is a pretty clear solution here. The server _already has_ has the URL of t
 
 Somehow.
 
-This is how the web always worked with tools like PHP or asp.net. But when your app is written with a client-side JavaScript framework like React or Svelte, it's surprisingly tricky. These frameworks all have API's for rendering a component tree on the server, so the HTML could be sent down from the server. But if a component in the middle of that component tree needs data, how do you load it on the server, and then somehow inject it where it's needed? And then have the client acknowledge that data, and not re-request it. And of course, once you solve these problems and render your component tree, with data, on the server, you _still_ need to _re-render_ this component tree on the client, so your client-side code, like event handlers and such, start working.
+This is how the web always worked with tools like PHP or asp.net. But when your app is written with a client-side JavaScript framework like React or Svelte, it's surprisingly tricky. These frameworks all have API's for stringifying a component tree into HTML on the server, so that markup can be sent down to the browser. But if a component in the middle of that component tree needs data, how do you load it on the server, and then somehow inject it where it's needed? And then have the client acknowledge that data, and not re-request it. And of course, once you solve these problems and render your component tree, with data, on the server, you _still_ need to _re-render_ this component tree on the client, so your client-side code, like event handlers and such, start working.
 
 This act of re-rendering the app client side is called _hydration_. Once it's happened, we say that our app is _interactive_. Getting these things right is one of the main benefits modern application meta-frameworks like Next and SvelteKit provide.
 
@@ -46,11 +46,11 @@ Let's take a look at what our request looks like in this server-rendered setup:
 
 ![SSR](/prefetch/img2-ssr-request.jpg)
 
-That's _great_. The user sees the full page much, much sooner. Sure, it's not _interactive_ yet, but if you're not shipping down obscene amount of JavaScript, there's a _really_ good chance hydration will finish before the user can manage to click on any buttons.
+That's _great_. The user sees the full page much, much sooner. Sure, it's not _interactive_ yet, but if you're not shipping down obscene amounts of JavaScript, there's a _really_ good chance hydration will finish before the user can manage to click on any buttons.
 
 We won't get into all this, but Google themselves tell you this is much better for SEO as well.
 
-So, what's the catch? Well, what if our data is **slow to load**. Maybe our database is busy. Maybe it's a huge request. Maybe there is a network hiccup. It's not rare.
+So, what's the catch? Well, what if our data are **slow to load**. Maybe our database is busy. Maybe it's a huge request. Maybe there is a network hiccup. Or maybe you just depend on slow services you can't control. It's not rare.
 
 ![Slow SSR request](/prefetch/img3-ssr-slow-request.jpg)
 
@@ -142,7 +142,7 @@ First, in the root layout, let's add this in the head section
 <slot name="head"></slot>
 ```
 
-this gives us the ability to (but does not require us to) add content to our HTML documents `<head>`. This is exactly what we need. Now we can make a `PrefetchBooks` React component:
+this gives us the ability to (but does not require us to) add content to our HTML document's `<head>`. This is exactly what we need. Now we can make a `PrefetchBooks` React component:
 
 ```tsx
 import type { FC } from "react";
