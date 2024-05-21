@@ -399,3 +399,19 @@ as needed
 ```ts
 queryClient.prefetchQuery(makeBooksSearchQuery(search));
 ```
+
+## What about bundle size?
+
+When we did our react-query implementation, we changed our Books component to be a client component by adding the `"use client"` pragma. Some of you might be wondering if that will cause an increase in our bundle size, you're right. In the RSC version, that component only ever ran on the server. As a client component, it now has to run in both places, which will increase our bundle size a bit.
+
+Honestly I wouldn't worry about it, especially for apps like this, with lots of different data sources, which are interactive and updating. This demo only had a single mutation, but it was just that; a demo. If we were to build this app out for real, there'd be a ton of mutation points, each with potentially multiple queries in need of invalidation.
+
+If you're curious, it is technically possible to get the best of both worlds. You _could_ load data in an RSC, and then pass that data to the regular useQuery hook via the `initialData` prop. You can check [the docs](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery) for more info, but I honestly don't think it's worth it. You'd now need to define your data loading (the fetch call) in two places, or manually build an isomorphic fetch helper function to share between them. And then with actual data loading happening in RSCs, any navigations back to the same page (ie for querystrings) would re-fire those queries, when in reality react-query is already running those query udates client side, so you'd have to be certain to only ever use `window.history.pushState` like we talked about. `useQuery` doesn't suspend, so you wouldn't need transitions for those url changes. It should work, but I highly doubt the complexity would be worth it.
+
+Just use client components and let react-query remove the complexity with `useSuspenseHook`.
+
+## Wrapping up
+
+This was a _long_ post but I hope it was a valuable. Next's app directory is an incredible piece of infrastructure that let's us request data on the server, render, and even stream component content from that data, all using the single React component model we're all used to.
+
+There's some things to get right, but depending on the type of app you're building react-query, can simplify things a great deal.
