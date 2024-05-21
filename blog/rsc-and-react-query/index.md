@@ -202,6 +202,75 @@ This sounds genuinely unbelievable, but it's true. If we artificially slow down 
 
 This is a known issue, and will presumably be fixed at some point. But the re-loading without caching issue is unavoidable with how this works.
 
-Let's see an alternative
+Just to be clear, server actions are still, even with these limitations, outstanding (for some use cases). If you have a web page with a form, and a submit button, server actions are **outstanding**. None of these limitations will matter (assuming your form doesn't depend on a bunch of different data sources). In fact, server actions go especially well with forms. You can even set the "action" of a form (in Next) directly to a server action. See the docs for more info, as well as on related hooks, like useFormStatus hook.
+
+But back to our app. We don't have a page with a single form and no data sources. We have lots of little forms, on a page with lots of data sources. Server actions won't work well here, so let's see an alternative.
 
 ## react-query
+
+To use react-query we'll need to install two packages: `npm i @tanstack/react-query @tanstack/react-query-next-experimental`. Don't let the experimental scare you; it's been out awhile and works well.
+
+Next let's make a Providers component, and render it from our root layout
+
+```jsx
+"use client";
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryStreamedHydration } from "@tanstack/react-query-next-experimental";
+import { FC, PropsWithChildren, useEffect, useState } from "react";
+
+export const Providers: FC<PropsWithChildren<{}>> = ({ children }) => {
+  const [queryClient] = useState(() => new QueryClient());
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ReactQueryStreamedHydration>{children}</ReactQueryStreamedHydration>
+    </QueryClientProvider>
+  );
+};
+```
+
+Now we're ready to go.
+
+### Loading data with react-query
+
+The long and short of it is that we use the `useSuspenseHook` from inside of client components. Let's see some code. Here's the Books component from the react-query version of our app.
+
+```jsx
+"use client";
+
+import { FC } from "react";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { BooksList } from "../components/BooksList";
+import { BookEdit } from "../components/BookEditReactQuery";
+import { useSearchParams } from "next/navigation";
+
+export const Books: FC<{}> = () => {
+  const params = useSearchParams();
+  const search = params.get("search") ?? "";
+
+  const { data } = useSuspenseQuery({
+    queryKey: ["books-query", search ?? ""],
+    queryFn: async () => {
+      const booksResp = await fetch(`http://localhost:3000/api/books?search=${search}`);
+      const { books } = await booksResp.json();
+
+      return { books };
+    },
+  });
+
+  const { books } = data;
+
+  return (
+    <div>
+      <BooksList books={books} BookEdit={BookEdit} />
+    </div>
+  );
+};
+```
+
+Don't let the `"use client"` pragma fool you. This component still renders on the server, **and that fetch also happens on the server** during the initial load of the page.
+
+As the url changes, the useSearchParams result changes, and a new query is fired off by our `useSuspenseQuery` hook, from the browser. This would normally suspend the page, but I wrap the call to router.push in startTransition, so the existing content stays on the screen. Check the repo for more info.
+
+### Updating data with react-query
