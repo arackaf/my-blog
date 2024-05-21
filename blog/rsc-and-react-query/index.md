@@ -250,7 +250,7 @@ export const Books: FC<{}> = () => {
   const search = params.get("search") ?? "";
 
   const { data } = useSuspenseQuery({
-    queryKey: ["books-query", search ?? ""],
+    queryKey: ["books-query", search],
     queryFn: async () => {
       const booksResp = await fetch(`http://localhost:3000/api/books?search=${search}`);
       const { books } = await booksResp.json();
@@ -271,6 +271,131 @@ export const Books: FC<{}> = () => {
 
 Don't let the `"use client"` pragma fool you. This component still renders on the server, **and that fetch also happens on the server** during the initial load of the page.
 
-As the url changes, the useSearchParams result changes, and a new query is fired off by our `useSuspenseQuery` hook, from the browser. This would normally suspend the page, but I wrap the call to router.push in startTransition, so the existing content stays on the screen. Check the repo for more info.
+As the url changes, the `useSearchParams` result changes, and a new query is fired off by our `useSuspenseQuery` hook, _from the browser_. This would normally suspend the page, but I wrap the call to `router.push` in `startTransition`, so the existing content stays on the screen. Check the repo for more info.
 
 ### Updating data with react-query
+
+We already have the `/books/update` endpoint for updating a book. How do we tell react-query to re-run whichever queries were attached to that data? The answer is the `queryClient.invalidateQueries` api. Let's take a look at the `BookEdit` component for react-query
+
+```jsx
+"use client";
+
+import { FC, useRef, useTransition } from "react";
+import { BookEditProps } from "../types";
+import { useQueryClient } from "@tanstack/react-query";
+
+export const BookEdit: FC<BookEditProps> = (props) => {
+  const { book } = props;
+  const titleRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
+  const [saving, startSaving] = useTransition();
+
+  const saveBook = async (id: number, newTitle: string) => {
+    startSaving(async () => {
+      await fetch("/api/books/update", {
+        method: "POST",
+        body: JSON.stringify({
+          id,
+          title: newTitle,
+        }),
+      });
+
+      await queryClient.invalidateQueries({ queryKey: ["books-query"] });
+    });
+  };
+
+  return (
+    <div className="flex gap-2">
+      <input className="border rounded border-gray-600 p-1" ref={titleRef} defaultValue={book.title} />
+      <button className="rounded border border-gray-600 p-1 bg-blue-300" disabled={saving} onClick={() => saveBook(book.id, titleRef.current!.value)}>
+        {saving ? "Saving..." : "Save"}
+      </button>
+    </div>
+  );
+};
+```
+
+The saveBook function calls out to the same book updating endpoint as before. We then call `invalidateQueries` with the first part of the query key, `books-query`. Remember, the actual queryKey we used in our query hook was `queryKey: ["books-query", search ?? ""]`. Calling invalidate queries with the first piece of that key will invalidate everything that's _starts with_ that key, and will immediately re-fire any of those queries which are still on the page. So if you started out with an empty search, then searched for X, then Y, then Z, and updated a book, this code will clear the cache of all those entries, and then immediately re-run the Z query, and update our UI.
+
+And it works.
+
+### What's the catch?
+
+The downside here is that we need two roundtrips from the browser to the server. The first roundtrip updates our book, and when that finishes, we then, from the browser, call `invalidateQueries`, which causes react-query to send a new network request for the updated data.
+
+This is a surprisingly small price to pay. Remember, with server actions, calling `revalidateTag` will cause your entire component tree to re-render, which by extension will re-request all their various data. If you don't have everything cached (on the server) properly, it's very easy for this single round trip to take longer than the two round trips react-query uses. I say this with experience. I recently helpeda friend / founder build a financial dashboard app. I had react-query set up just like this, and also implemented a server action to update a piece of data. And I had the same dtaa rendered and updated twice: once in an RSC, and again adjacently in a client component from a `useSuspenseQuery` hook. I basically fired off a race to see which would update first, certain the server action would, but was _shocked_ to see react-query win. I initially thought I'd done something wrong until I realized what was happening (and hastened to roll back my server action work).
+
+## Playing on hard mode
+
+Let's push the envelope a bit and cover a few advanced topics.
+
+### Fixing routing when using react-query
+
+Before we close out, let's look at one last detail. Remember, when we search our books, I'm calling `router.push` which adds a querystring to the url, which causes `useSearchParams()` to update, which causes react-query to query new data. Let's look at the network tab when this happens.
+
+![Query parameter change waterfall](/rsc-and-react-query/react-query-param-change-waterfall.jpg)
+
+before our books endpoint can be called, it looks like we have other things happening. This is the navigation we caused when we updated the url by calling `router.push`. Next is basically rendering to a new page. The page we're already on, except with a new querystring. Next is right to assume it needs to do this, but in practice react-query is handling our data. We don't actually need or want Next to render this new page; we just want the url to update, so react-query can request new data. If you're wondering why it navigates to our new, changed page **twice** ... so am I. Apparently the RSC identifier is being changed, but I have no idea why. If anyone does, please reach out to me.
+
+Next has no solutions for this.
+
+The closest Next can come is to let you use [window.history.pushState](https://nextjs.org/docs/app/building-your-application/routing/linking-and-navigating#windowhistorypushstate). That will trigger a client-side url update, and this does in fact work; however, it's not integrated with transitions for some reason. So when this calls, and our useSuspenseQuery hook updates, our current ui will suspend, and our nearest Suspense boundary will show the fallback. This is awful UI. I've reported this bug [here](https://github.com/vercel/next.js/issues/66016); hopefully it gets a fix soon.
+
+Next may not have a solution, but react-query does. If you think about it, we already know what query we need to run, we're just stuck waiting on Next to finish navigating to an unchanging RSC page in order. What if we could pre-fetch this new endpoint request, so it's already running for when Next finally finishes rendering our new (unchanged) page. We can, and react-query has an api just for this. Let's see how.
+
+This is a part of the react-query search form component, in particular the part which triggers a new navigation
+
+```ts
+startTransition(() => {
+  const search = searchParams.get("search") ?? "";
+  queryClient.prefetchQuery({
+    queryKey: ["books-query", search],
+    queryFn: async () => {
+      const booksResp = await fetch(`http://localhost:3000/api/books?search=${search}`);
+      const { books } = await booksResp.json();
+
+      return { books };
+    },
+  });
+
+  router.push(currentPath + (queryString ? "?" : "") + queryString);
+});
+```
+
+Note the call to `queryClient.prefetchQuery`. `prefetchQuery` takes the same options as useSuspenseQuery, and runs that query, now. Later, when Next is finished and react-query attempts to run the same query, it's smart enough to see that the request is already in flight, and so just latches onto that active promise, and uses the result
+
+Here's what our network chart now looks like
+
+![Query parameter change waterfall](/rsc-and-react-query/react-query-param-change-waterfall-fixed.jpg)
+
+Now nothing is delaying our endpoint request from firing. And since all data loading is happening in react-query, that navigation to our RSC page (or even two navigations) should be very, very fast.
+
+### Removing the duplication
+
+If you're thinking the duplication between the prefetch and the query itself is gross and fragile, you're right. So just move it to a helper function. But in a real app you'd just move this boilerplate to a helper function
+
+```ts
+export const makeBooksSearchQuery = (search: string) => {
+  return {
+    queryKey: ["books-query", search ?? ""],
+    queryFn: async () => {
+      const booksResp = await fetch(`http://localhost:3000/api/books?search=${search}`);
+      const { books } = await booksResp.json();
+
+      return { books };
+    },
+  };
+};
+```
+
+and then use it
+
+```ts
+const { data } = useSuspenseQuery(makeBooksSearchQuery(search));
+```
+
+as needed
+
+```ts
+queryClient.prefetchQuery(makeBooksSearchQuery(search));
+```
