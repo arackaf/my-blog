@@ -4,15 +4,15 @@ date: "2024-05-21T10:00:00.000Z"
 description: An introduction to RSC and react-query
 ---
 
-React Server Components, or RSC, are an incredibly exciting innovation in web development. For this post we'll briefly introduce them, show what their purpose and benefits are, as well as their limitations. We'll wrap up by showing how to pair them with react-query, to help solve those limitations. Let's get started!
+React Server Components (RSC) are an incredibly exciting innovation in web development. For this post we'll briefly introduce them, show what their purpose and benefits are, as well as their limitations. We'll wrap up by showing how to pair them with react-query to help solve those limitations. Let's get started!
 
 ## Why RSC?
 
 React Server Components, as the name implies, execute **on the server**—and the server **alone**. To see why this is significant, let's take a whirlwind tour of how web development evolved over the last 10 or so years.
 
-Prior to RSC, JavaScript frameworks (React, Svelte, Vue, Solid, etc) prodivded you with a component model for building your application. These components were capable of _running on_ the server, but only as a synchronous operation for stringifying your components' html, in order to send down to the browser in order to server render your app. Your app would then render in the browser, again, at which point it would become interactive. With this model, the only way to load data was as a side-effect on the client. Waiting until your app reached your user's browser before beginning to laod data was slow, and inefficient.
+Prior to RSC, JavaScript frameworks (React, Svelte, Vue, Solid, etc) prodivded you with a component model for building your application. These components were capable of _running on_ the server, but only as a synchronous operation for stringifying your components' html, to send down to the browser so it could server render your app. Your app would then render in the browser, again, at which point it would become interactive. With this model, the only way to load data was as a side-effect on the client. Waiting until your app reached your user's browser before beginning to load data was slow, and inefficient.
 
-To solve this inefficiency, meta-frameworks like Next, SvelteKit, Remix, Nuxt, SolidStart, etc were created. These meta-frameworks provided various ways to load data, server-side, with that data being injected by the meta-framework into your component tree. This code was non-portable, and usually a little awkward. You'd have to define some sort of loader function, semantically associated with a given route, asynchronously load data, and then expect it to show up in your component tree based on the rules of whatever meta-framework you're using.
+To solve this inefficiency, meta-frameworks like Next, SvelteKit, Remix, Nuxt, SolidStart, etc were created. These meta-frameworks provided various ways to load data, server-side, with that data being injected by the meta-framework into your component tree. This code was non-portable, and usually a little awkward. You'd have to define some sort of loader function that was associated with a given route, load data, and then expect it to show up in your component tree based on the rules of whatever meta-framework you're using.
 
 This worked, but it wasn't without issue. In addition to being framework-specific, composition also suffered; where typically components are explicitly passed props by whichever component renders them, now there are _implicit_ props passed by the meta-framework, based on what you return from your loader. Lastly, this setup wasn't the most flexible. A given page needs to know what data it needs up front, and request it all from the loader. With client-rendered SPAs we could just render whatever components we need, and let them fetch whatever data they need. This was awful for performance, but amazing for convenience.
 
@@ -22,7 +22,7 @@ RSC bridges that gap and gives us the best of both worlds. We get to _ad hoc_ re
 
 At time of writing RSC are mostly only supported in Next.js, although the minimal framework [Waku](https://waku.gg/) also supports it. Remix and TanStack Router are currently working on implementations, so stay tuned. I'll show a very brief overview of what they look like in Next; consult those other frameworks when they ship (the ideas will be the same, even if the implementations differ slightly).
 
-In Next, when using the new "app directory" (it's literally a folder called "app" that you define your various routes in), pages are RSC by default. Any components imported by these pages are also RSC, as well as components imported by those components, and so on. When you're ready to exit server components and switch back to "client components," you put the "use client" pragma at the top of a component. Now that component, and everything that component imports are client components as well. Check the [Next docs](https://nextjs.org/docs/app) for more info.
+In Next, when using the new "app directory" (it's literally a folder called "app" that you define your various routes in), pages are RSC by default. Any components imported by these pages are also RSC, as well as components imported by those components, and so on. When you're ready to exit server components and switch to "client components," you put the `"use client"` pragma at the top of a component. Now that component, and everything that component imports are client components. Check the [Next docs](https://nextjs.org/docs/app) for more info.
 
 ### How do React Server Components work?
 
@@ -30,7 +30,7 @@ React Server Components are just like regular React Components, but with a few d
 
 Server components have no hydration, since they only execute on the server. That means you can do things like connect directly to a database, or use Server-only api's. But it also means there are many things you can't do in RSCs: you cannot use effects or state, you cannot set up event handlers, or use browser-specific api's like Localstorage. If you violate any of those rules you'll get errors.
 
-For a more thorough introduction to RSC, check the [Next docs](https://nextjs.org/docs/app) for the app directory, or depending on when you read this, the Remix or TanStack Router docs. But to keep this post a reasonable length, let's keep the details in the docs, and see how we use these tools.
+For a more thorough introduction to RSC, check the [Next docs](https://nextjs.org/docs/app) for the app directory, or depending on when you read this, the Remix or TanStack Router docs. But to keep this post a reasonable length, let's keep the details in the docs, and see how we use them.
 
 Let's put together a very basic proof of concept demo app with RSC, see how data mutations work, and some of their limitations. We'll then take that same app (still using RSC) and see how it looks with react-query.
 
@@ -50,7 +50,7 @@ Let's dive in
 
 ## A note on caching
 
-At time of writing, Next is just about to update a new version with radically different caching api's, and defaults. We won't cover any of that for this post. For the demo, I've disabled all caching. Each call to a page, or api endpoint will always run fresh from the server. The client cache will still work, though. So if you click between the two pages, Next will cache and display what you just saw. But refreshing the page will always recreate everything from the server.
+At time of writing, Next is just about to release a new version with radically different caching api's, and defaults. We won't cover any of that for this post. For the demo, I've disabled all caching. Each call to a page, or api endpoint will always run fresh from the server. The client cache will still work, though. So if you click between the two pages, Next will cache and display what you just saw. But refreshing the page will always recreate everything from the server.
 
 ## Loading the data
 
@@ -150,33 +150,44 @@ export const saveBook = async (id: number, title: string) => {
 };
 ```
 
-Note the `"use server"` pragma at the top. That means the function we export is now a server action. The saveBook takes an id, and a title. We post up to an endpoint that updates that book in SQLite. We then call `revalidateTag` with the same tag we passed to our fetch before.
+Note the `"use server"` pragma at the top. That means the function we export is now a server action. `saveBook` takes an id, and a title; it posts to an endpoint to update our book in SQLite, and then calls `revalidateTag` with the same tag we passed to our fetch before.
 
-In real life, we wouldn't even need the books/update endpoint. We'd just do the work right there, inside the server action. But we'll be re-using that books/update endpoint in a bit, when we update data without server actions. And it's nice to keep these code samples clean. The books/update endpoint just opens up SQLite, and executes an UPDATE.
+In real life, we wouldn't even need the books/update endpoint. We'd just do the work right in the server action. But we'll be re-using that books/update endpoint in a bit, when we update data without server actions. And it's nice to keep these code samples clean. The books/update endpoint just opens up SQLite, and executes an UPDATE.
 
 Let's see the BookEdit component we use with RSC
 
 ```jsx
 "use client";
 
-import { FC, useRef } from "react";
+import { FC, useRef, useTransition } from "react";
 import { saveBook } from "../serverActions";
-import { BookEditProps } from "./types";
+import { BookEditProps } from "../types";
 
 export const BookEdit: FC<BookEditProps> = (props) => {
   const { book } = props;
   const titleRef = useRef<HTMLInputElement>(null);
+  const [saving, startSaving] = useTransition();
+
+  function doSave() {
+    startSaving(async () => {
+      await saveBook(book.id, titleRef.current!.value);
+    });
+  }
 
   return (
     <div className="flex gap-2">
       <input className="border rounded border-gray-600 p-1" ref={titleRef} defaultValue={book.title} />
-      <button onClick={() => saveBook(book.id, titleRef.current!.value)}>Save</button>
+      <button className="rounded border border-gray-600 p-1 bg-blue-300" disabled={saving} onClick={doSave}>
+        {saving ? "Saving..." : "Save"}
+      </button>
     </div>
   );
 };
 ```
 
-It's a client component. We import the server action, and then just call it in a button's event handler. Stop and consider just how radical this is, and what React and Next are doing under the covers. All we did was create a vanilla function. We then imported that function, and called it from a button's event handler. But under the covers a network request is made to an endpoint that's synthesized for us. And then the `revalidateTag` tells Next what's changed, so our RSC can re-run, re-request data, and send down updated markup.
+It's a client component. We import the server action, and then just call it in a button's event handler, wrapped in a transiotion so we can have saving state.
+
+Stop and consider just how radical this is, and what React and Next are doing under the covers. All we did was create a vanilla function. We then imported that function, and called it from a button's event handler. But under the covers a network request is made to an endpoint that's synthesized for us. And then the `revalidateTag` tells Next what's changed, so our RSC can re-run, re-request data, and send down updated markup.
 
 Not only that, but all this happens in **one round trip** with the server.
 
@@ -190,7 +201,7 @@ This seems too good to be true. What's the catch? Well, let's see what the termi
 
 ![Server Action](/rsc-and-react-query/server-action.jpg)
 
-Ummmm, why are _all_ of our data re-loading? We only called `revalidateTag` on our books, not our subjects or tags. The problem is that `revalidateTag` doesn't tell Next what to reload, it tells it what to eject from its cache. The fact is, Next needs to reload everything for the current page when we call `revalidateTag`. This makes sense when you think about what's really happening. These server components are not stateful; they run on the server, but they don't _live_ on the server. The request executes on our server, those RSCs render, and send down the markup, and that's that. The component tree does not live in indefinitely on the server; our servers wouldn't scale very well if they did!
+Ummmm, why are _all_ of our data re-loading? We only called `revalidateTag` on our books, not our subjects or tags. The problem is that `revalidateTag` doesn't tell Next what to reload, it tells it what to eject from its cache. The fact is, Next needs to reload everything for the current page when we call `revalidateTag`. This makes sense when you think about what's really happening. These server components are not stateful; they run on the server, but they don't _live_ on the server. The request executes on our server, those RSCs render, and send down the markup, and that's that. The component tree does not live on indefinitely on the server; our servers wouldn't scale very well if they did!
 
 So how do we solve this? For a use case like this, the solution would be to _not_ turn off caching. We'd lean on Next's caching mechanism, whatever they look like when you happen to read this. We'd cache each of these data with different tags, and invalidate the tag related to the data we just updated.
 
@@ -202,9 +213,9 @@ This sounds genuinely unbelievable; but it's true. If we artificially slow down 
 
 ![Serial Server Action](/rsc-and-react-query/serial-execution.jpg)
 
-This is a known issue, and will presumably be fixed at some point. But the re-loading without caching issue is unavoidable with how this works.
+This is a known issue, and will presumably be fixed at some point. But the re-loading without caching issue is unavoidable with how Next app directory is designed.
 
-Just to be clear, server actions are still, even with these limitations, outstanding (for some use cases). If you have a web page with a form, and a submit button, server actions are **outstanding**. None of these limitations will matter (assuming your form doesn't depend on a bunch of different data sources). In fact, server actions go especially well with forms. You can even set the "action" of a form (in Next) directly to a server action. See the docs for more info, as well as on related hooks, like useFormStatus hook.
+Just to be clear, server actions are still, even with these limitations, outstanding (for some use cases). If you have a web page with a form, and a submit button, server actions are **outstanding**. None of these limitations will matter (assuming your form doesn't depend on a bunch of different data sources). In fact, server actions go especially well with forms. You can even set the "action" of a form (in Next) directly to a server action. See [the docs](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations) for more info, as well as on related hooks, like [useFormStatus hook](https://react.dev/reference/react-dom/hooks/useFormStatus).
 
 But back to our app. We don't have a page with a single form and no data sources. We have lots of little forms, on a page with lots of data sources. Server actions won't work well here, so let's see an alternative.
 
@@ -212,9 +223,9 @@ But back to our app. We don't have a page with a single form and no data sources
 
 [React Query](https://tanstack.com/query/latest/docs/framework/react/overview) is probably the most mature, well-maintained data management library in the React ecosystem. Unsurprisngly, it also works well with RSC.
 
-To use react-query we'll need to install two packages: `npm i @tanstack/react-query @tanstack/react-query-next-experimental`. Don't let the experimental scare you; it's been out awhile and works well.
+To use react-query we'll need to install two packages: `npm i @tanstack/react-query @tanstack/react-query-next-experimental`. Don't let the experimental in the name scare you; it's been out for awhile, and works well.
 
-Next, let's make a `Providers` component, and render it from our root layout
+Now we'll make a `Providers` component, and render it from our root layout
 
 ```jsx
 "use client";
@@ -238,7 +249,7 @@ Now we're ready to go.
 
 ### Loading data with react-query
 
-The long and short of it is that we use the `useSuspenseHook` from inside of client components. Let's see some code. Here's the Books component from the react-query version of our app.
+The long and short of it is that we use the `useSuspenseQuery` hook from inside client components. Let's see some code. Here's the Books component from the react-query version of our app.
 
 ```jsx
 "use client";
@@ -319,7 +330,7 @@ export const BookEdit: FC<BookEditProps> = (props) => {
 };
 ```
 
-The saveBook function calls out to the same book updating endpoint as before. We then call `invalidateQueries` with the first part of the query key, `books-query`. Remember, the actual queryKey we used in our query hook was `queryKey: ["books-query", search ?? ""]`. Calling invalidate queries with the first piece of that key will invalidate everything that's _starts with_ that key, and will immediately re-fire any of those queries which are still on the page. So if you started out with an empty search, then searched for X, then Y, then Z, and updated a book, this code will clear the cache of all those entries, and then immediately re-run the Z query, and update our UI.
+The saveBook function calls out to the same book updating endpoint as before. We then call `invalidateQueries` with the first part of the query key, `books-query`. Remember, the actual queryKey we used in our query hook was `queryKey: ["books-query", search]`. Calling invalidate queries with the first piece of that key will invalidate everything that's _starts with_ that key, and will immediately re-fire any of those queries which are still on the page. So if you started out with an empty search, then searched for X, then Y, then Z, and updated a book, this code will clear the cache of all those entries, and then immediately re-run the Z query, and update our UI.
 
 And it works.
 
@@ -327,7 +338,7 @@ And it works.
 
 The downside here is that we need two roundtrips from the browser to the server. The first roundtrip updates our book, and when that finishes, we then, from the browser, call `invalidateQueries`, which causes react-query to send a new network request for the updated data.
 
-This is a surprisingly small price to pay. Remember, with server actions, calling `revalidateTag` will cause your entire component tree to re-render, which by extension will re-request all their various data. If you don't have everything cached (on the server) properly, it's very easy for this single round trip to take longer than the two round trips react-query uses. I say this with experience. I recently helped a friend / founder build a financial dashboard app. I had react-query set up just like this, and also implemented a server action to update a piece of data. And I had the same data rendered, and updated twice: once in an RSC, and again adjacently in a client component from a `useSuspenseQuery` hook. I basically fired off a race to see which would update first, certain the server action would, but was _shocked_ to see react-query win. I initially thought I'd done something wrong until I realized what was happening (and hastened to roll back my server action work).
+This is a surprisingly small price to pay. Remember, with server actions, calling `revalidateTag` will cause your entire component tree to re-render, which by extension will re-request all their various data. If you don't have everything cached (on the server) properly, it's very easy for this single round trip to take longer than the two round trips react-query needs. I say this from experience. I recently helped a friend / founder build a financial dashboard app. I had react-query set up just like this, and also implemented a server action to update a piece of data. And I had the same data rendered, and updated twice: once in an RSC, and again adjacently in a client component from a `useSuspenseQuery` hook. I basically fired off a race to see which would update first, certain the server action would, but was _shocked_ to see react-query win. I initially thought I'd done something wrong until I realized what was happening (and hastened to roll back my server action work).
 
 ## Playing on hard mode
 
