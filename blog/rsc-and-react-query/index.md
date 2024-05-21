@@ -417,6 +417,8 @@ queryClient.prefetchQuery(makeBooksSearchQuery(search));
 
 But for this demo I opted for duplication and simplicity.
 
+Before moving on, let's take a moment and point out that all of this was only necessry because we had data loading tied to the url. If we just click a button to set client-side state, and trigger a new data request, none of this would ever be an issue. Next would not route anywhere, and our client-side state update would trigger a new react-query.
+
 ## What about bundle size?
 
 When we did our react-query implementation, we changed our Books component to be a client component by adding the `"use client"` pragma. If you're wondering whether that will cause an increase in our bundle size, you're right. In the RSC version, that component only ever ran on the server. As a client component, it now has to run in both places, which will increase our bundle size a bit.
@@ -431,4 +433,6 @@ Just use client components and let react-query remove the complexity with `useSu
 
 This was a _long_ post but I hope it was a valuable. Next's app directory is an incredible piece of infrastructure that let's us request data on the server, render, and even stream component content from that data, all using the single React component model we're all used to.
 
-There's some things to get right, but depending on the type of app you're building react-query, can simplify things a great deal.
+There's some things to get right, but depending on the type of app you're building, react-query can simplify things a great deal.
+
+Happy coding!
