@@ -196,7 +196,7 @@ The whole RSC tree will still re-render when we do that, but the requests for ca
 
 Unfortunately there's yet another problem with server actions: they run serially. Only one server action can be in flight at a time; they'll queue if you try to violate this contraint.
 
-This sounds genuinely unbelievable, but it's true. If we artificially slow down our update a LOT, and then quickly click 5 different save buttons, we can see horrifying things in our network tab. If the extreme throttling on the update seems unfair on my part, remember hat you should never, ever assume your network will be fast or even reliable. Occasional, slow requests are inevitable, and server actions will do the worst possible thing under those circumstances.
+This sounds genuinely unbelievable, but it's true. If we artificially slow down our update a LOT, and then quickly click 5 different save buttons, we can see horrifying things in our network tab. If the extreme slowdown on the update endpoint seems unfair on my part, remember: you should never, _ever_ assume your network will be fast or even reliable. Occasional, slow network requests are inevitable, and server actions will do the worst possible thing under those circumstances.
 
 ![Serial Server Action](/rsc-and-react-query/serial-execution.jpg)
 
