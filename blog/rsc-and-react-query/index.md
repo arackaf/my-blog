@@ -12,9 +12,9 @@ React Server Components, as the name implies, execute **on the server**—and th
 
 Prior to RSC, JavaScript frameworks (React, Svelte, Vue, Solid, etc) prodivded you with a component model for building your application. These components were capable of _running on_ the server, but only as a synchronous operation for stringifying your components' html, to send down to the browser so it could server render your app. Your app would then render in the browser, again, at which point it would become interactive. With this model, the only way to load data was as a side-effect on the client. Waiting until your app reached your user's browser before beginning to load data was slow, and inefficient.
 
-To solve this inefficiency, meta-frameworks like Next, SvelteKit, Remix, Nuxt, SolidStart, etc were created. These meta-frameworks provided various ways to load data, server-side, with that data being injected by the meta-framework into your component tree. This code was non-portable, and usually a little awkward. You'd have to define some sort of loader function that was associated with a given route, load data, and then expect it to show up in your component tree based on the rules of whatever meta-framework you're using.
+To solve this inefficiency, meta-frameworks like Next, SvelteKit, Remix, Nuxt, SolidStart, etc were created. These meta-frameworks provided various ways to load data, server-side, with that data being injected by the meta-framework into your component tree. This code was non-portable, and usually a little awkward. You'd have to define some sort of loader function that was associated with a given route, load data, and then expect it to show up in your component tree based on the rules of whatever meta-framework you were using.
 
-This worked, but it wasn't without issue. In addition to being framework-specific, composition also suffered; where typically components are explicitly passed props by whichever component renders them, now there are _implicit_ props passed by the meta-framework, based on what you return from your loader. Lastly, this setup wasn't the most flexible. A given page needs to know what data it needs up front, and request it all from the loader. With client-rendered SPAs we could just render whatever components we need, and let them fetch whatever data they need. This was awful for performance, but amazing for convenience.
+This worked, but it wasn't without issue. In addition to being framework-specific, composition also suffered; where typically components are explicitly passed props by whichever component renders them, now there are _implicit_ props passed by the meta-framework, based on what you return from your loader. Nor was this setup the most flexible. A given page needs to know what data it needs up front, and request it all from the loader. With client-rendered SPAs we could just render whatever components we need, and let them fetch whatever data they need. This was awful for performance, but amazing for convenience.
 
 RSC bridges that gap and gives us the best of both worlds. We get to _ad hoc_ request whatever data we need from whichever component we're rendering, but have that code execute on the server, without needing to wait for a round trip to the browser. Best of all, RSC also support _streaming_, or more precisely, out-of-order streaming. If some of our data are slow to load, we can send the rest of the page, and _push_ those data down to the browser, from the server, whenever they happen to be ready.
 
@@ -28,9 +28,9 @@ In Next, when using the new "app directory" (it's literally a folder called "app
 
 React Server Components are just like regular React Components, but with a few differences. For starters, they can be async functions. The fact that you can await asynchronous operations right in the comopnent makes them well suited for requesting data. Note that asynchronous client components are a thing coming soon to React, so this differentiation won't exist for too long. The other big difference is that these components run _only on_ the server. Client components (ie regular components) run on the server, and then re-run on the client in order to "hydrate." That's how frameworks like Next and Remix have always worked. But server components run only on the server.
 
-Server components have no hydration, since they only execute on the server. That means you can do things like connect directly to a database, or use Server-only api's. But it also means there are many things you can't do in RSCs: you cannot use effects or state, you cannot set up event handlers, or use browser-specific api's like Localstorage. If you violate any of those rules you'll get errors.
+Server components have no hydration, since, again, they only execute on the server. That means you can do things like connect directly to a database, or use Server-only api's. But it also means there are many things you can't do in RSCs: you cannot use effects or state, you cannot set up event handlers, or use browser-specific api's like Localstorage. If you violate any of those rules you'll get errors.
 
-For a more thorough introduction to RSC, check the [Next docs](https://nextjs.org/docs/app) for the app directory, or depending on when you read this, the Remix or TanStack Router docs. But to keep this post a reasonable length, let's keep the details in the docs, and see how we use them.
+For a more thorough introduction to RSC, check the [Next docs](https://nextjs.org/docs/app) for the app directory, or depending on when you read this, the Remix or TanStack Router docs. But to keep this post a reasonable length, let's keep the details in the docs, and see how we _use them_.
 
 Let's put together a very basic proof of concept demo app with RSC, see how data mutations work, and some of their limitations. We'll then take that same app (still using RSC) and see how it looks with react-query.
 
@@ -42,7 +42,7 @@ The point is to show how RSC and react-query work, not make anything useful or b
 
 ![Book page](/rsc-and-react-query/web-page.jpg)
 
-The page has a search input which puts our search term into the url to filter the books shown. Each book also has an input attached to it for us to update that book's title. You'll note the nav links at the top, for the RSC and RSC + react-query versions. While the pages look and behave identically as far as the user can see, the implementations are different, which we'll get into.
+The page has a search input which puts our search term into the url to filter the books shown. Each book also has an input attached to it for us to update that book's title. Note the nav links at the top, for the RSC and RSC + react-query versions. While the pages look and behave identically as far as the user can see, the implementations are different, which we'll get into.
 
 The repo is [here](https://github.com/arackaf/react-query-rsc-blog-post). The data are all static, but the books are put into a SQLite database, so we can update the data. The binary for the SQLite db should be checked in, but you can always re-created it (and reset any updates you've made) by running `npm run create-db`.
 
@@ -50,7 +50,7 @@ Let's dive in
 
 ## A note on caching
 
-At time of writing, Next is just about to release a new version with radically different caching api's, and defaults. We won't cover any of that for this post. For the demo, I've disabled all caching. Each call to a page, or api endpoint will always run fresh from the server. The client cache will still work, though. So if you click between the two pages, Next will cache and display what you just saw. But refreshing the page will always recreate everything from the server.
+At time of writing, Next is just about to release a new version with radically different caching api's, and defaults. We won't cover any of that for this post. For the demo, I've disabled all caching. Each call to a page, or api endpoint will always run fresh from the server. The client cache will still work, though. So if you click between the two pages, Next will cache and display what you just saw, client-side, in the browser. But refreshing the page will always recreate everything from the server.
 
 ## Loading the data
 
@@ -90,9 +90,9 @@ export default function RSC(props: { searchParams: any }) {
 }
 ```
 
-We have a simple page header. Then we see a Suspense boundary. This is how out-of-order streaming works with Next and RSC. Everything above the Suspense boundary will render immediately, and the `Loading...` message will show until all the various data in the various components below have finished. React knows what's pending based on what you've awaited. The `Books`, `Subjects` and `Tags` components all have fetches inside of them, which are awaited. We'll look at one of them momentarily, but first note that, even though three different components are all requesting data, React will run them in parallel. Sibling nodes in the component tree can, and do load data in parallel.
+We have a simple page header. Then we see a Suspense boundary. This is how out-of-order streaming works with Next and RSC. Everything above the Suspense boundary will render immediately, and the `Loading...` message will show until all the various data in the various components below have finished loading. React knows what's pending based on what you've awaited. The `Books`, `Subjects` and `Tags` components all have fetches inside of them, which are awaited. We'll look at one of them momentarily, but first note that, even though three different components are all requesting data, React will run them in parallel. Sibling nodes in the component tree can, and do load data in parallel.
 
-But if you ever have a parent / child component which both load data, then the child component will not (cannot) even start util the parent is finished loading. If the child data fetch depends on the parent's loaded data, then this is unavoidable (you'd have to modify your backend to fix it), but if the data do not depend on each other, then you would solve this waterfall by just loading the data higher up in the component tree, and passing the various pieces down.
+But if you ever have a parent / child component which both load data, then the child component will not (cannot) even _start_ util the parent is finished loading. If the child data fetch depends on the parent's loaded data, then this is unavoidable (you'd have to modify your backend to fix it), but if the data do not depend on each other, then you would solve this waterfall by just loading the data higher up in the component tree, and passing the various pieces down.
 
 ### Loading data
 
@@ -150,9 +150,9 @@ export const saveBook = async (id: number, title: string) => {
 };
 ```
 
-Note the `"use server"` pragma at the top. That means the function we export is now a server action. `saveBook` takes an id, and a title; it posts to an endpoint to update our book in SQLite, and then calls `revalidateTag` with the same tag we passed to our fetch before.
+Note the `"use server"` pragma at the top. That means the function we export is now a server action. `saveBook` takes an id, and a title; it posts to an endpoint to update our book in SQLite, and then calls `revalidateTag` with the same tag we passed to our fetch, before.
 
-In real life, we wouldn't even need the books/update endpoint. We'd just do the work right in the server action. But we'll be re-using that books/update endpoint in a bit, when we update data without server actions. And it's nice to keep these code samples clean. The books/update endpoint just opens up SQLite, and executes an UPDATE.
+In real life, we wouldn't even need the books/update endpoint. We'd just do the work right in the server action. But we'll be re-using that endpoint in a bit, when we update data without server actions. And it's nice to keep these code samples clean. The books/update endpoint just opens up SQLite, and executes an UPDATE.
 
 Let's see the BookEdit component we use with RSC
 
@@ -203,7 +203,7 @@ This seems too good to be true. What's the catch? Well, let's see what the termi
 
 Ummmm, why are _all_ of our data re-loading? We only called `revalidateTag` on our books, not our subjects or tags. The problem is that `revalidateTag` doesn't tell Next what to reload, it tells it what to eject from its cache. The fact is, Next needs to reload everything for the current page when we call `revalidateTag`. This makes sense when you think about what's really happening. These server components are not stateful; they run on the server, but they don't _live_ on the server. The request executes on our server, those RSCs render, and send down the markup, and that's that. The component tree does not live on indefinitely on the server; our servers wouldn't scale very well if they did!
 
-So how do we solve this? For a use case like this, the solution would be to _not_ turn off caching. We'd lean on Next's caching mechanism, whatever they look like when you happen to read this. We'd cache each of these data with different tags, and invalidate the tag related to the data we just updated.
+So how do we solve this? For a use case like this, the solution would be to _not_ turn off caching. We'd lean on Next's caching mechanisms, whatever they look like when you happen to read this. We'd cache each of these data with different tags, and invalidate the tag related to the data we just updated.
 
 The whole RSC tree will still re-render when we do that, but the requests for cached data would run quickly. Personally, I'm of the view that caching should be a performance tweak you add, as needed; it should not be a _sine qua non_ for avoiding slow updates.
 
@@ -225,7 +225,7 @@ But back to our app. We don't have a page with a single form and no data sources
 
 To use react-query we'll need to install two packages: `npm i @tanstack/react-query @tanstack/react-query-next-experimental`. Don't let the experimental in the name scare you; it's been out for awhile, and works well.
 
-Now we'll make a `Providers` component, and render it from our root layout
+Next we'll make a `Providers` component, and render it from our root layout
 
 ```jsx
 "use client";
@@ -377,7 +377,7 @@ startTransition(() => {
 });
 ```
 
-Note the call to `queryClient.prefetchQuery`. `prefetchQuery` takes the same options as `useSuspenseQuery`, and runs that query, now. Later, when Next is finished, and react-query attempts to run the same query, it's smart enough to see that the request is already in flight, and so just latches onto that active promise, and uses the result.
+The call to `queryClient.prefetchQuery`. `prefetchQuery` takes the same options as `useSuspenseQuery`, and runs that query, now. Later, when Next is finished, and react-query attempts to run the same query, it's smart enough to see that the request is already in flight, and so just latches onto that active promise, and uses the result.
 
 Here's what our network chart now looks like
 
@@ -425,7 +425,7 @@ When we did our react-query implementation, we changed our Books component to be
 
 Honestly I wouldn't worry about it, especially for apps like this, with lots of different data sources that are interactive, and updating. This demo only had a single mutation, but it was just that; a demo. If we were to build this app for real, there'd be many mutation points, each with potentially multiple queries in need of invalidation.
 
-If you're curious, it is technically possible to get the best of both worlds. You _could_ load data in an RSC, and then pass that data to the regular `useQuery` hook via the `initialData` prop. You can check [the docs](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery) for more info, but I honestly don't think it's worth it. You'd now need to define your data loading (the fetch call) in two places, or manually build an isomorphic fetch helper function to share between them. And then with actual data loading happening in RSCs, any navigations back to the same page (ie for querystrings) would re-fire those queries, when in reality react-query is already running those query udates client side. To fix _that_ so you'd have to be certain to only ever use `window.history.pushState` like we talked about. `useQuery` doesn't suspend, so you wouldn't need transitions for those url changes. It should work, but I highly doubt the complexity would be worth it.
+If you're curious, it's technically possible to get the best of both worlds. You _could_ load data in an RSC, and then pass that data to the regular `useQuery` hook via the `initialData` prop. You can check [the docs](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery) for more info, but I honestly don't think it's worth it. You'd now need to define your data loading (the fetch call) in two places, or manually build an isomorphic fetch helper function to share between them. And then with actual data loading happening in RSCs, any navigations back to the same page (ie for querystrings) would re-fire those queries, when in reality react-query is already running those query udates client side. To fix _that_ so you'd have to be certain to only ever use `window.history.pushState` like we talked about. `useQuery` doesn't suspend, so you wouldn't need transitions for those url changes. That's good since pushState won't suspend your content, but now you have to manually track _all_ your loading states; if you have three pieces of data you want loaded before revealing a UI (like we did above) you'd have to manually track and aggregate those three loading states. It would work, but I highly doubt the complexity would be worth it. Just live with the very marginal bundle size increase.
 
 Just use client components and let react-query remove the complexity with `useSuspenseHook`.
 
