@@ -4,7 +4,7 @@ date: "2024-05-21T10:00:00.000Z"
 description: An introduction to RSC and react-query
 ---
 
-React Server Components (RSC) are an incredibly exciting innovation in web development. For this post we'll briefly introduce them, show what their purpose and benefits are, as well as their limitations. We'll wrap up by showing how to pair them with react-query to help solve those limitations. Let's get started!
+[React Server Components](https://react.dev/reference/rsc/server-components) (RSC) are an exciting innovation in web development. In this post we'll briefly introduce them, show what their purpose and benefits are, as well as their limitations. We'll wrap up by showing how to pair them with [react-query](https://tanstack.com/query/latest/docs/framework/react/overview) to help solve those limitations. Let's get started!
 
 ## Why RSC?
 
