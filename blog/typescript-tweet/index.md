@@ -183,7 +183,7 @@ And that's exactly what it is
 
 ## Distributing union types
 
-When we have a generic type argument, that's also a type union, pushed across an `extends` cehck in a conditional type, the union is split up, with each member of the union substituted into that check. TypeScript then takes every result from doing that with every union member, and unions those results together. That union is the result of that `extends` operation.
+When we have a generic type argument, that's also a type union, pushed across an `extends` check in a conditional type, the union itself is split up, with each member of the union substituted into that check. TypeScript then takes every result, and unions them together. _That_ union is the result of that `extends` operation.
 
 Any `never`'s are removed, as are any duplicates.
 
@@ -248,11 +248,61 @@ Think of it like a nested loop. We'll process this inner `extends` in the same w
 
 ![Conditional types](/typescript-tweet/img3e.jpg)
 
-and of course `string extends string` is true.
+and of course `string extends string` is true. Our first result is `true`.
 
-![Conditional types](/typescript-tweet/img3f.jpg)
-![Conditional types](/typescript-tweet/img3g.jpg)
+![Conditional types](/typescript-tweet/img3f1.jpg)
+
+Now let's continue processing our inner loop. U will next be `number`. `number extends string` is of course false, which is the second result of our type.
+
+![Conditional types](/typescript-tweet/img3f2.jpg)
+
+So far we have `true | false`. Ok let's wrap this up. Now our outer loop continues. `T` moves on to become the second member of its union, `number`. `number extends string | number` is true
+
 ![Conditional types](/typescript-tweet/img3h.jpg)
+
+so we again hit that first branch
+
 ![Conditional types](/typescript-tweet/img3i.jpg)
+
+The inner loop starts all over again, with `U` first becoming `string`
+
 ![Conditional types](/typescript-tweet/img3j.jpg)
+
+`string` extends number is false, so our overall result is `true | false | false`. `U` then becomes `number`
+
 ![Conditional types](/typescript-tweet/img3k.jpg)
+
+which of course yields `true`.
+
+The whole thing produced `true | false | false | true`. TypeScript removes the duplicates, leaving us with `true | false`.
+
+Do you know what a simpler name for the type `true | false` is? It's `boolean`. This type produced `boolean`, which is why we got the error of
+
+> Type 'boolean' does not satisfy the constraint 'true'
+
+before. We were expecting a literal type of `true` but got a union of trues and falses, which reduced to boolean.
+
+And it's the same idea with
+
+```ts
+type Result = TypesMatch<string | number, string | number | object>;
+```
+
+We won't go through all the permutations there; suffice it to say we'll get some admixture of trues and falses, which will reduce back to `boolean` again.
+
+## So how to fix it?
+
+We need to stop the union types from distributing. The distributing happens only with a raw generic type in a conditional type expression. We can turn it off merely by turning that type into another type, with the same assignability rules. Which is what I did here
+
+```ts
+// prettier-ignore
+type TypesMatch<T, U> = [T] extends [U]
+  ? [U] extends [T]
+    ? true
+    : false
+  : false;
+```
+
+Instead of asking if `T extends U` I ask if `[T] extends [U]`. `[T]` is a tuple type with one member, T. Think of it with non-generic types. `[string]` is essentially an error with a single element (and no more!) that's a string.
+
+All our normal rules apply. `["foo"] extends [string]` is true, while `[string] extends ["foo"]`. You can assign a tuple with a single `"foo"` string literal to a tuple with a single string, for the same reason that you can assign a `"foo"` string literal to a variable of type `string`.
