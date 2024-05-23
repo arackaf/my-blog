@@ -10,17 +10,17 @@ description: An introduction to RSC and react-query
 
 React Server Components, as the name implies, execute **on the server**—and the server **alone**. To see why this is significant, let's take a whirlwind tour of how web development evolved over the last 10 or so years.
 
-Prior to RSC, JavaScript frameworks (React, Svelte, Vue, Solid, etc) prodivded you with a component model for building your application. These components were capable of _running on_ the server, but only as a synchronous operation for stringifying your components' html, to send down to the browser so it could server render your app. Your app would then render in the browser, again, at which point it would become interactive. With this model, the only way to load data was as a side-effect on the client. Waiting until your app reached your user's browser before beginning to load data was slow, and inefficient.
+Prior to RSC, JavaScript frameworks (React, Svelte, Vue, Solid, etc) provided you with a component model for building your application. These components were capable of running on the server, but only as a synchronous operation for stringifying your components' HTML to send down to the browser so it could server render your app. Your app would then render in the browser, again, at which point it would become interactive. With this model, the only way to load data was as a side-effect on the client. Waiting until your app reached your user's browser before beginning to load data was **slow and inefficient**.
 
 To solve this inefficiency, meta-frameworks like Next, SvelteKit, Remix, Nuxt, SolidStart, etc were created. These meta-frameworks provided various ways to load data, server-side, with that data being injected by the meta-framework into your component tree. This code was non-portable, and usually a little awkward. You'd have to define some sort of loader function that was associated with a given route, load data, and then expect it to show up in your component tree based on the rules of whatever meta-framework you were using.
 
 This worked, but it wasn't without issue. In addition to being framework-specific, composition also suffered; where typically components are explicitly passed props by whichever component renders them, now there are _implicit_ props passed by the meta-framework, based on what you return from your loader. Nor was this setup the most flexible. A given page needs to know what data it needs up front, and request it all from the loader. With client-rendered SPAs we could just render whatever components we need, and let them fetch whatever data they need. This was awful for performance, but amazing for convenience.
 
-RSC bridges that gap and gives us the best of both worlds. We get to _ad hoc_ request whatever data we need from whichever component we're rendering, but have that code execute on the server, without needing to wait for a round trip to the browser. Best of all, RSC also support _streaming_, or more precisely, out-of-order streaming. If some of our data are slow to load, we can send the rest of the page, and _push_ those data down to the browser, from the server, whenever they happen to be ready.
+RSC bridges that gap and gives us the best of both worlds. We get to _ad hoc_ request whatever data we need from whichever component we're rendering, but have that code execute on the server, without needing to wait for a round trip to the browser. Best of all, RSC also supports _streaming_, or more precisely, _out-of-order_ streaming. If some of our data are slow to load, we can send the rest of the page, and _push_ those data down to the browser, from the server, whenever they happen to be ready.
 
 ## How do I use them?
 
-At time of writing RSC are mostly only supported in Next.js, although the minimal framework [Waku](https://waku.gg/) also supports it. Remix and TanStack Router are currently working on implementations, so stay tuned. I'll show a very brief overview of what they look like in Next; consult those other frameworks when they ship (the ideas will be the same, even if the implementations differ slightly).
+At time of writing RSC are mostly only supported in Next.js, although the minimal framework [Waku](https://waku.gg/) also supports it. Remix and TanStack Router are currently working on implementations, so stay tuned. I'll show a very brief overview of what they look like in Next; consult those other frameworks when they ship. The ideas will be the same, even if the implementations differ slightly.
 
 In Next, when using the new "app directory" (it's literally a folder called "app" that you define your various routes in), pages are RSC by default. Any components imported by these pages are also RSC, as well as components imported by those components, and so on. When you're ready to exit server components and switch to "client components," you put the `"use client"` pragma at the top of a component. Now that component, and everything that component imports are client components. Check the [Next docs](https://nextjs.org/docs/app) for more info.
 
@@ -46,15 +46,15 @@ The page has a search input which puts our search term into the url to filter th
 
 The repo is [here](https://github.com/arackaf/react-query-rsc-blog-post). The data are all static, but the books are put into a SQLite database, so we can update the data. The binary for the SQLite db should be checked in, but you can always re-created it (and reset any updates you've made) by running `npm run create-db`.
 
-Let's dive in
+Let's dive in.
 
 ## A note on caching
 
-At time of writing, Next is just about to release a new version with radically different caching api's, and defaults. We won't cover any of that for this post. For the demo, I've disabled all caching. Each call to a page, or api endpoint will always run fresh from the server. The client cache will still work, though. So if you click between the two pages, Next will cache and display what you just saw, client-side, in the browser. But refreshing the page will always recreate everything from the server.
+At time of writing, Next is just about to release a new version with radically different caching APIs and defaults. We won't cover any of that for this post. For the demo, I've disabled all caching. Each call to a page, or API endpoint will always run fresh from the server. The client cache will still work, so if you click between the two pages, Next will cache and display what you just saw, client-side. But refreshing the page will always recreate everything from the server.
 
 ## Loading the data
 
-There's api endpoints inside of the api folder for loading data, and for updating the books. I've added artifical delays of a few hundred ms for each of these endpoints, since they're either loading static data, or running simple queries from SQLite. There's also console logging for these data, so you can see what's loading, when. This will be useful in a bit.
+There's API endpoints inside of the `api` folder for loading data and for updating the books. I've added artifical delays of a few hundred `ms` for each of these endpoints, since they're either loading static data, or running simple queries from SQLite. There's also console logging for these data, so you can see what's loading when. This will be useful in a bit.
 
 Here's what the terminal console shows for a typical page load in either the RSC or RSC + react-query version.
 
@@ -350,15 +350,15 @@ Remember, when we search our books, I'm calling `router.push` which adds a query
 
 ![Query parameter change waterfall](/rsc-and-react-query/react-query-param-change-waterfall.jpg)
 
-before our books endpoint can be called, it looks like we have other things happening. This is the navigation we caused when we called `router.push`. Next is basically rendering to a new page. The page we're already on, except with a new querystring. Next is right to assume it needs to do this, but in practice react-query is handling our data. We don't actually need, or want Next to render this new page; we just want the url to update, so react-query can request new data. If you're wondering why it navigates to our new, changed page **twice** ... so am I. Apparently the RSC identifier is being changed, but I have no idea why. If anyone does, please reach out to me.
+before our books endpoint can be called, it looks like we have other things happening. This is the navigation we caused when we called `router.push`. Next is basically rendering to a new page. The page we're already on, except with a new querystring. Next is right to assume it needs to do this, but in practice react-query is handling our data. We don't actually need, or want Next to render this new page; we just want the url to update, so react-query can request new data. If you're wondering why it navigates to our new, changed page **twice**, well, so am I. Apparently, the RSC identifier is being changed, but I have no idea why. If anyone does, please reach out to me.
 
 Next has no solutions for this.
 
 The closest Next can come is to let you use [window.history.pushState](https://nextjs.org/docs/app/building-your-application/routing/linking-and-navigating#windowhistorypushstate). That will trigger a client-side url update, similar to what used to be called shallow routing in prior versions of Next. This does in fact work; however, it's not integrated with transitions for some reason. So when this calls, and our useSuspenseQuery hook updates, our current ui will suspend, and our nearest Suspense boundary will show the fallback. This is awful UI. I've reported this bug [here](https://github.com/vercel/next.js/issues/66016); hopefully it gets a fix soon.
 
-Next may not have a solution, but react-query does. If you think about it, we already know what query we need to run, we're just stuck waiting on Next to finish navigating to an unchanging RSC page. What if we could pre-fetch this new endpoint request, so it's already running for when Next finally finishes rendering our new (unchanged) page. We can, since react-query has an api just for this. Let's see how.
+Next may not have a solution, but react-query does. If you think about it, we already know what query we need to run, we're just stuck waiting on Next to finish navigating to an unchanging RSC page. What if we could pre-fetch this new endpoint request, so it's already running for when Next finally finishes rendering our new (unchanged) page. We can, since react-query has an API just for this. Let's see how.
 
-Let's look at the react-query search form component, in particular the part which triggers a new navigation
+Let's look at the react-query search form component. In particular, the part which triggers a new navigation
 
 ```ts
 startTransition(() => {
@@ -417,22 +417,20 @@ queryClient.prefetchQuery(makeBooksSearchQuery(search));
 
 But for this demo I opted for duplication and simplicity.
 
-Before moving on, let's take a moment and point out that all of this was only necessry because we had data loading tied to the url. If we just click a button to set client-side state, and trigger a new data request, none of this would ever be an issue. Next would not route anywhere, and our client-side state update would trigger a new react-query.
+Before moving on, let's take a moment and point out that all of this was only neccessary because we had data loading tied to the URL. If we just click a button to set client-side state, and trigger a new data request, none of this would ever be an issue. Next would not route anywhere, and our client-side state update would trigger a new react-query.
 
 ## What about bundle size?
 
 When we did our react-query implementation, we changed our Books component to be a client component by adding the `"use client"` pragma. If you're wondering whether that will cause an increase in our bundle size, you're right. In the RSC version, that component only ever ran on the server. As a client component, it now has to run in both places, which will increase our bundle size a bit.
 
-Honestly I wouldn't worry about it, especially for apps like this, with lots of different data sources that are interactive, and updating. This demo only had a single mutation, but it was just that; a demo. If we were to build this app for real, there'd be many mutation points, each with potentially multiple queries in need of invalidation.
+Honestly, I wouldn't worry about it, especially for apps like this, with lots of different data sources that are interactive, and updating. This demo only had a single mutation, but it was just that; a demo. If we were to build this app for real, there'd be many mutation points, each with potentially multiple queries in need of invalidation.
 
-If you're curious, it's technically possible to get the best of both worlds. You _could_ load data in an RSC, and then pass that data to the regular `useQuery` hook via the `initialData` prop. You can check [the docs](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery) for more info, but I honestly don't think it's worth it. You'd now need to define your data loading (the fetch call) in two places, or manually build an isomorphic fetch helper function to share between them. And then with actual data loading happening in RSCs, any navigations back to the same page (ie for querystrings) would re-fire those queries, when in reality react-query is already running those query udates client side. To fix _that_ so you'd have to be certain to only ever use `window.history.pushState` like we talked about. `useQuery` doesn't suspend, so you wouldn't need transitions for those url changes. That's good since pushState won't suspend your content, but now you have to manually track _all_ your loading states; if you have three pieces of data you want loaded before revealing a UI (like we did above) you'd have to manually track and aggregate those three loading states. It would work, but I highly doubt the complexity would be worth it. Just live with the very marginal bundle size increase.
+If you're curious, it's technically possible to get the best of both worlds. You _could_ load data in an RSC, and then pass that data to the regular `useQuery` hook via the `initialData` prop. You can check [the docs](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery) for more info, but I honestly don't think it's worth it. You'd now need to define your data loading (the fetch call) in two places, or manually build an isomorphic fetch helper function to share between them. And then with actual data loading happening in RSCs, any navigations back to the same page (ie for querystrings) would re-fire those queries, when in reality react-query is already running those query udates client side. To fix _that_ so you'd have to be certain to only ever use `window.history.pushState` like we talked about. The `useQuery` hook doesn't suspend, so you wouldn't need transitions for those URL changes. That's good since `pushState` won't suspend your content, but now you have to manually track _all_ your loading states; if you have three pieces of data you want loaded before revealing a UI (like we did above) you'd have to manually track and aggregate those three loading states. It would work, but I highly doubt the complexity would be worth it. Just live with the very marginal bundle size increase.
 
 Just use client components and let react-query remove the complexity with `useSuspenseHook`.
 
 ## Wrapping up
 
-This was a _long_ post but I hope it was a valuable. Next's app directory is an incredible piece of infrastructure that let's us request data on the server, render, and even stream component content from that data, all using the single React component model we're all used to.
+This was a _long_ post, but I hope it was a valuable. Next's app directory is an incredible piece of infrastructure that let's us request data on the server, render, and even stream component content from that data, all using the single React component model we're all used to.
 
 There's some things to get right, but depending on the type of app you're building, react-query can simplify things a great deal.
-
-Happy coding!
