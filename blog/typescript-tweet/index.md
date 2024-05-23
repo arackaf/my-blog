@@ -230,10 +230,26 @@ We start
 
 and substitute `string | number` in for T, and U. Evaluation starts, and immediately gets to our first `extends`
 
-![Conditional types](/typescript-tweet/img3b.jpg)
+![Conditional types](/typescript-tweet/img3b1.jpg)
+
+T and U are both unions, but only the type _before_ the `extends`is distributed. Let's substitute `string | number` for U
+
+![Conditional types](/typescript-tweet/img3b2.jpg)
+
+and now we're ready to process that first `extends`. We'll need to break up the T union, and run it for every type in that union. `string` is first
+
 ![Conditional types](/typescript-tweet/img3c.jpg)
+
+`string` does extends `string | number` so we hit the true branch, and are immediately greeted by a second `extends`.
+
 ![Conditional types](/typescript-tweet/img3d.jpg)
+
+Think of it like a nested loop. We'll process this inner `extends` in the same way. We'll substitute each type in the `U` union, starting with `string`
+
 ![Conditional types](/typescript-tweet/img3e.jpg)
+
+and of course `string extends string` is true.
+
 ![Conditional types](/typescript-tweet/img3f.jpg)
 ![Conditional types](/typescript-tweet/img3g.jpg)
 ![Conditional types](/typescript-tweet/img3h.jpg)
