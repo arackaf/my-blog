@@ -1,12 +1,22 @@
 ---
-title: Checking for type equality in TypeScript
+title: Workshopping the title below
 date: "2024-05-24T10:00:00.000Z"
 description: How to check whether two types are identical in TypeScript
 ---
 
-As your TypeScript usage gets more advanced, it can be extremely helpful to have utilities around that test, and verify your types. Sort of like unit testing, but without needing to set up Jest, deal with mocking, etc. This post will talk about that, but then dive deeply into a surprisingly difficult type to create: one that checks whether two types are **the same**.
+Title candidates in my rough order of preference
 
-NOTE: this post will cover some advanced corners of TypeScript that you're unlikely to need for regular application code. If you're not a huge fan of TS, please understand that you probably won't need the things in this post for your everyday work, which is fine. But if you're writing or maintaing TypeScript libraries, or even library-like code in your team's web app, the things we discuss here might come in handy.
+## Testing your types in TypeScript
+
+## Fun with Conditional Types
+
+## Fun with Conditional Types in TypeScript
+
+## Checking for type equality in TypeScript
+
+As your TypeScript usage gets more advanced, it can be extremely helpful to have utilities around that test, and verify your types. Sort of like unit testing, but without needing to set up Jest, deal with mocking, etc. In this post we'll briefly introduce that topic—it's fairly easy. Then we'll dive deeply into one particular testing utility that's surprisingly difficult to create: a type that checks whether two types are the same.
+
+NOTE: this post will cover some advanced corners of TypeScript you're unlikely to need for regular application code. If you're not a huge fan of TS, please understand that you probably won't need the things in this post for your everyday work, which is fine. But if you're writing or maintaing TypeScript libraries, or even library-like code in your team's app, the things we discuss here might come in handy.
 
 ## Type helpers
 
@@ -30,7 +40,7 @@ which you'd like to verify. You of course could just type
 type X = IsArray<number[]>;
 ```
 
-into your editor, mouse over the X and verify that it's true, which it is. But we don't settle for ad hoc testing like that with normal code, so why would we with our advanced types.
+into your editor, mouse over the `X` and verify that it's true, which it is. But we don't settle for ad hoc testing like that with normal code, so why would we with our advanced types.
 
 Why don't we write this instead
 
@@ -38,7 +48,7 @@ Why don't we write this instead
 type X = Expect<IsArray<number[]>>;
 ```
 
-If we mess up our IsArray type, the line above would error out, which we can see by passing the wrong thing into it
+If we had messed up our `IsArray` type, the line above would error out, which we can see by passing the wrong thing into it
 
 ```ts
 type Y = Expect<IsArray<number>>;
@@ -367,8 +377,62 @@ Instead of asking if `T extends U` I ask if `[T] extends [U]`. `[T]` is a tuple 
 
 All our normal rules apply. `["foo"] extends [string]` is true, while `[string] extends ["foo"]` is false. You can assign a tuple with a single `"foo"` string literal to a tuple with a single string, for the same reason that you can assign a `"foo"` string literal to a variable of type `string`.
 
+## One last fix
+
+We're pretty much done, don't worry.
+
+```ts
+// prettier-ignore
+type TypesMatch<T, U> = [T] extends [U]
+  ? [U] extends [T]
+    ? true
+    : false
+  : false;
+
+type Tests = [
+  // prettier-ignore
+  Expect<Not<TypesMatch<string, "foo">>>,
+  Expect<TypesMatch<string | number, string | number>>,
+  Expect<Not<TypesMatch<string | number, string | number | object>>>
+];
+```
+
+This mostly works, but there's one rub: optional properties. This test currently fails
+
+```ts
+Expect<{ a: number }, { a: number; b?: string }>;
+```
+
+Unfortunately both of those types are assignable to each other, which makes sense. The `b` in the second type is optional. `{ a: number; b?: string }` can in fact be assigned to a variable expecting `{ a: number }`, since the structure of `{ a: number }` is satisfied. TypeScript is happy to ignore the extra properties. We're really close though. This only happens if either type has optional properties which are absent from the other type.
+
+This already fails, as is
+
+```ts
+Expect<{ a: number; b?: number }, { a: number; b?: string }>;
+```
+
+since those types are not at all compatible. So why don't we just keep what we already have, and then also verify that all of the property keys are the same. We'll rename a smidge, and wind up with this
+
+```ts
+// prettier-ignore
+type ShapesMatch<T, U> = [T] extends [U]
+  ? [U] extends [T]
+    ? true
+    : false
+  : false;
+
+// prettier-ignore
+type TypesMatch<T, U> = ShapesMatch<T, U> extends true
+  ? ShapesMatch<keyof T, keyof U> extends true
+    ? true
+    : false
+  : false;
+```
+
+What was `TypesMatch` is now `ShapesMatch`, and our real `TypesMatch` calls that, and then calls it again on the types' keys. Don't be scared of `keyof T` - that's safe. This will work on primitive types, function types, etc. So long as the types are the same, the result will be the same. And of course if the types are object types, they'll match up those object properties.
+
 ## Wrapping up
 
-Conditional types can be incredibly helpful when you're building advanced types. But they also come with some behaviors that can be surprising to the uninitiated. Hopefully this post made some of that clearer.
+Conditional types can be incredibly helpful when you're building advanced types, for testing or otherwise. But they also come with some behaviors that can be surprising to the uninitiated. Hopefully this post made some of that clearer.
 
 Happy coding!
