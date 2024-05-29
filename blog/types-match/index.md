@@ -16,7 +16,7 @@ Title candidates in my rough order of preference
 
 As your TypeScript usage gets more advanced, it can be extremely helpful to have utilities around that test, and verify your types. Sort of like unit testing, but without needing to set up Jest, deal with mocking, etc. In this post we'll briefly introduce that topic—it's fairly easy. Then we'll dive deeply into one particular testing utility that's surprisingly difficult to create: a type that checks whether two types are the same.
 
-NOTE: this post will cover some advanced corners of TypeScript you're unlikely to need for regular application code. If you're not a huge fan of TS, please understand that you probably won't need the things in this post for your everyday work, which is fine. But if you're writing or maintaing TypeScript libraries, or even library-like code in your team's app, the things we discuss here might come in handy.
+NOTE: this post will cover some advanced corners of TypeScript you're unlikely to need for regular application code. If you're not a huge fan of TS, please understand that you probably won't need the things in this post for your everyday work, which is fine. But if you're writing or maintaining TypeScript libraries, or even library-like code in your team's app, the things we discuss here might come in handy.
 
 ## Type helpers
 
@@ -245,7 +245,7 @@ const either: Circle | Square = {} as any;
 const eitherDescription = getDescription(either);
 ```
 
-The type `Circle | Square` does not extend `Square` (a variable of type `Circle | Square` cannot be assigned to a variable of type `Square`) nor does it extend Circle. So we might naievely expect `eitherDescription` to be `"Dunno"`. But intuitively this feels wrong. `either` is a Circle or a Square, so the description should be either `"4 Sides"` or `"Round"`.
+The type `Circle | Square` does not extend `Square` (a variable of type `Circle | Square` cannot be assigned to a variable of type `Square`) nor does it extend Circle. So we might naively expect `eitherDescription` to be `"Dunno"`. But intuitively this feels wrong. `either` is a Circle or a Square, so the description should be either `"4 Sides"` or `"Round"`.
 
 And that's exactly what it is
 
@@ -273,7 +273,7 @@ Once our conditional type hits the extends keyword, if we passed in a union type
 
 ![Union type next step](/typescript-tweet/img2d.jpg)
 
-`Circle` extends `Circle` so `"Round"` is the result of the second iteration. The two are unioned together, resulting in the `"4 Sides" | "Round"` that we just saw.
+`Circle` extends `Circle` so `"Round"` is the result of the second iteration. The two are union'd together, resulting in the `"4 Sides" | "Round"` that we just saw.
 
 ## Playing on Hard Mode
 
