@@ -14,9 +14,9 @@ Title candidates in my rough order of preference
 
 ## Checking for type equality in TypeScript
 
-As your TypeScript usage gets more advanced, it can be extremely helpful to have utilities around that test, and verify your types. Sort of like unit testing, but without needing to set up Jest, deal with mocking, etc. In this post we'll briefly introduce that topic—it's fairly easy. Then we'll dive deeply into one particular testing utility that's surprisingly difficult to create: a type that checks whether two types are the same.
+As your TypeScript usage gets more advanced, it can be extremely helpful to have utilities around that test and verify your types. Like unit testing, but without needing to set up Jest, deal with mocking, etc. In this post, we'll introduce this idea. Then we'll dive deeply into one particular testing utility that's surprisingly difficult to create: a type that checks whether two types are the same.
 
-NOTE: this post will cover some advanced corners of TypeScript you're unlikely to need for regular application code. If you're not a huge fan of TS, please understand that you probably won't need the things in this post for your everyday work, which is fine. But if you're writing or maintaining TypeScript libraries, or even library-like code in your team's app, the things we discuss here might come in handy.
+<div class="learn-more"><p>This post will cover some advanced corners of TypeScript you're unlikely to need for regular application code. If you're not a huge fan of TS, please understand that you probably won't need the things in this post for your everyday work, which is fine. But if you're writing or maintaining TypeScript libraries, or even library-like code in your team's app, the things we discuss here might come in handy.</p></div>
 
 ## Type helpers
 
@@ -26,29 +26,29 @@ Consider this `Expect` helper
 type Expect<T extends true> = T;
 ```
 
-it basically demands you pass true into it. This seems silly but stay with me.
+This type demands you pass `true` into it. This seems silly, but stay with me.
 
-Now imagine, for some reason, you have a helper for figuring out whether a type is some kind of array
+Now imagine, for some reason, you have a helper for figuring out whether a type is some kind of array:
 
 ```ts
 type IsArray<T> = T extends Array<any> ? true : false;
 ```
 
-which you'd like to verify. You of course could just type
+You'd like to verify this Array. You could type:
 
 ```ts
 type X = IsArray<number[]>;
 ```
 
-into your editor, mouse over the `X` and verify that it's true, which it is. But we don't settle for ad hoc testing like that with normal code, so why would we with our advanced types.
+Then mouse over the `X` and verify that it's true, which it is. But we don't settle for ad hoc testing like that with normal code, so why would we with our advanced types?
 
-Why don't we write this instead
+Why don't we write this instead:
 
 ```ts
 type X = Expect<IsArray<number[]>>;
 ```
 
-If we had messed up our `IsArray` type, the line above would error out, which we can see by passing the wrong thing into it
+If we had messed up our `IsArray` type, the line above would error out, which we can see by passing the wrong thing into it:
 
 ```ts
 type Y = Expect<IsArray<number>>;
