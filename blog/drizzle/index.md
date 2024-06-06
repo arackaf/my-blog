@@ -32,7 +32,72 @@ NOTE:
 
 Using Drizzle in general, and some of the advanced things we'll cover in this post require at least a decent knowlegde of SQL. If you've never, ever used SQL, you might struggle with a few of the things we discuss later on. That's expected. Skim and jump over sections as needed. If nothing else, hopefully this post will motivate you to learn SQL.
 
-![Union type](/typescript-tweet/img1.jpg)
+## Setting up the schema
+
+Drizzle can't do much of anything if it doesn't know about your database. There's lots of utilities for declaring your tables, and the columns therein. We'll take a very brief look, but a more complete example can be found [here](https://github.com/arackaf/booklist/blob/master/svelte-kit/src/data/drizzle-schema.ts).
+
+Drizzle supports Postgres, MySQL, and SQLite. The ideas are the same either way, but we'll be using MySQL.
+
+Let's start to set up a table.
+
+```ts
+import { int, datetime, tinyint, json, mysqlTable, varchar, longtext } from "drizzle-orm/mysql-core";
+
+export const books = mysqlTable("books", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: varchar("userId", { length: 50 }).notNull(),
+});
+```
+
+We tell Drizzle about our columns (we won't show all of them here, to keep things brief), and their data types.
+
+Now we can run queries
+
+```ts
+const result = await db.select().from(books).orderBy(desc(books.id)).limit(1);
+```
+
+This query returns an array of tiems matching the schema listed out for the books table
+
+![First query](/drizzle/img1-first-query.jpg)
+
+Note that the types of the columns match whatever we define in the schema. We won't go over every possible column type (check the docs), but let's briefly look at the json type
+
+```ts
+export const books = mysqlTable("books", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: varchar("userId", { length: 50 }).notNull(),
+  authors: json("authors"),
+});
+```
+
+And now we have an authors field in each book. But the type assigned might not be what you want. Right now if you check, you'll see that the `authors` property on each book is `unknown`. This makes perfect sense: JSON can have just about any structure. Fortunately, if you know your json column will have a predictable shape, you can specify it, like this
+
+```ts
+export const books = mysqlTable("books", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: varchar("userId", { length: 50 }).notNull(),
+  authors: json("authors").$type<string[]>(),
+});
+```
+
+And now, when we check, the `authors` property is of type `string[] | null`. If you were to mark the `authors` column as `notNull()` it would be typed as `string[]`. As you might expect, you can pass any type you'd like into the `$type` helper.
+
+![Typed json](/drizzle/img2-typed-json.jpg)
+
+## Query whirlwind tour
+
+Let's run a non-trivial, but still basic query to see what Drizzle looks like in practice. Let's say we're looking to find some nice beach reading for the summer. We want to find books that belong to you (userId == "123"), and is either less than 250 pages, or was written by Stephan Jay Gould. We want the first ten, and we want them sort from most recently added to least recently added (the id key is auto-numbered, so we can sort on that for the same effect)
+
+In SQL we'd do something like this
+
+```sql
+SELECT *
+FROM books
+WHERE userId = '123' AND (pages < 250 OR authors LIKE '%Stephen Jay Gould%')
+ORDER BY id desc
+LIMIT 10
+```
 
 ## Wrapping up
 
