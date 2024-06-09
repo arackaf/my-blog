@@ -326,6 +326,236 @@ select `id`, `userId`, `authors`, `title`, `isbn`, `pages` from `books` where (`
 
 ## Digging deeper
 
+Let's really hit Drizzle hard and see what it can do. Let's see what a query to get aggregate info about our books. What our most and least popular subject(s) are, and how many books we have of those subjects, unused subjects. Then that same info about tags (which we haven't talked about). And let's also get the total number of books we have overall. Maybe display them in a screen like this
+
+![Aggregate screen](/drizzle/img3-aggregarte-screen.jpg)
+
+Let's look at some of the SQL for this, and then turn to Drizzle to simplify.
+
+### Number of books per subject
+
+In SQL we can group things together with GROUP BY.
+
+```sql
+SELECT
+    subject,
+    count(*)
+FROM books_subjects
+GROUP BY subject
+```
+
+Now our SELECT list, rather than pulling items from a table, is now pulling from a (conceptual) lookup table. We (again conceptually) have a bunch of buckets stored by subject id. So we can select those subject id's, or we can select aggregate info from the buckets themselves, which we do with the `count(*)`. This selects each subject, and the number of books under that subject.
+
+And it works
+
+![Group by](/drizzle/img4-group-by.jpg)
+
+But we want the most and least popular subjects. Well SQL also has what are called window functions. We can, on the fly, sort these buckets in some order, and then ask questions about them. We basically want the subject(s) with the highest or lowest number of books, including ties. It turns out [RANK](https://dev.mysql.com/doc/refman/8.4/en/window-function-descriptions.html#function_rank) is exactly what we want. Let's see how this work
+
+```sql
+SELECT
+    subject,
+    count(*) as count,
+    RANK() OVER (ORDER BY count(*) DESC) MaxSubject,
+    RANK() OVER (ORDER BY count(*) ASC) MinSubject
+FROM books_subjects
+GROUP BY subject
+```
+
+We ask for the rank of each row, when the whole result set is sorted in whatever way we describe.
+
+![Rank](/drizzle/img5-rank.jpg)
+
+It's a little mind bendy at first, so don't worry if this looks a little weird. The point is to show how well Drizzle can simplify SQL for us, not to be a deep dize into SQL. So let's just move on.
+
+We want the subjects with a MaxSubject of 1, or a MinSubject of 1. We can't use WHERE for this, at least not directly. The solution in SQL is to turn this query into a virtual table, and query _that_. It looks like this
+
+```SQL
+SELECT
+    t.subject id,
+    CASE WHEN t.MinSubject = 1 THEN 'MinSubject' ELSE 'MaxSubject' END as label,
+    t.count
+FROM (
+    SELECT
+        subject,
+        count(*) as count,
+        RANK() OVER (ORDER BY count(*) DESC) MaxSubject,
+        RANK() OVER (ORDER BY count(*) ASC) MinSubject
+    FROM books_subjects
+    WHERE userId = '573d1b97120426ef0078aa92'
+    GROUP BY subject
+) t
+WHERE t.MaxSubject = 1 OR t.MinSubject = 1
+```
+
+And it works
+
+![Rank](/drizzle/img5-rank-2.jpg)
+
+### Moving this along.
+
+I won't show tags, it's basically idential except we hit a books_tags table, instead of books_subjects. I also won't show unused subjects or that's also very similar, except we use a NOT EXISTS query.
+
+The query to get the total number of books looks like this
+
+```SQL
+SELECT count(*) as count
+FROM books_subjects
+```
+
+but let's add some columns _just_ to get it in the same structure as our subjects queries
+
+```SQL
+SELECT
+    0 id,
+    'Books Count' as label,
+    count(*) as count
+FROM books_subjects
+```
+
+and now let's combine them into one big query. We use UNION for this.
+
+```SQL
+SELECT *
+FROM (
+    SELECT
+        t.subject id,
+        CASE WHEN t.MinSubject = 1 THEN 'MinSubject' ELSE 'MaxSubject' END as label,
+        t.count
+    FROM (
+        SELECT
+            subject,
+            count(*) as count,
+            RANK() OVER (ORDER BY count(*) DESC) MaxSubject,
+            RANK() OVER (ORDER BY count(*) ASC) MinSubject
+        FROM books_subjects
+        GROUP BY subject
+    ) t
+    WHERE t.MaxSubject = 1 OR t.MinSubject = 1
+) subjects
+UNION
+    SELECT
+        0 id,
+        'Books Count' as label,
+        count(*) as count
+    FROM books_subjects;
+```
+
+It works but it's gross to write manually, and even grosser to maintain. There's a lot of pieces here, and there's no (good) way to break this apart, and manage these pieces separately. SQL is ultimately text, and you can, of course, generate these various pieces of text with different functions in your code, and then concatenate these pieces together. But that's fraught with difficulty, too. It's easy to get small details wrong when you're pasting strings of code together.
+
+## The Drizzle way
+
+Remember that initial query to get each subject with its count, and rank? Here it is in Drizzle
+
+```ts
+const subjectCountRank = () =>
+  db
+    .select({
+      subject: booksSubjects.subject,
+      count: sql<number>`COUNT(*)`.as("count"),
+      rankMin: sql<number>`RANK() OVER (ORDER BY COUNT(*) ASC)`.as("rankMin"),
+      rankMax: sql<number>`RANK() OVER (ORDER BY COUNT(*) DESC)`.as("rankMax"),
+    })
+    .from(booksSubjects)
+    .where(eq(booksSubjects.userId, userId))
+    .groupBy(booksSubjects.subject)
+    .as("t");
+```
+
+Drizzle supports grouping, and it even has an `as` function to alias a query, and enable it to be _queried from_. Speaking of, let's do that
+
+```ts
+const subjectsQuery = () => {
+  const subQuery = subjectCountRank();
+
+  return db
+    .select({
+      label:
+        sql<string>`CASE WHEN t.rankMin = 1 THEN 'MIN Subjects' ELSE 'MAX Subjects' END`.as(
+          "label"
+        ),
+      count: subQuery.count,
+      id: subQuery.subject,
+    })
+    .from(subQuery)
+    .where(or(eq(subQuery.rankMin, 1), eq(subQuery.rankMax, 1)));
+};
+```
+
+We stuck our query to get the ranks in a function, and then we just called that function, and queried from it. SQL is feeling a lot more like normal coding, with types!
+
+The query for the total book count is simple enough
+
+```ts
+db
+  .select({ label: sql<string>`'All books'`, count: sql<number>`COUNT(*)`, id: sql<number>`0` })
+  .from(books)
+  .where(eq(books.userId, userId)),
+```
+
+And you hopefully won't be too surprised to learn that Drizzle has a `union` function to union queries together. Let's see it all together
+
+```ts
+const dataQuery = union(
+  db
+    .select({
+      label: sql<string>`'All books'`,
+      count: sql<number>`COUNT(*)`,
+      id: sql<number>`0`,
+    })
+    .from(books)
+    .where(eq(books.userId, userId)),
+  subjectsQuery()
+);
+```
+
+Which generates this SQL for us
+
+```sql
+(select 'All books', COUNT(*), 0 from `books` where `books`.`userId` = ?)
+union
+(select CASE WHEN t.rankMin = 1 THEN 'MIN Subjects' ELSE 'MAX Subjects' END as `label`, `count`, `subject`
+ from (select `subject`,
+              COUNT(*)                             as `count`,
+              RANK() OVER (ORDER BY COUNT(*) ASC)  as `rankMin`,
+              RANK() OVER (ORDER BY COUNT(*) DESC) as `rankMax`
+       from `books_subjects`
+       where `books_subjects`.`userId` = ?
+       group by `books_subjects`.`subject`) `t`
+ where (`rankMin` = ? or `rankMax` = ?))
+```
+
+Basically the same thing we did before, but with a few more parens, plus some userId filtering I left off for clarity.
+
+This post is already too long, so I left off the tags queries, and the unused subjects/tags queries, but if you're curious what they look like, the code is [all here](https://github.com/arackaf/booklist/blob/master/svelte-kit/src/data/user-summary.ts) and the final union looks like this
+
+```ts
+const dataQuery = union(
+  db
+    .select({
+      label: sql<string>`'All books'`,
+      count: sql<number>`COUNT(*)`,
+      id: sql<number>`0`,
+    })
+    .from(books)
+    .where(eq(books.userId, userId)),
+  subjectsQuery(),
+  unusedSubjectsQuery(),
+  tagsQuery(),
+  unusedTagsQuery()
+);
+```
+
+Just more function calls thrown into the union.
+
+### Flexibility
+
+Some of you might wince seeing that many large queries all union'd together. Those queries are actually run one after the other on the MySQL box. But, for this project it's a small amount of data, and there's not multiple round trips over the network to do it: our MySQL engine just executes those queries one after the other.
+
+But let's say you truly want them run in parallel, and you decide you're better off breaking that union apart, and sending N queries with each piece, and putting it all together in application code. These queries are _already_ separate function calls. It would be fairly trivial to remove those calls from the union, and instead invoke them in isolation (and then modify your application code).
+
+This kind of flexibility is what I love the most about Drizzle. Refactoring large, complex stored procedure has always been a bit of a pain with SQL. When you code it through Drizzle, though, it becomes much more like refactoring a typed programming language, like TypeScript or C#.
+
 ## Debugging queries
 
 Before we really kick the tires and see what Drizzle can do, let's take a look at how easily Drizzle let's you debug your queries. Let's say the query from before didn't return what we expected, and we want to see the actual SQL being run. We can do that by **removing** the `await` from the query, and then calling `getSQL` on the result.
