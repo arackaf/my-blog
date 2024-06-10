@@ -4,9 +4,9 @@ date: "2024-06-01T10:00:00.000Z"
 description: Introduction to Drizzle
 ---
 
-This is a post about an object relational mapper (ORM), but an ORM that might be different than what you're used to. Knowing SQL is an essential skill for any software engineer (even if you're using a non-relational database now, sooner or later ...)
+This is a post about an exciting new object relational mapper (ORM) that's differet than any ORM I've used before—and I've used quite a few.
 
-But writing SQL directly can be tricky. The tooling is usually primitive, with only minimal auto-complete to guide you, and you invariably go through a process of running your query, correcting errors, and repeating until you get it right.
+Knowing SQL is an essential skill for any software engineer (even if you're using a non-relational database now, sooner or later ...). But writing SQL directly can be tricky. The tooling is usually primitive, with only minimal auto-complete to guide you, and you invariably go through a process of running your query, correcting errors, and repeating until you get it right.
 
 ORMs have existed for decades, with the intent of simplifying this process. Typically, you tell the ORM about the shape of your DB, and it exposes APIs to do typical things. If you have a books table in your DB, you might have an api along the lines of
 
@@ -14,11 +14,11 @@ ORMs have existed for decades, with the intent of simplifying this process. Typi
 const longBooks = books.find({ pages: { gt: 500 } });
 ```
 
-Unfortunately this traditionally raised other problems. Devs would often struggle figuring out how to do non-trivial queries. Beyond that, there were often performance foot-guns, such as the infamous [Select N + 1 problem](https://planetscale.com/blog/what-is-n-1-query-problem-and-how-to-solve-it).
+Unfortunately this traditionally raised other problems. Devs would often struggle figuring out how to do non-trivial queries, and there were often performance foot-guns, such as the infamous [Select N + 1 problem](https://planetscale.com/blog/what-is-n-1-query-problem-and-how-to-solve-it).
 
 ## Why Drizzle is different
 
-Drizzle takes what is, to my mind, a novel approach. Rather than providing you a custom querying api on top of your database, it simply adds a layer of typing on top of SQL itself. So rather than what we saw above, we might query our books table like this
+Drizzle takes what is, to my mind, a novel approach. Drizzle _does_ provide you a traditional ORM querying api, like what I showed above. But in addition to that, it _also_ provides an api that is, essentially, a layer of typing on top of SQL itself. So rather than what we saw above, we might query our books table like this
 
 ```ts
 const longBooks = await db.select().from(books).where(gt(books.pages, 500));
@@ -26,34 +26,30 @@ const longBooks = await db.select().from(books).where(gt(books.pages, 500));
 
 It's more lines, but it's also much closer to actual SQL, and by extension easier to learn, more flexible, without the traditional ORM footguns.
 
-Let's dive in and look closer. This post will take a brief overview of setting up Drizzle, and querying, and then do a deeper dive showing off some of its powerful abilities. The docs [are here](https://orm.drizzle.team/docs/overview) if you'd like to look closer at anything.
+Let's dive in and look closer. This post will take a brief overview of setting up Drizzle, and querying, and then do a deeper dive showing off some of its powerful abilities with this typed SQL querying api.
+
+The docs [are here](https://orm.drizzle.team/docs/overview) if you'd like to look closer at anything.
 
 NOTE:
 
-Using Drizzle in general, and some of the advanced things we'll cover in this post require at least a decent knowlegde of SQL. If you've never, ever used SQL, you might struggle with a few of the things we discuss later on. That's expected. Skim and jump over sections as needed. If nothing else, hopefully this post will motivate you to learn SQL.
+Using Drizzle in general, and some of the advanced things we'll cover in this post requires at least a decent knowlegde of SQL. If you've never, ever used SQL, you might struggle with a few of the things we discuss later on. That's expected. Skim and jump over sections as needed. If nothing else, hopefully this post will motivate you to look at SQL.
 
 ## Setting up the schema
 
-Drizzle can't do much of anything if it doesn't know about your database. There's lots of utilities for declaring your tables, and the columns therein. We'll take a very brief look, but a more complete example can be found [here](https://github.com/arackaf/booklist/blob/master/svelte-kit/src/data/drizzle-schema.ts).
+Drizzle can't do much of anything if it doesn't know about your database. There's lots of utilities for showing Drizzle the structure (or schema) of your tables. We'll take a very brief look, but a more complete example can be found [here](https://github.com/arackaf/booklist/blob/master/svelte-kit/src/data/drizzle-schema.ts).
 
 Drizzle supports Postgres, MySQL, and SQLite. The ideas are the same either way, but we'll be using MySQL.
 
 Let's start to set up a table.
 
 ```ts
-import {
-  int,
-  datetime,
-  tinyint,
-  json,
-  mysqlTable,
-  varchar,
-  longtext,
-} from "drizzle-orm/mysql-core";
+import { int, json, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 
 export const books = mysqlTable("books", {
   id: int("id").primaryKey().autoincrement(),
   userId: varchar("userId", { length: 50 }).notNull(),
+  isbn: varchar("isbn", { length: 25 }),
+  pages: int("pages"),
 });
 ```
 
@@ -85,16 +81,20 @@ Note that the types of the columns match whatever we define in the schema. We wo
 export const books = mysqlTable("books", {
   id: int("id").primaryKey().autoincrement(),
   userId: varchar("userId", { length: 50 }).notNull(),
+  isbn: varchar("isbn", { length: 25 }),
+  pages: int("pages"),
   authors: json("authors"),
 });
 ```
 
-And now we have an authors field in each book. But the type assigned might not be what you want. Right now if you check, you'll see that the `authors` property on each book is `unknown`. This makes perfect sense: JSON can have just about any structure. Fortunately, if you know your json column will have a predictable shape, you can specify it, like this
+And now we have an authors field in each book. But the type assigned might not be what you want. Right now if you check, you'll see that the `authors` property on each book is `unknown`. This makes sense: JSON can have just about any structure. Fortunately, if you know your json column will have a predictable shape, you can specify it, like this
 
 ```ts
 export const books = mysqlTable("books", {
   id: int("id").primaryKey().autoincrement(),
   userId: varchar("userId", { length: 50 }).notNull(),
+  isbn: varchar("isbn", { length: 25 }),
+  pages: int("pages"),
   authors: json("authors").$type<string[]>(),
 });
 ```
@@ -203,7 +203,7 @@ type SearchPacket = Partial<{
 }>;
 ```
 
-Note the [Partial](https://www.typescriptlang.org/docs/handbook/utility-types.html#partialtype) type. We're taking in any number of these filters—possibly none of them. Whichever filters are passed, we want them to be additive; we want them combined with `and`. We've seen `and` already, and it can take the result of calls to `eq`, `lt`, and [lots of others](https://orm.drizzle.team/docs/operators). We'll need to create an array of all of these types, and Drizzle gives us a parent type for any of these filters: `SQLWrapper`.
+Note the [Partial](https://www.typescriptlang.org/docs/handbook/utility-types.html#partialtype) type. We're taking in any number of these filters—possibly none of them. Whichever filters are passed, we want them to be additive; we want them combined with `and`. We've seen `and` already, and it can take the result of calls to `eq`, `lt`, and [lots of others](https://orm.drizzle.team/docs/operators). We'll need to create an array of all of these filters, and Drizzle gives us a parent type that can hold any of them: `SQLWrapper`.
 
 Let's get started
 
@@ -224,9 +224,9 @@ async function searchBooks(args: SearchPacket) {
 }
 ```
 
-Nothing new, yet. This is the same title filter we saw before.
+Nothing new, yet. This is the same filter we saw before with authors.
 
-Let's make that author check a little more realistic. It's not a varchar column, it holds json values, which themselves are strings of arrays. MySQL gives us a way to search json arrays - we have to use the [`->>` operator](https://dev.mysql.com/doc/refman/8.0/en/json-search-functions.html#operator_json-inline-path). This takes a json column, and evaluates a path on it. So if you had objects in there, you'd pass string paths to get properties out. We just have an array of strings, so our path is `$`. And the string comparrisons when we're filtering on JSON columns like this is no longer case sensitive, so we'll want to use the LOWER function in MySQL.
+Speaking of authors, let's add that query next. But let's make the author check a little more realistic. It's not a varchar column, it holds json values, which themselves are strings of arrays. MySQL gives us a way to search json - we use the [`->>` operator](https://dev.mysql.com/doc/refman/8.0/en/json-search-functions.html#operator_json-inline-path). This takes a json column, and evaluates a _path_ on it. So if you had objects in there, you'd pass string paths to get properties out. We just have an array of strings, so our path is `$`, which is the actual values in the array. And the string comparrisons when we're filtering on JSON columns like this is no longer case sensitive, so we'll want to use the LOWER function in MySQL.
 
 Typically, with traditional ORM's you'd scramble to the docs to look for an equivalent to the `->>` operator, as well as the LOWER function. Drizzle does something better, and gives us a nice escape hatch to just write SQL directly in situations like this. Let's implement our author filter
 
@@ -238,20 +238,18 @@ async function searchBooks(args: SearchPacket) {
   }
   if (args.author) {
     searchConditions.push(
-      sql`LOWER(${
-        books.authors
-      }->>"$") LIKE ${`%${args.author.toLowerCase()}%`}`
+      sql`LOWER(${books.authors}->>"$") LIKE ${`%${args.author.toLowerCase()}%`}`
     );
   }
 }
 ```
 
-Note the `sql` tagged template literal. It lets us put arbitrary SQL in there for one-off operations that may not be implemented in the ORM. Before moving on, let's take a quick peak at the SQL generated by this
+Note the `sql` tagged template literal. It lets us put arbitrary SQL in for one-off operations that may not be implemented in the ORM. Before moving on, let's take a quick peak at the SQL generated by this
 
 ```
 {
   sql: 'select `id`, `userId`, `authors`, `title`, `isbn`, `pages` from `books` where (`books`.`userId` = ? and LOWER(`books`.`authors`->>"$") LIKE ?) order by `books`.`id` desc limit ?',
-  params: [ '573d1b97120426ef0078aa92', '%gould%', 10 ]
+  params: [ '123', '%gould%', 10 ]
 }
 ```
 
@@ -275,7 +273,7 @@ if (args.maxPages) {
 }
 ```
 
-nothing new or interesting. Now let's look at the `subjects` filter. We can pass in an array of subject ids, and we want to filter books that have that subject. The relationship between books and subjects is stored in a separate table, `booksSubjects`. This table simply has rows with an id, a book id, and a subject id. So if book 12 has subject 34, there'll be a row with bookId of 12, and subjectId of 34.
+nothing new or interesting. Now let's look at the `subjects` filter. We can pass in an array of subject ids, and we want to filter books that have that subject. The relationship between books and subjects is stored in a separate table, `booksSubjects`. This table simply has rows with an id, a book id, and a subject id (and also the userId for that book, to make other queries easily). So if book 12 has subject 34, there'll be a row with bookId of 12, and subjectId of 34.
 
 In SQL when we want to see if a given row _exists_ in some table, we use the [exists](https://dev.mysql.com/doc/refman/8.4/en/exists-and-not-exists-subqueries.html) keyword.
 
@@ -324,13 +322,60 @@ is curious, but that's us just saying `SELECT 1` which is a common way of puttin
 select `id`, `userId`, `authors`, `title`, `isbn`, `pages` from `books` where (`books`.`userId` = ? and exists (select 1 from `books_subjects` where (`books`.`id` = `books_subjects`.`book` and `books_subjects`.`subject` in (?, ?)))) order by `books`.`id` desc limit ?
 ```
 
+That was our last filter. Now we can just pipe our filters in, to execute the query we put together
+
+```ts
+async function searchBooks(args: SearchPacket) {
+  const searchConditions: SQLWrapper[] = [];
+  if (args.title) {
+    searchConditions.push(like(books.title, `%${args.title}%`));
+  }
+  if (args.author) {
+    searchConditions.push(
+      sql`LOWER(${books.authors}->>"$") LIKE ${`%${args.author.toLowerCase()}%`}`
+    );
+  }
+  if (args.maxPages) {
+    searchConditions.push(lte(books.pages, args.maxPages));
+  }
+  if (args.subjects?.length) {
+    searchConditions.push(
+      exists(
+        db
+          .select({ _: sql`1` })
+          .from(booksSubjects)
+          .where(
+            and(
+              eq(books.id, booksSubjects.book),
+              inArray(booksSubjects.subject, args.subjects)
+            )
+          )
+      )
+    );
+  }
+
+  const result = await db
+    .select()
+    .from(books)
+    .where(and(eq(books.userId, userId), ...searchConditions))
+    .orderBy(desc(books.id))
+    .limit(10);
+}
+```
+
+The ability to treat SQL queries as typed function calls that can be combined arbitratily is what really makes Drizzle shine in my opinion.
+
 ## Digging deeper
 
-Let's really hit Drizzle hard and see what it can do. Let's see what a query to get aggregate info about our books. What our most and least popular subject(s) are, and how many books we have of those subjects, unused subjects. Then that same info about tags (which we haven't talked about). And let's also get the total number of books we have overall. Maybe display them in a screen like this
+We could end the blog post here. But I do want to really make Drizzle shine, but putting it through a much more complex query. You might never need, or want to write queries like this; my purpose in including this section is to show that you can, if you ever need to.
+
+With that out of the way, let's write a query to get aggregate info about our books. We want our most, and least popular subject(s), and how many books we have with those subjects. We also want to know any unused subjects, as well as that same info about tags (which we haven't talked about). And also the total number of books we have overall. Maybe display them in a screen like this.
 
 ![Aggregate screen](/drizzle/img3-aggregarte-screen.jpg)
 
-Let's look at some of the SQL for this, and then turn to Drizzle to simplify.
+To keep this section manageable we'll see what just the total book counts, and the most and least subjects looks like. The other pieces are variations on that theme, and you can see the finished product [here](https://github.com/arackaf/booklist/blob/master/svelte-kit/src/data/user-summary.ts).
+
+Let's look at some of the SQL for this, and how to write it with Drizzle.
 
 ### Number of books per subject
 
@@ -344,13 +389,13 @@ FROM books_subjects
 GROUP BY subject
 ```
 
-Now our SELECT list, rather than pulling items from a table, is now pulling from a (conceptual) lookup table. We (again conceptually) have a bunch of buckets stored by subject id. So we can select those subject id's, or we can select aggregate info from the buckets themselves, which we do with the `count(*)`. This selects each subject, and the number of books under that subject.
+Now our SELECT list, rather than pulling items from a table, is now pulling from a (conceptual) lookup table. We (conceptually) have a bunch of buckets stored by subject id. So we can select those subject id's, as well as aggregate info from the buckets themselves, which we do with the `count(*)`. This selects each subject, and the number of books under that subject.
 
 And it works
 
 ![Group by](/drizzle/img4-group-by.jpg)
 
-But we want the most and least popular subjects. Well SQL also has what are called window functions. We can, on the fly, sort these buckets in some order, and then ask questions about them. We basically want the subject(s) with the highest or lowest number of books, including ties. It turns out [RANK](https://dev.mysql.com/doc/refman/8.4/en/window-function-descriptions.html#function_rank) is exactly what we want. Let's see how this work
+But we want the most, and least popular subjects. SQL also has what are called window functions. We can, on the fly, sort these buckets in some order, and then ask questions about the data, sorted in that way. We basically want the subject(s) with the highest, or lowest number of books, including ties. It turns out [RANK](https://dev.mysql.com/doc/refman/8.4/en/window-function-descriptions.html#function_rank) is exactly what we want. Let's see how this works
 
 ```sql
 SELECT
@@ -359,6 +404,7 @@ SELECT
     RANK() OVER (ORDER BY count(*) DESC) MaxSubject,
     RANK() OVER (ORDER BY count(*) ASC) MinSubject
 FROM books_subjects
+WHERE userId = '123'
 GROUP BY subject
 ```
 
@@ -366,7 +412,7 @@ We ask for the rank of each row, when the whole result set is sorted in whatever
 
 ![Rank](/drizzle/img5-rank.jpg)
 
-It's a little mind bendy at first, so don't worry if this looks a little weird. The point is to show how well Drizzle can simplify SQL for us, not to be a deep dize into SQL. So let's just move on.
+It's a little mind bendy at first, so don't worry if this looks a little weird. The point is to show how well Drizzle can simplify SQL for us, not to be a deep dize into SQL, so let's move on.
 
 We want the subjects with a MaxSubject of 1, or a MinSubject of 1. We can't use WHERE for this, at least not directly. The solution in SQL is to turn this query into a virtual table, and query _that_. It looks like this
 
@@ -382,7 +428,7 @@ FROM (
         RANK() OVER (ORDER BY count(*) DESC) MaxSubject,
         RANK() OVER (ORDER BY count(*) ASC) MinSubject
     FROM books_subjects
-    WHERE userId = '573d1b97120426ef0078aa92'
+    WHERE userId = '123'
     GROUP BY subject
 ) t
 WHERE t.MaxSubject = 1 OR t.MinSubject = 1
@@ -394,13 +440,14 @@ And it works
 
 ### Moving this along.
 
-I won't show tags, it's basically idential except we hit a books_tags table, instead of books_subjects. I also won't show unused subjects or that's also very similar, except we use a NOT EXISTS query.
+We won't show tags, since it's basically idential except we hit a books_tags table, instead of books_subjects. We also won't show unused subjects (or tags), which is also very similar, except we use a NOT EXISTS query.
 
 The query to get the total number of books looks like this
 
 ```SQL
 SELECT count(*) as count
-FROM books_subjects
+FROM books
+WHERE userId = '123'
 ```
 
 but let's add some columns _just_ to get it in the same structure as our subjects queries
@@ -410,10 +457,11 @@ SELECT
     0 id,
     'Books Count' as label,
     count(*) as count
-FROM books_subjects
+FROM books
+WHERE userId = '123'
 ```
 
-and now let's combine them into one big query. We use UNION for this.
+and now, since these queries return the same structure, let's combine them into one big query. We use UNION for this.
 
 ```SQL
 SELECT *
@@ -438,14 +486,19 @@ UNION
         0 id,
         'Books Count' as label,
         count(*) as count
-    FROM books_subjects;
+    FROM books
+    WHERE userId = '123';
 ```
 
-It works but it's gross to write manually, and even grosser to maintain. There's a lot of pieces here, and there's no (good) way to break this apart, and manage these pieces separately. SQL is ultimately text, and you can, of course, generate these various pieces of text with different functions in your code, and then concatenate these pieces together. But that's fraught with difficulty, too. It's easy to get small details wrong when you're pasting strings of code together.
+And it works!
+
+![Rank](/drizzle/img6-union-query.jpg)
+
+But this is gross to write manually, and even grosser to maintain. There's a lot of pieces here, and there's no (good) way to break this apart, and manage separately. SQL is ultimately text, and you can, of course, generate these various pieces of text with different functions in your code, and then concatenate them together. But that's fraught with difficulty, too. It's easy to get small details wrong when you're pasting strings of code together. And believe it or not, this query is much simpler than much of what I've seen.
 
 ## The Drizzle way
 
-Remember that initial query to get each subject with its count, and rank? Here it is in Drizzle
+Ok let's see what this looks like in Drizzle. Remember that initial query to get each subject, with its count, and rank? Here it is in Drizzle
 
 ```ts
 const subjectCountRank = () =>
@@ -462,7 +515,7 @@ const subjectCountRank = () =>
     .as("t");
 ```
 
-Drizzle supports grouping, and it even has an `as` function to alias a query, and enable it to be _queried from_. Speaking of, let's do that
+Drizzle supports grouping, and it even has an `as` function to alias a query, and enable it to be _queried from_. Let's do that next
 
 ```ts
 const subjectsQuery = () => {
@@ -482,7 +535,7 @@ const subjectsQuery = () => {
 };
 ```
 
-We stuck our query to get the ranks in a function, and then we just called that function, and queried from it. SQL is feeling a lot more like normal coding, with types!
+We stuck our query to get the ranks in a function, and then we just called that function, and queried from its result. SQL is feeling a lot more like normal coding!
 
 The query for the total book count is simple enough
 
@@ -493,7 +546,7 @@ db
   .where(eq(books.userId, userId)),
 ```
 
-And you hopefully won't be too surprised to learn that Drizzle has a `union` function to union queries together. Let's see it all together
+Hopefully won't be too surprised to learn that Drizzle has a `union` function, to union queries together. Let's see it all together
 
 ```ts
 const dataQuery = union(
@@ -552,13 +605,13 @@ Just more function calls thrown into the union.
 
 Some of you might wince seeing that many large queries all union'd together. Those queries are actually run one after the other on the MySQL box. But, for this project it's a small amount of data, and there's not multiple round trips over the network to do it: our MySQL engine just executes those queries one after the other.
 
-But let's say you truly want them run in parallel, and you decide you're better off breaking that union apart, and sending N queries with each piece, and putting it all together in application code. These queries are _already_ separate function calls. It would be fairly trivial to remove those calls from the union, and instead invoke them in isolation (and then modify your application code).
+But let's say you truly want them run in parallel, and you decide you're better off breaking that union apart, and sending N queries, with each piece, and putting it all together in application code. These queries are _already_ separate function calls. It would be fairly trivial to remove those calls from the union, and instead invoke them in isolation (and then modify your application code).
 
-This kind of flexibility is what I love the most about Drizzle. Refactoring large, complex stored procedure has always been a bit of a pain with SQL. When you code it through Drizzle, though, it becomes much more like refactoring a typed programming language, like TypeScript or C#.
+This kind of flexibility is what I love the most about Drizzle. Refactoring large, complex stored procedure has always been a pain with SQL. When you code it through Drizzle, though, it becomes much more like refactoring a typed programming language, like TypeScript or C#.
 
 ## Debugging queries
 
-Before we really kick the tires and see what Drizzle can do, let's take a look at how easily Drizzle let's you debug your queries. Let's say the query from before didn't return what we expected, and we want to see the actual SQL being run. We can do that by **removing** the `await` from the query, and then calling `getSQL` on the result.
+Before we really kick the tires and see what Drizzle can do, let's take a look at how easily Drizzle let's you debug your queries. Let's say the query from earlier didn't return what we expected, and we want to see the actual SQL being run. We can do that by **removing** the `await` from the query, and then calling `getSQL` on the result.
 
 ```ts
 import { and, desc, eq, like, lt, or } from "drizzle-orm";
@@ -583,11 +636,11 @@ which displays the following
 ```
 {
   sql: 'select `id`, `userId`, `authors`, `title`, `isbn`, `pages` from `books` where (`books`.`userId` = ? and (`books`.`pages` < ? or `books`.`authors` like ?)) order by `books`.`id` desc limit ?',
-  params: [ '573d1b97120426ef0078aa92', 150, '%Stephen Jay Gould%', 10 ]
+  params: [ '123', 150, '%Stephen Jay Gould%', 10 ]
 }
 ```
 
-`result.toSQL()` returned an object, with a `sql` field, with our query, and a `params` field with the parameters. As any ORM would, Drizzle parameterized our query, so fields with invalida characters wouldn't break anything. You can now run this query directly against your db to see what went wrong.
+`result.toSQL()` returned an object, with a `sql` field, with our query, and a `params` field with the parameters. As any ORM would, Drizzle parameterized our query, so fields with invalid characters wouldn't break anything. You can now run this query directly against your db to see what went wrong.
 
 ## Wrapping up
 
