@@ -146,55 +146,55 @@ const result = await db
 
 which works
 
-```
+```json
 [
   {
-    id: 1088,
-    userId: '123',
-    authors: [ 'Siry, Steven E' ],
-    title: 'Greene: Revolutionary General (Military Profiles)',
-    isbn: '9781574889130',
-    pages: 144
+    "id": 1088,
+    "userId": "123",
+    "authors": ["Siry, Steven E"],
+    "title": "Greene: Revolutionary General (Military Profiles)",
+    "isbn": "9781574889130",
+    "pages": 144
   },
   {
-    id: 828,
-    userId: '123',
-    authors: [ 'Morton J. Horwitz' ],
-    title: 'The Warren Court and the Pursuit of Justice',
-    isbn: '0809016257',
-    pages: 144
+    "id": 828,
+    "userId": "123",
+    "authors": ["Morton J. Horwitz"],
+    "title": "The Warren Court and the Pursuit of Justice",
+    "isbn": "0809016257",
+    "pages": 144
   },
   {
-    id: 506,
-    userId: '123',
-    authors: [ 'Stephen Jay Gould' ],
-    title: 'Bully for Brontosaurus: Reflections in Natural History',
-    isbn: '039330857X',
-    pages: 544
+    "id": 506,
+    "userId": "123",
+    "authors": ["Stephen Jay Gould"],
+    "title": "Bully for Brontosaurus: Reflections in Natural History",
+    "isbn": "039330857X",
+    "pages": 544
   },
   {
-    id: 412,
-    userId: '123',
-    authors: [ 'Stephen Jay Gould' ],
-    title: "The Flamingo's Smile: Reflections in Natural History",
-    isbn: '0393303756',
-    pages: 480
+    "id": 412,
+    "userId": "123",
+    "authors": ["Stephen Jay Gould"],
+    "title": "The Flamingo's Smile: Reflections in Natural History",
+    "isbn": "0393303756",
+    "pages": 480
   },
   {
-    id: 356,
-    userId: '123',
-    authors: [ 'Stephen Jay Gould' ],
-    title: "Hen's Teeth and Horse's Toes: Further Reflections in Natural History",
-    isbn: '0393311031',
-    pages: 416
+    "id": 356,
+    "userId": "123",
+    "authors": ["Stephen Jay Gould"],
+    "title": "Hen's Teeth and Horse's Toes: Further Reflections in Natural History",
+    "isbn": "0393311031",
+    "pages": 416
   },
   {
-    id: 319,
-    userId: '123',
-    authors: [ 'Robert J. Schneller' ],
-    title: 'Cushing: Civil War SEAL (Military Profiles)',
-    isbn: '1574886967',
-    pages: 128
+    "id": 319,
+    "userId": "123",
+    "authors": ["Robert J. Schneller"],
+    "title": "Cushing: Civil War SEAL (Military Profiles)",
+    "isbn": "1574886967",
+    "pages": 128
   }
 ]
 ```
