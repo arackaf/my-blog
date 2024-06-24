@@ -6,15 +6,15 @@ description: Some advanced fun with Typescript function types, from inferring pa
 
 ## Fun with TypeScript inference
 
-This post has an unlikely source: a [Tweet I wrote](https://twitter.com/AdamRackis/status/1788064190516666826/) that went unxpectedly viral. It was just a post with some clever TypeScript typings I came up with to accurately typecheck some utility code I was writing. Lots of people liked it. Lots of people got angry. One dude told me I'd never find a woman to reproduce with. And the create of Ruby on Rails quoted it to re-affirm his decision to not use TypeScript.
+This post has an unlikely source: a [Tweet I wrote](https://twitter.com/AdamRackis/status/1788064190516666826/) went unxpectedly viral. It was just a post with some clever TypeScript typings I came up with to accurately typecheck some utility code I was writing. Lots of people liked it. Lots of people got angry. One dude told me I'd never find a woman to reproduce with. And the create of Ruby on Rails quoted it to re-affirm his decision to not use TypeScript.
 
 The drama was interesting, but for this post I'd like to peel the curtain back and actually explain the code in question (which has been simplified since I wrote it). There's lots of good learning opportunities here, which could help you at work.
 
 ## The use case
 
-All of this code was for a 100% real, legitimate use case I had. Imagine you have a client-rendered web app. The web app hits various services to load data, as web apps a prone to do. You want to prefetch these services, so that data loading can begin as soon as the page is parsed. I [wrote about this previously](https://frontendmasters.com/blog/prefetching-when-server-loading-wont-do/).
+All of this code was for a 100% real, legitimate use case I had. Imagine you have a client-rendered web app. The web app hits various services to load data, as web apps are prone to do. You want to prefetch these services, so the data loading can begin as soon as the page is parsed. I [wrote about this previously](https://frontendmasters.com/blog/prefetching-when-server-loading-wont-do/).
 
-Unfortunately, for "reasons" your services require some special code to be called from a browser which can only happen once your app is hydrating; this completely prevents the sort of prefetching we're after. However, you're able to build a proxying layer which call the services from Node. You're in business. You can generate <link> prefetch tags to your proxy, then in application code, you just call the proxy for that first load. All subsequent loads call the real service, to avoid the (small) cost of going through a proxy.
+Unfortunately, for "reasons" your services require some special code to be called from a browser which can only happen once JavaScript is running; this completely prevents us from prefetching with a `<link>` tag, since that requires a plain url, and does not allow for any kind of special processing. To solve this, you've built a proxy layer in Node which calls your services. You're in business. You can generate <link> prefetch tags to your proxy, then in application code, you just call the proxy for that first load, and get the prefetched, cached result. All subsequent loads call the real service, to avoid the (small) cost of going through a proxy.
 
 We're on a large team of devs, so we want this simplified and streamlined. We basically want this
 
