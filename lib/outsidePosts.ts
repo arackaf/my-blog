@@ -1,5 +1,30 @@
 export const externalPosts = [
   {
+    title: "https://frontendmasters.com/blog/introducing-drizzle/",
+    date: "2024-06-17T10:00:00.000Z",
+    description: "An introduction to one of the more unique ORMs out there: Drizzle",
+    url: "https://frontendmasters.com/blog/introducing-drizzle/",
+  },
+  {
+    title: "Testing Types in TypeScript",
+    date: "2024-06-04T10:00:00.000Z",
+    description:
+      "You already know you can unit test your code. But did you know that you can also unit test your advanced TypeScript types? This post walks you through it",
+    url: "https://frontendmasters.com/blog/testing-types-in-typescript/",
+  },
+  {
+    title: "Combining React Server Components with react-query for Easy Data Management",
+    date: "2024-05-24T10:00:00.000Z",
+    description: "An introduction to React Query Components, and how to use react-query to streamline data loading",
+    url: "https://frontendmasters.com/blog/combining-react-server-components-with-react-query-for-easy-data-management/",
+  },
+  {
+    title: "Prefetching When Server Loading Won’t Do",
+    date: "2024-05-15T10:00:00.000Z",
+    description: "A guide to prefetching data for when server rendering isn't feasible, and streaming isn't available",
+    url: "https://frontendmasters.com/blog/prefetching-when-server-loading-wont-do/",
+  },
+  {
     title: "Using Auth.js with SvelteKit",
     date: "2024-04-29T10:00:00.000Z",
     description: "A guide to implementing authentication with Auth.js in SvelteKit",
