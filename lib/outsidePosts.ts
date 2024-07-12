@@ -1,6 +1,6 @@
 export const externalPosts = [
   {
-    title: "https://frontendmasters.com/blog/introducing-drizzle/",
+    title: "Introducing Drizzle",
     date: "2024-06-17T10:00:00.000Z",
     description: "An introduction to one of the more unique ORMs out there: Drizzle",
     url: "https://frontendmasters.com/blog/introducing-drizzle/",
