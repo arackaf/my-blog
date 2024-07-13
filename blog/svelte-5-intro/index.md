@@ -37,6 +37,14 @@ let value = 0;
 $: doubleValue = value * 2;
 ```
 
+You could also put entire code blocks after `$:` and run arbitrary code whenever things changed. Svelte would look at what you were referencing inside the code block, and re-run it when those things changed.
+
+```ts
+$: {
+  console.log("Valu is ", value);
+}
+```
+
 Svelte's compiler would (in theory) track changes to `value`, and update `doubleValue` accordingly. I say in theory since, depending on how creatively you used value, some of the re-assignments might not make it to all of the desived state that used it.
 
 ### Stores
@@ -233,6 +241,7 @@ Svelte 4 props were another example of hijacking existing JavaScript syntax to d
 
 ```svelte
 <script lang="ts">
+  // ChildComponent.svelte
 	export let name: string;
 	export let age: number;
 	export let currentValue: string;
@@ -245,7 +254,154 @@ Svelte 4 props were another example of hijacking existing JavaScript syntax to d
 </div>
 ```
 
-This component created 3 props. Simple as that.
+This component created 3 props. Simple as that. It also bound the `currentValue` prop into the textbox, so it would change as the user typed. Then to render this component, we'd do soemthing like this
+
+```svelte
+<script lang="ts">
+	import ChildComponent from './ChildComponent.svelte';
+
+	let currentValue = '';
+</script>
+
+Current value in parent: {currentValue}
+<ChildComponent name="Bob" age={20} bind:currentValue />
+```
+
+This is Svelte 4, so `let currentValue = ''` is a piece of state that can change. We pass props for name and age, but we also hav `bind:currentValue` which is a shorthand for `bind:currentValue={currentValue}`. This creates a _two-way binding_. As the child changes the value of this prop, it propagates this change upward, to the parent. This is a very cool feature of Svelte, but it's also dangerous, and easy to misuse, so use caution when doing this.
+
+Now, as we type in the ChildComponent's textbox, we'll see currentValue update in the parent component.
+
+### Svelte 5 version
+
+Let's see what these props look like in Svelte 5
+
+```svelte
+<script lang="ts">
+	type Props = {
+		name: string;
+		age: number;
+		currentValue: string;
+	};
+
+	let { age, name, currentValue = $bindable() }: Props = $props();
+</script>
+
+<div class="flex flex-col gap-2">
+	{name}
+	{age}
+	<input class="self-start rounded border" bind:value={currentValue} />
+</div>
+```
+
+The props are defined here, via destructuring from the `$props` rune.
+
+```ts
+let { age, name, currentValue = $bindable() }: Props = $props();
+```
+
+We can apply typings directly to the destructuring expression. In order to indicate that a prop _can be_ (but doesn't have to be) bound to the parent, we use the
+
+```ts
+ = $bindable()
+```
+
+syntax. If you want to provide a default value, just assign it to the destructured value. To assign a default value to a bindable prop, pass that value to the `$bindable` rune.
+
+```ts
+let { age = 10, name = "foo", currentValue = $bindable("bar") }: Props = $props();
+```
+
+### But wait, there's more
+
+One of the most exciting changes to Svelte's prop handling is the improved TypeScript integration. We saw that you can assign types, above. But what if we want to do something like this (in React)
+
+```tsx
+type Props<T> = {
+  items: T[];
+  onSelect: (item: T) => void;
+};
+export const AutoComplete = <T,>(props: Props<T>) => {
+  return null;
+};
+```
+
+We want a react component that receives an array of items, as well as a callback that takes a single item (and typed the same). This works. How would we do it in Svelte.
+
+At first, it looks easy.
+
+```svelte
+<script lang="ts">
+	type Props<T> = {
+		items: T[];
+		onSelect: (item: T) => void;
+	};
+
+	let { items, onSelect }: Props<T> = $props();
+  //         Error here _________^
+</script>
+```
+
+The first `T` is a generic parameter, which is defined as part of the `Props` type. This is fine. The problem is, we need to instantiate that generic type with an actual value for T when we attempt to use it in the destructuring. The T that I used there is undefined. It doesn't exist. TypeScript has no idea what that T is because it hasn't been defined.
+
+### What changed?
+
+Why did this work so easily with React? The reason is, React components are _functions_. You can define a generic function, and when you _call it_ TypeScript will _infer_ (if it can) the values of its generic types. It does this by looking at the arguments you pass to the function. With React, _rendering_ a component is conceptually the same as calling it, so TypeScript is able to look at the various props you pass, and infer the generic types as needed.
+
+Svelte components are not functions though. They're just a proprietary bit of code thrown into a .svelte file, that the Svelte compiler turns into something useful. We do still render Svelte components, and TypeScript could easily look at the props we pass, and infer back the generic types as needed. The root of the problem, though, is that we haven't (yet) declared any generic types that are associated with the component itself. With React components, these are the same generic types we declare for any function. What do we do for Svelte?
+
+Fortunately the Svelte maintainers thought of this. You can declare generic types for the component itself with the `generics` attribute on the `<script>` tag at the top of your Svelte component
+
+```svelte
+<script lang="ts" generics="T">
+	type Props<T> = {
+		items: T[];
+		onSelect: (item: T) => void;
+	};
+
+	let { items, onSelect }: Props<T> = $props();
+</script>
+```
+
+You can even define constraints on your generic arg
+
+```svelte
+<script lang="ts" generics="T extends { name: string }">
+	type Props<T> = {
+		items: T[];
+		onSelect: (item: T) => void;
+	};
+
+	let { items, onSelect }: Props<T> = $props();
+</script>
+```
+
+And TypeScript will enforce this. If you violate that constraint
+
+```svelte
+<script lang="ts">
+	import AutoComplete from './AutoComplete.svelte';
+
+	let items = [{ name: 'Adam' }, { name: 'Rich' }];
+	let onSelect = (item: { id: number }) => {
+		console.log(item.id);
+	};
+</script>
+
+<div class="flex flex-col gap-2 p-4">
+	<AutoComplete {items} {onSelect} />
+</div>
+```
+
+TypeScript will let you know
+
+> Type '(item: { id: number; }) => void' is not assignable to type '(item: { name: string; }) => void'.
+> Types of parameters 'item' and 'item' are incompatible.
+
+    Property 'id' is missing in type '{ name: string; }' but required in type '{ id: number; }'.
+
+## Effects
+
+Let's wrap up with something comparatively easy: side effects.
 
 ## Parting thoughts
 
