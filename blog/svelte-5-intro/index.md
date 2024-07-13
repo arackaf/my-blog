@@ -77,7 +77,7 @@ export function createNumberInfo(initialValue: number = 0) {
 
 Writable stores exist to ... write values to. Dervied stores take one or more other stores, read their current values, and project some new payload. If you want to provide a mechanism to set a new value, just close over what you need to. To consume a stores value, just prefix it with a `$` in a Svelte component (it's not shown here, but there's also a `subscribe` method on stores, and a `get` import). If the store returns an object with properties, you can either "dot through" to them, or you can use a reactive assignment (`$:`) to get those nested values. The example below shows both, and this distinction will come up later when we talk about interop between Svelte 4 and 5.
 
-```svelte
+```html
 <script lang="ts">
 	import { createNumberInfo } from './numberInfoStore';
 
@@ -239,31 +239,31 @@ Defining state inside of a component isn't too useful if you can't pass it on to
 
 Svelte 4 props were another example of hijacking existing JavaScript syntax to do something unrelated. To declare a prop on a component, you'd use the export keyword. It was weird, but it worked.
 
-```svelte
+```html
 // ChildComponent.svelte
 <script lang="ts">
-	export let name: string;
-	export let age: number;
-	export let currentValue: string;
+  export let name: string;
+  export let age: number;
+  export let currentValue: string;
 </script>
 
 <div class="flex flex-col gap-2">
-	{name}
-	{age}
-	<input class="self-start rounded border" bind:value={currentValue} />
+  {name} {age}
+  <input class="self-start rounded border" bind:value="{currentValue}" />
 </div>
 ```
 
 This component created 3 props. It also bound the `currentValue` prop into the textbox, so it would change as the user typed. Then to render this component, we'd do soemthing like this
 
-```svelte
+```html
 <script lang="ts">
-	import ChildComponent from './ChildComponent.svelte';
+  import ChildComponent from "./ChildComponent.svelte";
 
-	let currentValue = '';
+  let currentValue = "";
 </script>
 
 Current value in parent: {currentValue}
+<!-- prettier-ignore -->
 <ChildComponent name="Bob" age={20} bind:currentValue />
 ```
 
@@ -275,21 +275,21 @@ Now, as we type in the ChildComponent's textbox, we'll see currentValue update i
 
 Let's see what these props look like in Svelte 5
 
-```svelte
+```html
 <script lang="ts">
-	type Props = {
-		name: string;
-		age: number;
-		currentValue: string;
-	};
+  type Props = {
+    name: string;
+    age: number;
+    currentValue: string;
+  };
 
-	let { age, name, currentValue = $bindable() }: Props = $props();
+  let { age, name, currentValue = $bindable() }: Props = $props();
 </script>
 
 <div class="flex flex-col gap-2">
-	{name}
-	{age}
-	<input class="self-start rounded border" bind:value={currentValue} />
+  {name} {age}
+  <!-- prettier-ignore -->
+  <input class="self-start rounded border" bind:value={currentValue} />
 </div>
 ```
 
@@ -329,14 +329,14 @@ We want a react component that receives an array of items, as well as a callback
 
 At first, it looks easy.
 
-```svelte
+```html
 <script lang="ts">
-	type Props<T> = {
-		items: T[];
-		onSelect: (item: T) => void;
-	};
+  type Props<T> = {
+    items: T[];
+    onSelect: (item: T) => void;
+  };
 
-	let { items, onSelect }: Props<T> = $props();
+  let { items, onSelect }: Props<T> = $props();
   //         Error here _________^
 </script>
 ```
@@ -351,44 +351,44 @@ Svelte components are not functions though. They're just a proprietary bit of co
 
 Fortunately the Svelte maintainers thought of this. You can declare generic types for the component itself with the `generics` attribute on the `<script>` tag at the top of your Svelte component
 
-```svelte
+```html
 <script lang="ts" generics="T">
-	type Props<T> = {
-		items: T[];
-		onSelect: (item: T) => void;
-	};
+  type Props<T> = {
+    items: T[];
+    onSelect: (item: T) => void;
+  };
 
-	let { items, onSelect }: Props<T> = $props();
+  let { items, onSelect }: Props<T> = $props();
 </script>
 ```
 
 You can even define constraints on your generic arg
 
-```svelte
+```html
 <script lang="ts" generics="T extends { name: string }">
-	type Props<T> = {
-		items: T[];
-		onSelect: (item: T) => void;
-	};
+  type Props<T> = {
+    items: T[];
+    onSelect: (item: T) => void;
+  };
 
-	let { items, onSelect }: Props<T> = $props();
+  let { items, onSelect }: Props<T> = $props();
 </script>
 ```
 
 And TypeScript will enforce this. If you violate that constraint
 
-```svelte
+```html
 <script lang="ts">
-	import AutoComplete from './AutoComplete.svelte';
+  import AutoComplete from "./AutoComplete.svelte";
 
-	let items = [{ name: 'Adam' }, { name: 'Rich' }];
-	let onSelect = (item: { id: number }) => {
-		console.log(item.id);
-	};
+  let items = [{ name: "Adam" }, { name: "Rich" }];
+  let onSelect = (item: { id: number }) => {
+    console.log(item.id);
+  };
 </script>
 
 <div class="flex flex-col gap-2 p-4">
-	<AutoComplete {items} {onSelect} />
+  <AutoComplete {items} {onSelect} />
 </div>
 ```
 
@@ -449,7 +449,7 @@ Big Bang upgrades where an entire app is updated to use a new framework version'
 
 There's one exception to this, though. Stores can continue to be used in Svelte 5 components. Remember the `createNumberInfo` method from before, which returned an object with a store on it? We can use it in Svelte 5. This component is perfectly valid, and works.
 
-```svelte
+```html
 <script lang="ts">
 	import { createNumberInfo } from '../svelte4/numberInfoStore';
 
