@@ -130,13 +130,13 @@ What if you want to create some derived state? Before we did
 $: countTimes2 = count * 2;
 ```
 
-In Svelte 5 we used the `$derived` rune.
+In Svelte 5 we use the `$derived` rune.
 
 ```ts
 let countTimes2 = $derived(count * 2);
 ```
 
-Note that we pass in a raw _expression_. Svelte will run it, see what it depends on, and re-run it as needed. There's also a $derived.by rune if you want to pass an actual function; check the docs for more info.
+Note that we pass in a raw _expression_. Svelte will run it, see what it depends on, and re-run it as needed. There's also a `$derived.by` rune if you want to pass an actual function; check the docs for more info.
 
 If you want to use these state values in a Svelte template, you just _use them_. No need for special `$` syntax to prefix the runes like we did with stores. You just reference the values in your templates, and they update as needed.
 
@@ -154,7 +154,7 @@ count++;
 
 ### What about stores?
 
-We saw before that defining portable state, outside of components was accomplished via stores. Stores are also deprecated in Svelte 5. What's especially nice is that they're replaced with what we've already seen. That's right, the $state and $derived runes we saw before can be defined outside of components, in top-level TypeScript (or JavaScript) files. Just be sure to name your file with a `.svelte.ts` extension, so the Svelte compiler knows to enable runes in these files. Let's take a look!
+We saw before that defining portable state, outside of components was accomplished via stores. Stores are also deprecated in Svelte 5. What's especially nice is that they're replaced with what we've _already seen_. That's right, the `$state` and `$derived` runes we saw before can be defined outside of components, in top-level TypeScript (or JavaScript) files. Just be sure to name your file with a `.svelte.ts` extension, so the Svelte compiler knows to enable runes in these files. Let's take a look!
 
 Let's re-implement our number / label code from before, in Svelte 5. This is what it looked like with stores
 
@@ -214,7 +214,7 @@ You may be wondering why we did
 	}
 ```
 
-rather than just referencing those properties. The reason is that _reading_ that state, at any given point in time, evaluates the state rune, and, if we're reading it in a reactive context (like a Svelte component binding, inside of a $derived expression), then a subscription is set up to update any time that piece of state is updated. If we had done
+rather than just referencing those properties. The reason is that _reading_ that state, at any given point in time, evaluates the state rune, and, if we're reading it in a reactive context (like a Svelte component binding, inside of a `$derived` expression), then a subscription is set up to update any time that piece of state is updated. If we had done
 
 ```ts
 // this won't work
@@ -231,7 +231,7 @@ then those `value` and `label` pieces of state would be _read and evaluated_ rig
 
 And that's about that. Svelte 5 ships a few universal state primitives which can be used outside of components, and easily constructed into larger reactive structures. What's especially exciting is that Svelte's component bindings are also updated, and are now support fine-grained reactivity that didn't used to exist. But that's a topic for a future post.
 
-This is by far the longest section of the post. Let's move on to props, and side effects.
+This is by far the longest section of this post. Let's move on to props, and side effects.
 
 ## Props
 
@@ -240,8 +240,8 @@ Defining state inside of a component isn't too useful if you can't pass it on to
 Svelte 4 props were another example of hijacking existing JavaScript syntax to do something unrelated. To declare a prop on a component, you'd use the export keyword. It was weird, but it worked.
 
 ```svelte
+// ChildComponent.svelte
 <script lang="ts">
-  // ChildComponent.svelte
 	export let name: string;
 	export let age: number;
 	export let currentValue: string;
@@ -299,7 +299,7 @@ The props are defined via the `$props` rune, from which we destructure the indiv
 let { age, name, currentValue = $bindable() }: Props = $props();
 ```
 
-We can apply typings directly to the destructuring expression. In order to indicate that a prop _can be_ (but doesn't have to be) bound to the parent, like we saw above, we use the $bindable rune, like this
+We can apply typings directly to the destructuring expression. In order to indicate that a prop _can be_ (but doesn't have to be) bound to the parent, like we saw above, we use the `$bindable` rune, like this
 
 ```ts
  = $bindable()
@@ -341,7 +341,7 @@ At first, it looks easy.
 </script>
 ```
 
-The first `T` is a generic parameter, which is defined as part of the `Props` type. This is fine. The problem is, we need to instantiate that generic type with an actual value for T when we attempt to use it in the destructuring. The T that I used there is undefined. It doesn't exist. TypeScript has no idea what that T is because it hasn't been defined.
+The first `T` is a generic _parameter_, which is defined as part of the `Props` type. This is fine. The problem is, we need to instantiate that generic type with an actual value for T when we attempt to use it in the destructuring. The `T` that I used there is undefined. It doesn't exist. TypeScript has no idea what that `T` is because it hasn't been defined.
 
 ### What changed?
 
@@ -481,11 +481,11 @@ The error is even clear enough to give you another alternative to inining those 
 let derivedState = $derived($store.value);
 ```
 
-Personally I'm not a huge fan of mixing the new $derived primitive with the old Svelte 4 syntax of $store, but that's a matter of taste.
+Personally I'm not a huge fan of mixing the new `$derived` primitive with the old Svelte 4 syntax of `$store`, but that's a matter of taste.
 
 ## Parting thoughts
 
-Svelte 5 has shipped some incredibly exciting changes. We covered the new, more reliable reactivity primitives, the improved prop management, with tighter TypeScript integration. But we haven't come closing to covering everything. Not only are there more variations on the $state rune, but Svelte 5 also updated it's event handling mechanism, and even shipped an exciting new way to re-use "snippets" of html. Stay tuned for future posts covering these things.
+Svelte 5 has shipped some incredibly exciting changes. We covered the new, more reliable reactivity primitives, the improved prop management, with tighter TypeScript integration, and the new side effect primitive. But we haven't come closing to covering everything. Not only are there more variations on the `$state` rune, but Svelte 5 also updated it's event handling mechanism, and even shipped an exciting new way to re-use "snippets" of html. Stay tuned for future posts covering these things.
 
 Svelte 5 is worth a serious look for your next project.
 
