@@ -37,6 +37,8 @@ let value = 0;
 $: doubleValue = value * 2;
 ```
 
+Svelte's compiler would (in theory) track changes to `value`, and update `doubleValue` accordingly. I say in theory since, depending on how creatively you used value, some of the re-assignments might not make it to all of the desived state that used it.
+
 You could also put entire code blocks after `$:` and run arbitrary code whenever things changed. Svelte would look at what you were referencing inside the code block, and re-run it when those things changed.
 
 ```ts
@@ -44,8 +46,6 @@ $: {
   console.log("Valu is ", value);
 }
 ```
-
-Svelte's compiler would (in theory) track changes to `value`, and update `doubleValue` accordingly. I say in theory since, depending on how creatively you used value, some of the re-assignments might not make it to all of the desived state that used it.
 
 ### Stores
 
@@ -401,8 +401,50 @@ TypeScript will let you know
 
 ## Effects
 
-Let's wrap up with something comparatively easy: side effects.
+Let's wrap up with something comparatively easy: side effects. As we saw before, briefly, in Svelte 4 you could run code for side effects inside of `$:` reactive blocks
+
+```ts
+$: {
+  console.log(someStateValue1, someStateValue2);
+}
+```
+
+and that code would re-run when either of those values changed.
+
+Svelte 5 introduces the `$effect` run. This will run after state has changed, and been apply to the dom. It is for _side effects_. Things like resetting the scroll position after state changes. It is _not_ for synchronizing state. If you're using the `$effect` rune to synchronize state, you're probably doing something wrong (the same goes for the `useEffect` hook in React).
+
+The code is pretty anti-climactic.
+
+```ts
+$effect(() => {
+  console.log("Current count is ", count);
+});
+```
+
+When this code first starts, and anytime count changes, you'll see this log. To make it more interesting, let's pretend we have a current timestamp value that auto-updates
+
+```ts
+let timestamp = $state(+new Date());
+setInterval(() => {
+  timestamp = +new Date();
+}, 1000);
+```
+
+and we want to include that value when we log, but we _don't_ want our effect to run whenever our timestamp changes; we only want it to run when count changes. Svelte provides an `untrack` utility for that
+
+```ts
+import { untrack } from "svelte";
+
+$effect(() => {
+  let timestampValue = untrack(() => timestamp);
+  console.log("Current count is ", count, "at", timestampValue);
+});
+```
+
+And that's that.
 
 ## Parting thoughts
+
+Svelte 5 has shipped some inredibly exciting changes. It now supports much stronger, reliable reactivity, better prop management, with tighter TypeScript integration. Devs should give it a serious look for their next project.
 
 Happy Coding!
