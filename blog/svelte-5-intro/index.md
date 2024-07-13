@@ -443,8 +443,50 @@ $effect(() => {
 
 And that's that.
 
+## Interop
+
+Big Bang upgrades where an entire app is updated to use a new framework version's api's are seldom feasible, so it should come as no surprise that Svelte 5 continues to support Svelte 4. You can upgrade your app incremenetally. Svelte 5 components can render Svelte 4 components, and Svelte 4 components can render Svelte 5 components. The one thing you can't do is mix and match within a single component. You cannot use reactive assignments `$:` in the same component that's using Runes (the Svelte compiler will remind you if you forget).
+
+There's one exception to this, though. Stores can continue to be used in Svelte 5 components. Remember the `createNumberInfo` method from before, which returned an object with a store on it? We can use it in Svelte 5. This component is perfectly valid, and works.
+
+```svelte
+<script lang="ts">
+	import { createNumberInfo } from '../svelte4/numberInfoStore';
+
+	const numberPacket = createNumberInfo(0);
+
+	const store = numberPacket.numberInfo;
+	let junk = $state('Hello');
+</script>
+
+<span>Run value: {junk}</span>
+<div>Number value: {$store.value}</div>
+
+<button onclick={() => numberPacket.update($store.value + 1)}>Update</button>
+```
+
+The one thing we can't do, is use a reactive assignment to destructure values off of the store. So we _have to_ "dot through" to nested proerties with things like `{$store.value}` in the binding (which always works) rather than
+
+```ts
+$: ({ value } = $store);
+```
+
+which generates the error of
+
+> `$:` is not allowed in runes mode, use `$derived` or `$effect` instead
+
+The error is even clear enough to give you another alternative to inining those nested properties, which is to create a `$derived` state
+
+```ts
+let derivedState = $derived($store.value);
+```
+
+Personally I'm not a huge fan of mixing the new $derived primitive with the old Svelte 4 syntax of $store, but that's a matter of taste.
+
 ## Parting thoughts
 
-Svelte 5 has shipped some inredibly exciting changes. It now supports much stronger, reliable reactivity, better prop management, with tighter TypeScript integration. Devs should give it a serious look for their next project.
+Svelte 5 has shipped some incredibly exciting changes. We covered the new, more reliable reactivity primitives, the improved prop management, with tighter TypeScript integration. But we haven't come closing to covering, here. Not only are there more variations on the state primitives I covered here, but Svelte 5 also updated it's event handling mechanism, and even shipped an exciting new way to re-use "snippets" of html, which also replaces it's old use of slots to pass content directly to components. Stay tuned for future posts covering these things.
+
+Devs should give Svelte 5 a serious look for their next project.
 
 Happy Coding!
