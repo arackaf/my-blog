@@ -43,7 +43,7 @@ Svelte's compiler would (in theory) track changes to `value`, and update `double
 
 Those variable declarations, and special `?:` syntax was limited to Svelte components. If you wanted to build some portable state you could define anywhere, and pass around, you'd use a [store](https://svelte.dev/docs/svelte-store).
 
-We won't go through the whole api, but here's a minimal example of a store in action
+We won't go through the whole api, but here's a minimal example of a store in action. We'll define a piece of state that holds a number, and, based on what that number is at anytime, a label indicating whether the number is even, or odd. It's silly, but it should show us how stores work.
 
 ```ts
 import { derived, writable } from "svelte/store";
@@ -143,6 +143,109 @@ or of course
 ```ts
 count++;
 ```
+
+### What about stores?
+
+We saw before that defining portable state, outside of components was accomplished via stores. Stores are also deprecated in Svelte 5. What's especially nice is that they're replaced with what we've already seen. That's right, the $state and $derived runes we saw before can be defined outside of components, in top-level TypeScript (or JavaScript) files. Just be sure to name your file with a `.svelte.ts` extension, so the Svelte compiler knows to enable runes in these files. Let's take a look!
+
+Let's re-implement our number / label code from before in Svelte 5. This is what it looked like with stores
+
+```ts
+import { derived, writable } from "svelte/store";
+
+export function createNumberInfo(initialValue: number = 0) {
+  const value = writable(initialValue);
+
+  const derivedInfo = derived(value, value => {
+    return {
+      value,
+      label: value % 2 ? "Odd number" : "Even number",
+    };
+  });
+
+  return {
+    update(newValue: number) {
+      value.set(newValue);
+    },
+    numberInfo: derivedInfo,
+  };
+}
+```
+
+Here it is with runes
+
+```ts
+export function createNumberInfo(initialValue: number = 0) {
+  let value = $state(initialValue);
+  let label = $derived(value % 2 ? "Odd number" : "Even number");
+
+  return {
+    update(newValue: number) {
+      value = newValue;
+    },
+    get value() {
+      return value;
+    },
+    get label() {
+      return label;
+    },
+  };
+}
+```
+
+It's 3 lines shorter, but more importantly, much simpler. We declared out state. We computed our derived state. And we send them both back, along with a method that updates our state.
+
+You may be wondering why we did
+
+```ts
+  get value() {
+		return value;
+	},
+	get label() {
+		return label;
+	}
+```
+
+rather than just referencing those properties. The reason is that _reading_ that state, at any given point in time, evaluates the state rune, and, if we're reading it in a reactive context (like a Svelte component binding, inside of a $derived expression), then a subscription is set up to update any time that piece of state is updated. If we had done
+
+```ts
+// this won't work
+return {
+  update(newValue: number) {
+    value = newValue;
+  },
+  value,
+  label,
+};
+```
+
+then those value and label pieces of state would be _read and evaluated_ right there, in the return value, with those raw values getting injected into that object. They would not be reactive, and they would never update.
+
+And that's about that. Svelte 5 ships a few universal state primitives which can be used outside of components, and easily constructed into larger reactive structures. What's especially exciting is that Svelte's component bindings are also updated, and are now support fine-grained reactivity that didn't used to exist. But that's a topic for a future post.
+
+This is by far the longest section of the post. Let's close out with a quick look at props, and side effects.
+
+## Props
+
+Defining state inside of a component isn't too useful if you can't pass it on to other components as props. Props are also reworked in Svelte 5 in a way that makes them simpler, and also, as we'll see, with a nice trick to make TypeScript integration even more powerful.
+
+Svelte 4 props were another example of hijacking existing JavaScript syntax to do something unrelated. To declare a prop on a component, you'd use the export keyword. It was weird, but it worked.
+
+```svelte
+<script lang="ts">
+	export let name: string;
+	export let age: number;
+	export let currentValue: string;
+</script>
+
+<div class="flex flex-col gap-2">
+	{name}
+	{age}
+	<input class="self-start rounded border" bind:value={currentValue} />
+</div>
+```
+
+This component created 3 props. Simple as that.
 
 ## Parting thoughts
 
