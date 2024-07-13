@@ -6,15 +6,17 @@ description: An introduction to Svelte 5, and a guide to upgrading
 
 # Introducing Svelte 5
 
-Svelte has always been a delightful, simple, and fun framework to use. It's a framework that's always prioritized developer experience, while producing a result that's light, with minimal JavaScript, and fast. It achieved it's nice, fun DX by giving users dirt simple idioms to use, and using a compilation step to make everything work. Unfortunately this fun simplicity came at a cost of reliability. It was unfortunately easy to break Svelte's reactivity in more advanced use cases. It doesn't matter how fast web app is, or how much fun it was to make, if the end result is incorrect.
+Svelte has always been a delightful, simple, and fun framework to use. It's a framework that's always prioritized developer experience, while producing a result that's light, with minimal JavaScript, and fast. It achieved it's nice, fun DX by giving users dirt simple idioms, and using a compilation step to make everything work. Unfortunately this fun simplicity came at a cost of reliability. It was fairly easy to break Svelte's reactivity in more advanced use cases. It doesn't matter how fast web app is, or how much fun it was to make, if the end result is incorrect.
 
-Svelte 5 is in Beta, and is incredibly exciting. It's the latest framework to add signals to power their reactivity. That means the reliability problems are gone. Svelte is now every bit as capable of handling robust web applications with complex state. Best of all, it achieved this with only extremely minimal hits to their DX. It's every bit as fun and easy to use, but it's now reliable, and even faster, with a smaller, lighter footprint.
+Svelte 5, currently in Beta at time of writing, is an incredibly exciting release. It's the latest framework to add signals to power their reactivity. That means the reliability problems are gone. Svelte is now every bit as capable of handling robust web applications, with complex state, as alternatives like React and Solid. Best of all, it achieved this with only minimal hits to DX. It's every bit as fun and easy to use as ever, but it's now reliable, and even faster, with a smaller, lighter footprint.
 
 Let's jump in!
 
 ## The plan
 
-Let's go through various pieces of Svelte, look at the old way, and then see how Svelte 5 changes things (for the better). Let's get started.
+Let's go through various pieces of Svelte, look at the old way, and then see how Svelte 5 changes things (for the better). In this post we'll cover state, props and effects. Look to later posts for coverage of snippets, and Svelte's new, incredibly exciting fine-grained reactivity.
+
+Let's get started.
 
 NOTE:
 
@@ -30,28 +32,28 @@ State used to be declared with regular, plain old variable declatations, using `
 let value = 0;
 ```
 
-And you could declare derived state by using a quirky, but technical valid JavaScript syntax of `$:`. For example
+Derived state was declared with a quirky, but technically valid JavaScript syntax of `$:`. For example
 
 ```ts
 let value = 0;
 $: doubleValue = value * 2;
 ```
 
-Svelte's compiler would (in theory) track changes to `value`, and update `doubleValue` accordingly. I say in theory since, depending on how creatively you used value, some of the re-assignments might not make it to all of the desived state that used it.
+Svelte's compiler would (in theory) track changes to `value`, and update `doubleValue` accordingly. I say in theory since, depending on how creatively you used `value`, some of the re-assignments might not make it to all of the desived state that used it.
 
 You could also put entire code blocks after `$:` and run arbitrary code whenever things changed. Svelte would look at what you were referencing inside the code block, and re-run it when those things changed.
 
 ```ts
 $: {
-  console.log("Valu is ", value);
+  console.log("Value is ", value);
 }
 ```
 
 ### Stores
 
-Those variable declarations, and special `?:` syntax was limited to Svelte components. If you wanted to build some portable state you could define anywhere, and pass around, you'd use a [store](https://svelte.dev/docs/svelte-store).
+Those variable declarations, and special `$:` syntax was limited to Svelte components. If you wanted to build some portable state you could define anywhere, and pass around, you'd use a [store](https://svelte.dev/docs/svelte-store).
 
-We won't go through the whole api, but here's a minimal example of a store in action. We'll define a piece of state that holds a number, and, based on what that number is at anytime, a label indicating whether the number is even, or odd. It's silly, but it should show us how stores work.
+We won't go through the whole api, but here's a minimal example of a store in action. We'll define a piece of state that holds a number, and, based on what that number is at anytime, spit out a label indicating whether the number is even, or odd. It's silly, but it should show us how stores work.
 
 ```ts
 import { derived, writable } from "svelte/store";
@@ -75,7 +77,7 @@ export function createNumberInfo(initialValue: number = 0) {
 }
 ```
 
-Writable stores we can basically ... write values to. Dervied stores take one or more other stores, read their current values, and project some new payload. If you want to provide some mechanism to set a new value, just close over what you need to. To consume a stores value, just prefix it with a `$` in a Svelte component (it's not shown here, but there's also a `subscribe` method on stores, and a `get` import that lets you grab the current value at any point in time. If the store returns an object with properties, you can wither "dot through" to them, or you can also use a `$:` reactive assignment to get those nested values. The example below shows both, and this distinction will come up later when we start talking about interop between Svelte 4 and 5.
+Writable stores exist to ... write values to. Dervied stores take one or more other stores, read their current values, and project some new payload. If you want to provide some mechanism to set a new value, just close over what you need to. To consume a stores value, just prefix it with a `$` in a Svelte component (it's not shown here, but there's also a `subscribe` method on stores, and a `get`). If the store returns an object with properties, you can either "dot through" to them, or you can also use a `$:` reactive assignment to get those nested values. The example below shows both, and this distinction will come up later when we start talking about interop between Svelte 4 and 5.
 
 ```svelte
 <script lang="ts">
@@ -100,9 +102,9 @@ Writable stores we can basically ... write values to. Dervied stores take one or
 </div>
 ```
 
-We moved quick. But this was the old Svelte. Consult the docs, or any of the materials out there if you want to learn more.
+We moved quickly, but this was the old Svelte. Consult the docs, or any of the materials out there if you want to learn more.
 
-But this is a post on the new Svelte, version 5.
+But this is a post on the new Svelte, so let's turn our attention there.
 
 ## State in Svelte 5
 
@@ -136,9 +138,9 @@ In Svelte 5 we used the `$derived` rune.
 let countTimes2 = $derived(count * 2);
 ```
 
-Note that we pass in a raw expression. Svelte will run it, see what it depends on, and re-run it as needed. There's also a $derived.by rune if you want to pass an actual function; check the docs for more info.
+Note that we pass in a raw _expression_. Svelte will run it, see what it depends on, and re-run it as needed. There's also a $derived.by rune if you want to pass an actual function; check the docs for more info.
 
-If you want to use these state values in a Svelte template, you just _use them_. No need for special `$` syntax to prefix the runes like we did with stores. You reference the values in your templates, they'll update as needed.
+If you want to use these state values in a Svelte template, you just _use them_. No need for special `$` syntax to prefix the runes like we did with stores. You just reference the values in your templates, and they update as needed.
 
 If you want to _update_ a state value, you just assign to it.
 
@@ -156,7 +158,7 @@ count++;
 
 We saw before that defining portable state, outside of components was accomplished via stores. Stores are also deprecated in Svelte 5. What's especially nice is that they're replaced with what we've already seen. That's right, the $state and $derived runes we saw before can be defined outside of components, in top-level TypeScript (or JavaScript) files. Just be sure to name your file with a `.svelte.ts` extension, so the Svelte compiler knows to enable runes in these files. Let's take a look!
 
-Let's re-implement our number / label code from before in Svelte 5. This is what it looked like with stores
+Let's re-implement our number / label code from before, in Svelte 5. This is what it looked like with stores
 
 ```ts
 import { derived, writable } from "svelte/store";
@@ -201,7 +203,7 @@ export function createNumberInfo(initialValue: number = 0) {
 }
 ```
 
-It's 3 lines shorter, but more importantly, much simpler. We declared out state. We computed our derived state. And we send them both back, along with a method that updates our state.
+It's 3 lines shorter, but more importantly, _much_ simpler. We declared out state. We computed our derived state. And we send them both back, along with a method that updates our state.
 
 You may be wondering why we did
 
@@ -227,15 +229,15 @@ return {
 };
 ```
 
-then those value and label pieces of state would be _read and evaluated_ right there, in the return value, with those raw values getting injected into that object. They would not be reactive, and they would never update.
+then those `value` and `label` pieces of state would be _read and evaluated_ right there, in the return value, with those raw values getting injected into that object. They would not be reactive, and they would never update.
 
 And that's about that. Svelte 5 ships a few universal state primitives which can be used outside of components, and easily constructed into larger reactive structures. What's especially exciting is that Svelte's component bindings are also updated, and are now support fine-grained reactivity that didn't used to exist. But that's a topic for a future post.
 
-This is by far the longest section of the post. Let's close out with a quick look at props, and side effects.
+This is by far the longest section of the post. Let's move on to props, and side effects.
 
 ## Props
 
-Defining state inside of a component isn't too useful if you can't pass it on to other components as props. Props are also reworked in Svelte 5 in a way that makes them simpler, and also, as we'll see, with a nice trick to make TypeScript integration even more powerful.
+Defining state inside of a component isn't too useful if you can't pass it on to other components as props. Props are also reworked in Svelte 5 in a way that makes them simpler, and also, as we'll see, includes a nice trick to make TypeScript integration even more powerful.
 
 Svelte 4 props were another example of hijacking existing JavaScript syntax to do something unrelated. To declare a prop on a component, you'd use the export keyword. It was weird, but it worked.
 
@@ -254,7 +256,7 @@ Svelte 4 props were another example of hijacking existing JavaScript syntax to d
 </div>
 ```
 
-This component created 3 props. Simple as that. It also bound the `currentValue` prop into the textbox, so it would change as the user typed. Then to render this component, we'd do soemthing like this
+This component created 3 props. It also bound the `currentValue` prop into the textbox, so it would change as the user typed. Then to render this component, we'd do soemthing like this
 
 ```svelte
 <script lang="ts">
@@ -267,7 +269,7 @@ Current value in parent: {currentValue}
 <ChildComponent name="Bob" age={20} bind:currentValue />
 ```
 
-This is Svelte 4, so `let currentValue = ''` is a piece of state that can change. We pass props for name and age, but we also hav `bind:currentValue` which is a shorthand for `bind:currentValue={currentValue}`. This creates a _two-way binding_. As the child changes the value of this prop, it propagates this change upward, to the parent. This is a very cool feature of Svelte, but it's also dangerous, and easy to misuse, so use caution when doing this.
+This is Svelte 4, so `let currentValue = ''` is a piece of state that can change. We pass props for name and age, but we also have `bind:currentValue` which is a shorthand for `bind:currentValue={currentValue}`. This creates a _two-way binding_. As the child changes the value of this prop, it propagates the change upward, to the parent. This is a very cool feature of Svelte, but it's also easy to misuse, so exercise caution.
 
 Now, as we type in the ChildComponent's textbox, we'll see currentValue update in the parent component.
 
@@ -293,19 +295,19 @@ Let's see what these props look like in Svelte 5
 </div>
 ```
 
-The props are defined here, via destructuring from the `$props` rune.
+The props are defined via the `$props` rune, from which we destructure the individual values.
 
 ```ts
 let { age, name, currentValue = $bindable() }: Props = $props();
 ```
 
-We can apply typings directly to the destructuring expression. In order to indicate that a prop _can be_ (but doesn't have to be) bound to the parent, we use the
+We can apply typings directly to the destructuring expression. In order to indicate that a prop _can be_ (but doesn't have to be) bound to the parent, like we saw above, we use the $bindable rune, like this
 
 ```ts
  = $bindable()
 ```
 
-syntax. If you want to provide a default value, just assign it to the destructured value. To assign a default value to a bindable prop, pass that value to the `$bindable` rune.
+If you want to provide a default value, just assign it to the destructured value. To assign a default value to a bindable prop, pass that value to the `$bindable` rune.
 
 ```ts
 let { age = 10, name = "foo", currentValue = $bindable("bar") }: Props = $props();
@@ -325,7 +327,7 @@ export const AutoComplete = <T,>(props: Props<T>) => {
 };
 ```
 
-We want a react component that receives an array of items, as well as a callback that takes a single item (and typed the same). This works. How would we do it in Svelte.
+We want a react component that receives an array of items, as well as a callback that takes a single item (of the same type). This works in React. How would we do it in Svelte?
 
 At first, it looks easy.
 
@@ -347,7 +349,7 @@ The first `T` is a generic parameter, which is defined as part of the `Props` ty
 
 Why did this work so easily with React? The reason is, React components are _functions_. You can define a generic function, and when you _call it_ TypeScript will _infer_ (if it can) the values of its generic types. It does this by looking at the arguments you pass to the function. With React, _rendering_ a component is conceptually the same as calling it, so TypeScript is able to look at the various props you pass, and infer the generic types as needed.
 
-Svelte components are not functions though. They're just a proprietary bit of code thrown into a .svelte file, that the Svelte compiler turns into something useful. We do still render Svelte components, and TypeScript could easily look at the props we pass, and infer back the generic types as needed. The root of the problem, though, is that we haven't (yet) declared any generic types that are associated with the component itself. With React components, these are the same generic types we declare for any function. What do we do for Svelte?
+Svelte components are not functions though. They're just a proprietary bit of code thrown into a .svelte file, that the Svelte compiler turns into something useful. We do still render Svelte components, and TypeScript could easily look at the props we pass, and infer back the generic types as needed. The root of the problem, though, is that we haven't (yet) declared any generic types that are associated with the _component itself_. With React components, these are the same generic types we declare for any function. What do we do for Svelte?
 
 Fortunately the Svelte maintainers thought of this. You can declare generic types for the component itself with the `generics` attribute on the `<script>` tag at the top of your Svelte component
 
@@ -396,8 +398,8 @@ TypeScript will let you know
 
 > Type '(item: { id: number; }) => void' is not assignable to type '(item: { name: string; }) => void'.
 > Types of parameters 'item' and 'item' are incompatible.
-
-    Property 'id' is missing in type '{ name: string; }' but required in type '{ id: number; }'.
+>
+> Property 'id' is missing in type '{ name: string; }' but required in type '{ id: number; }'.
 
 ## Effects
 
@@ -411,7 +413,7 @@ $: {
 
 and that code would re-run when either of those values changed.
 
-Svelte 5 introduces the `$effect` run. This will run after state has changed, and been apply to the dom. It is for _side effects_. Things like resetting the scroll position after state changes. It is _not_ for synchronizing state. If you're using the `$effect` rune to synchronize state, you're probably doing something wrong (the same goes for the `useEffect` hook in React).
+Svelte 5 introduces the `$effect` rune. This will run after state has changed, and been applied to the dom. It is for _side effects_. Things like resetting the scroll position after state changes. It is _not_ for synchronizing state. If you're using the `$effect` rune to synchronize state, you're probably doing something wrong (the same goes for the `useEffect` hook in React).
 
 The code is pretty anti-climactic.
 
@@ -485,8 +487,8 @@ Personally I'm not a huge fan of mixing the new $derived primitive with the old 
 
 ## Parting thoughts
 
-Svelte 5 has shipped some incredibly exciting changes. We covered the new, more reliable reactivity primitives, the improved prop management, with tighter TypeScript integration. But we haven't come closing to covering, here. Not only are there more variations on the state primitives I covered here, but Svelte 5 also updated it's event handling mechanism, and even shipped an exciting new way to re-use "snippets" of html, which also replaces it's old use of slots to pass content directly to components. Stay tuned for future posts covering these things.
+Svelte 5 has shipped some incredibly exciting changes. We covered the new, more reliable reactivity primitives, the improved prop management, with tighter TypeScript integration. But we haven't come closing to covering everything. Not only are there more variations on the $state rune, but Svelte 5 also updated it's event handling mechanism, and even shipped an exciting new way to re-use "snippets" of html. Stay tuned for future posts covering these things.
 
-Devs should give Svelte 5 a serious look for their next project.
+Svelte 5 is worth a serious look for your next project.
 
 Happy Coding!
