@@ -6,9 +6,9 @@ description: An introduction to Svelte 5, and a guide to upgrading
 
 # Introducing Svelte 5
 
-Svelte has always been a delightful, simple, and fun framework to use. It's a framework that's always prioritized developer experience, while producing a result that's light, with minimal JavaScript, and fast. It achieved it's nice, fun DX by giving users dirt simple idioms, and using a compilation step to make everything work. Unfortunately this fun simplicity came at a cost of reliability. It was fairly easy to break Svelte's reactivity in more advanced use cases. It doesn't matter how fast web app is, or how much fun it was to make, if the end result is incorrect.
+Svelte has always been a delightful, simple, and fun framework to use. It's a framework that's always prioritized developer experience, while producing a result that's light, with minimal JavaScript, and fast. It achieved it's nice, fun DX by giving users dirt simple idioms, while using a compilation step to make everything work. Unfortunately this fun simplicity came at the cost of reliability. It was fairly easy to break Svelte's reactivity in more advanced use cases. It doesn't matter how fast web app is, or how much fun it was to make, if the end result is incorrect.
 
-Svelte 5, currently in Beta at time of writing, is an incredibly exciting release. It's the latest framework to add signals to power their reactivity. That means the reliability problems are gone. Svelte is now every bit as capable of handling robust web applications, with complex state, as alternatives like React and Solid. Best of all, it achieved this with only minimal hits to DX. It's every bit as fun and easy to use as ever, but it's now reliable, and even faster, with a smaller, lighter footprint.
+Svelte 5, currently in Beta at time of writing, is an incredibly exciting release. It's the latest framework to add signals to power their reactivity. That means the reliability problems are gone. Svelte is now every bit as capable of handling robust web applications, with complex state, as alternatives like React and Solid. Best of all, it achieved this with only minimal hits to DX. It's every bit as fun and easy to use, but it's now reliable, and even faster, with a smaller, lighter footprint.
 
 Let's jump in!
 
@@ -16,11 +16,9 @@ Let's jump in!
 
 Let's go through various pieces of Svelte, look at the old way, and then see how Svelte 5 changes things (for the better). In this post we'll cover state, props and effects. Look to later posts for coverage of snippets, and Svelte's new, incredibly exciting fine-grained reactivity.
 
-Let's get started.
-
 NOTE:
 
-As of this writing, Svelte 5 is late in the Beta phase. The api should be about stable by now, although it's certainly possible some new things might get added.
+As of this writing, Svelte 5 is late in the Beta phase. The api should be stable by now, although it's certainly possible some new things might get added.
 
 ## State
 
@@ -41,7 +39,7 @@ $: doubleValue = value * 2;
 
 Svelte's compiler would (in theory) track changes to `value`, and update `doubleValue` accordingly. I say in theory since, depending on how creatively you used `value`, some of the re-assignments might not make it to all of the desived state that used it.
 
-You could also put entire code blocks after `$:` and run arbitrary code whenever things changed. Svelte would look at what you were referencing inside the code block, and re-run it when those things changed.
+You could also put entire code blocks after `$:` and run arbitrary code. Svelte would look at what you were referencing inside the code block, and re-run it when those things changed.
 
 ```ts
 $: {
@@ -77,7 +75,7 @@ export function createNumberInfo(initialValue: number = 0) {
 }
 ```
 
-Writable stores exist to ... write values to. Dervied stores take one or more other stores, read their current values, and project some new payload. If you want to provide some mechanism to set a new value, just close over what you need to. To consume a stores value, just prefix it with a `$` in a Svelte component (it's not shown here, but there's also a `subscribe` method on stores, and a `get`). If the store returns an object with properties, you can either "dot through" to them, or you can also use a `$:` reactive assignment to get those nested values. The example below shows both, and this distinction will come up later when we start talking about interop between Svelte 4 and 5.
+Writable stores exist to ... write values to. Dervied stores take one or more other stores, read their current values, and project some new payload. If you want to provide a mechanism to set a new value, just close over what you need to. To consume a stores value, just prefix it with a `$` in a Svelte component (it's not shown here, but there's also a `subscribe` method on stores, and a `get` import). If the store returns an object with properties, you can either "dot through" to them, or you can use a reactive assignment (`$:`) to get those nested values. The example below shows both, and this distinction will come up later when we talk about interop between Svelte 4 and 5.
 
 ```svelte
 <script lang="ts">
@@ -104,7 +102,7 @@ Writable stores exist to ... write values to. Dervied stores take one or more ot
 
 We moved quickly, but this was the old Svelte. Consult the docs, or any of the materials out there if you want to learn more.
 
-But this is a post on the new Svelte, so let's turn our attention there.
+This is a post on the new Svelte, so let's turn our attention there.
 
 ## State in Svelte 5
 
