@@ -253,7 +253,8 @@ Svelte 4 props were another example of hijacking existing JavaScript syntax to d
 
 <div class="flex flex-col gap-2">
   {name} {age}
-  <input class="self-start rounded border" bind:value="{currentValue}" />
+  <!-- prettier-ignore -->
+  <input class="self-start rounded border" bind:value={currentValue} />
 </div>
 ```
 
