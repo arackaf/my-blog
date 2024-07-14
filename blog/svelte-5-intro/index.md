@@ -20,6 +20,10 @@ NOTE:
 
 As of this writing, Svelte 5 is late in the Beta phase. The api should be stable by now, although it's certainly possible some new things might get added.
 
+The docs are also still in beta, but for now, they're located [here](https://svelte-5-preview.vercel.app/docs/introduction). Svelte 5 might be released when you read this, at which point these docs will be on the main Svelte page.
+
+If you'd like to see the code samples below in action, you can find them in [this repo](https://github.com/arackaf/svelte-5-intro-blog).
+
 ## State
 
 Effectively managing state is probably the most crucial task for any web framework, so let's start there.
@@ -106,7 +110,7 @@ This is a post on the new Svelte, so let's turn our attention there.
 
 ## State in Svelte 5
 
-Things are substantially simpler in Svelte 5. The docs are still in beta, but for now, they're located [here](https://svelte-5-preview.vercel.app/docs/introduction). Svelte 5 might be released when you read this, at which point these docs will be on the main Svelte page.
+Things are substantially simpler in Svelte 5. Pretty much everything is managed by something new called "runes." Let's see what that means.
 
 ### Runes
 
