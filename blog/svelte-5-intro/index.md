@@ -4,8 +4,6 @@ date: "2024-07-11T10:00:00.000Z"
 description: An introduction to Svelte 5, and a guide to upgrading
 ---
 
-# Introducing Svelte 5
-
 Svelte has always been a delightful, simple, and fun framework to use. It's a framework that's always prioritized developer experience, while producing a result that's light, with minimal JavaScript, and fast. It achieved it's nice, fun DX by giving users dirt simple idioms, while using a compilation step to make everything work. Unfortunately this fun simplicity came at the cost of reliability. It was fairly easy to break Svelte's reactivity in more advanced use cases. It doesn't matter how fast web app is, or how much fun it was to make, if the end result is incorrect.
 
 Svelte 5, currently in Beta at time of writing, is an incredibly exciting release. It's the latest framework to add signals to power their reactivity. That means the reliability problems are gone. Svelte is now every bit as capable of handling robust web applications, with complex state, as alternatives like React and Solid. Best of all, it achieved this with only minimal hits to DX. It's every bit as fun and easy to use, but it's now reliable, and even faster, with a smaller, lighter footprint.
