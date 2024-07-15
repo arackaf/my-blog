@@ -26,7 +26,7 @@ If you'd like to see the code samples below in action, you can find them in [thi
 
 Effectively managing state is probably the most crucial task for any web framework, so let's start there.
 
-State used to be declared with regular, plain old variable declatations, using `let`.
+State used to be declared with regular, plain old variable declarations, using `let`.
 
 ```ts
 let value = 0;
@@ -39,7 +39,7 @@ let value = 0;
 $: doubleValue = value * 2;
 ```
 
-Svelte's compiler would (in theory) track changes to `value`, and update `doubleValue` accordingly. I say in theory since, depending on how creatively you used `value`, some of the re-assignments might not make it to all of the desived state that used it.
+Svelte's compiler would (in theory) track changes to `value`, and update `doubleValue` accordingly. I say in theory since, depending on how creatively you used `value`, some of the re-assignments might not make it to all of the derived state that used it.
 
 You could also put entire code blocks after `$:` and run arbitrary code. Svelte would look at what you were referencing inside the code block, and re-run it when those things changed.
 
@@ -77,7 +77,7 @@ export function createNumberInfo(initialValue: number = 0) {
 }
 ```
 
-Writable stores exist to ... write values to. Dervied stores take one or more other stores, read their current values, and project some new payload. If you want to provide a mechanism to set a new value, just close over what you need to. To consume a stores value, just prefix it with a `$` in a Svelte component (it's not shown here, but there's also a `subscribe` method on stores, and a `get` import). If the store returns an object with properties, you can either "dot through" to them, or you can use a reactive assignment (`$:`) to get those nested values. The example below shows both, and this distinction will come up later when we talk about interop between Svelte 4 and 5.
+Writable stores exist to ... write values to. Derived stores take one or more other stores, read their current values, and project some new payload. If you want to provide a mechanism to set a new value, just close over what you need to. To consume a stores value, just prefix it with a `$` in a Svelte component (it's not shown here, but there's also a `subscribe` method on stores, and a `get` import). If the store returns an object with properties, you can either "dot through" to them, or you can use a reactive assignment (`$:`) to get those nested values. The example below shows both, and this distinction will come up later when we talk about interop between Svelte 4 and 5.
 
 ```html
 <script lang="ts">
@@ -256,7 +256,7 @@ Svelte 4 props were another example of hijacking existing JavaScript syntax to d
 </div>
 ```
 
-This component created 3 props. It also bound the `currentValue` prop into the textbox, so it would change as the user typed. Then to render this component, we'd do soemthing like this
+This component created 3 props. It also bound the `currentValue` prop into the textbox, so it would change as the user typed. Then to render this component, we'd do something like this
 
 ```html
 <script lang="ts">
@@ -448,7 +448,7 @@ And that's that.
 
 ## Interop
 
-Big Bang upgrades where an entire app is updated to use a new framework version's api's are seldom feasible, so it should come as no surprise that Svelte 5 continues to support Svelte 4. You can upgrade your app incremenetally. Svelte 5 components can render Svelte 4 components, and Svelte 4 components can render Svelte 5 components. The one thing you can't do is mix and match within a single component. You cannot use reactive assignments `$:` in the same component that's using Runes (the Svelte compiler will remind you if you forget).
+Big Bang upgrades where an entire app is updated to use a new framework version's api's are seldom feasible, so it should come as no surprise that Svelte 5 continues to support Svelte 4. You can upgrade your app incrementally. Svelte 5 components can render Svelte 4 components, and Svelte 4 components can render Svelte 5 components. The one thing you can't do is mix and match within a single component. You cannot use reactive assignments `$:` in the same component that's using Runes (the Svelte compiler will remind you if you forget).
 
 There's one exception to this, though. Stores can continue to be used in Svelte 5 components. Remember the `createNumberInfo` method from before, which returned an object with a store on it? We can use it in Svelte 5. This component is perfectly valid, and works.
 
@@ -468,7 +468,7 @@ There's one exception to this, though. Stores can continue to be used in Svelte 
 <button onclick={() => numberPacket.update($store.value + 1)}>Update</button>
 ```
 
-The one thing we can't do, is use a reactive assignment to destructure values off of the store. So we _have to_ "dot through" to nested proerties with things like `{$store.value}` in the binding (which always works) rather than
+The one thing we can't do, is use a reactive assignment to destructure values off of the store. So we _have to_ "dot through" to nested properties with things like `{$store.value}` in the binding (which always works) rather than
 
 ```ts
 $: ({ value } = $store);
@@ -478,7 +478,7 @@ which generates the error of
 
 > `$:` is not allowed in runes mode, use `$derived` or `$effect` instead
 
-The error is even clear enough to give you another alternative to inining those nested properties, which is to create a `$derived` state
+The error is even clear enough to give you another alternative to inlining those nested properties, which is to create a `$derived` state
 
 ```ts
 let derivedState = $derived($store.value);
