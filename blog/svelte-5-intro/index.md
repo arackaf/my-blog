@@ -112,7 +112,7 @@ Things are substantially simpler in Svelte 5. Pretty much everything is managed 
 
 ### Runes
 
-As we mentioned before, Svelte 5 joins the increasing number of JavaScript frameworks that use signals. Svelte calls its state primitives "runes" which, under the covers, use signals to maintain correctness. A good introduction to runes can be found [here](https://svelte.dev/blog/runes).
+As we mentioned before, Svelte 5 joins the increasing number of JavaScript frameworks that use signals. Svelte has a new feature called "runes." Under the covers they use signals, and accomplish a wide range of features, from state, to props and even side effects. A good introduction to runes can be found [here](https://svelte.dev/blog/runes).
 
 To create a piece of state, we use the `$state` rune. You don't import it, you just use it; it's part of the Svelte language.
 
@@ -156,7 +156,7 @@ count++;
 
 ### What about stores?
 
-We saw before that defining portable state, outside of components was accomplished via stores. Stores are also deprecated in Svelte 5. What's especially nice is that they're replaced with what we've _already seen_. That's right, the `$state` and `$derived` runes we saw before can be defined outside of components, in top-level TypeScript (or JavaScript) files. Just be sure to name your file with a `.svelte.ts` extension, so the Svelte compiler knows to enable runes in these files. Let's take a look!
+We saw before that defining portable state, outside of components was accomplished via stores. Stores are not deprecated in Svelte 5, but there's a good chance they're on their way out of the framework. What's especially nice is that you no longer need them, and they're replaced with what we've _already seen_. That's right, the `$state` and `$derived` runes we saw before can be defined outside of components, in top-level TypeScript (or JavaScript) files. Just be sure to name your file with a `.svelte.ts` extension, so the Svelte compiler knows to enable runes in these files. Let's take a look!
 
 Let's re-implement our number / label code from before, in Svelte 5. This is what it looked like with stores
 
@@ -450,7 +450,7 @@ And that's that.
 
 Big Bang upgrades where an entire app is updated to use a new framework version's api's are seldom feasible, so it should come as no surprise that Svelte 5 continues to support Svelte 4. You can upgrade your app incrementally. Svelte 5 components can render Svelte 4 components, and Svelte 4 components can render Svelte 5 components. The one thing you can't do is mix and match within a single component. You cannot use reactive assignments `$:` in the same component that's using Runes (the Svelte compiler will remind you if you forget).
 
-There's one exception to this, though. Stores can continue to be used in Svelte 5 components. Remember the `createNumberInfo` method from before, which returned an object with a store on it? We can use it in Svelte 5. This component is perfectly valid, and works.
+Since stores are not yet deprecated, they can continue to be used in Svelte 5 components. Remember the `createNumberInfo` method from before, which returned an object with a store on it? We can use it in Svelte 5. This component is perfectly valid, and works.
 
 ```html
 <script lang="ts">
@@ -468,7 +468,7 @@ There's one exception to this, though. Stores can continue to be used in Svelte 
 <button onclick={() => numberPacket.update($store.value + 1)}>Update</button>
 ```
 
-The one thing we can't do, is use a reactive assignment to destructure values off of the store. So we _have to_ "dot through" to nested properties with things like `{$store.value}` in the binding (which always works) rather than
+But the rule against reactive assignments still holds; we cannot use one to destructure values off of stores when we're in Svelte 5 components. We _have to_ "dot through" to nested properties with things like `{$store.value}` in the binding (which always works) rather than
 
 ```ts
 $: ({ value } = $store);
@@ -481,7 +481,13 @@ which generates the error of
 The error is even clear enough to give you another alternative to inlining those nested properties, which is to create a `$derived` state
 
 ```ts
-let derivedState = $derived($store.value);
+let value = $derived($store.value);
+```
+
+or
+
+```ts
+let { value } = $derived($store);
 ```
 
 Personally I'm not a huge fan of mixing the new `$derived` primitive with the old Svelte 4 syntax of `$store`, but that's a matter of taste.
