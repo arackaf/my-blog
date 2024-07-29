@@ -173,6 +173,53 @@ Let's take a look at one more authoring convenience Svelte 5 gives us. If we're 
 
 As before, we have our `<h1>` content directly inside of the tags, as children. But we've also defined a snippet inside of those tags. This is a nice shorthand for passing a snippet as a prop (with the same name) to our component. Don't worry, if the name you give this inline snippet a name that doesn't match a prop, TypeScript will tell you.
 
+## Default content with snippets
+
+One nice feature with slots is that you could define default content pretty easily
+
+```html
+<slot name="header-content">
+  <span>Default content</span>
+</slot>
+```
+
+Snippets don't quite have anything like this built in, but they're a flexible enough primitive that you really don't need it.
+
+Let's see how we can provide our own, default content for when a Snippet is not passed in. As before let's say we have our `DisplayProduct` component, except now our `productDisplay` and `children` snippets are optional
+
+```ts
+type Props = {
+  product: Product;
+  relatedProduct?: Product;
+  productDisplay?: Snippet<[Product]>;
+  children?: Snippet;
+};
+
+let { product, relatedProduct, productDisplay, children }: Props = $props();
+```
+
+We have a few straightforward options for falling back to our own default content. We can simply test if we have a value for the snippet right in our template, and render the fallback if not
+
+```svelte
+{#if children}
+	{@render children()}
+{:else}
+	<h1>Fallback content</h1>
+{/if}
+```
+
+or we can set up our fallback right in our script
+
+```ts
+let productDisplaySnippetToUse: Snippet<[Product]> = productDisplay ?? productDisplayFallback;
+```
+
+and render that
+
+```svelte
+	{@render productDisplaySnippetToUse(product)}
+```
+
 ## Parting thoughts
 
-Snippets are a great new feature in Svelte that allow you to reuse small pieces of html within a component, and more importantly, allow you to pass content into a component.
+Svelte 5 is an incredibly exciting release. In our last post we covered for features like props, state and side effects. This post turned to one of the more interesting features: snippets. Snippets are a delightful feature for injecting content into components, and for re-using small bits of content within a single component.
