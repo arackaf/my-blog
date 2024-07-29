@@ -6,11 +6,11 @@ description: Introducing snippets in Svelte
 
 This post is the second in a 3-part series on Svelte 5. [Part one](https://frontendmasters.com/blog/introducing-svelte-5/) was a basic introduction, covering nuts and bolts features like state, props, and effects. This post is all about snippets, an exciting new feature that allows for content reuse, and more importantly, injecting content into components you render.
 
-If you'd like to see and experiment with the code listed here, you can find the repo [here](https://github.com/arackaf/svelte-snippets).
+If you'd like to see and experiment with the code in this post, you can find the repo [here](https://github.com/arackaf/svelte-snippets).
 
 Stay tuned for the third and final post, which will be a deep dive into Svelte 5's new fine-grained reactivity.
 
-Let's get started
+Let's get started.
 
 ## What are snippets
 
@@ -18,7 +18,7 @@ Snippets are a new feature in Svelte 5. They allow you to define, well, snippets
 
 They seem initially similar to React's minimally useful Stateless Functional Components from back before hooks was a thing. But snippets also have a second use: they allow you to inject content into other components, and in so doing replace one of Svelte's most awkward features: slots.
 
-Let's see how
+Let's see how.
 
 ## Defining snippets
 
@@ -95,7 +95,7 @@ And then you can render that snippet with different products in your component. 
 
 If that was the extent of Snippets they'd be a minimally useful convenience for re-using small bits of markup within a single component.
 
-But the main benefit of snippets, if my opinion at least, is for injecting content into components. Previously, if you wanted to pass content into a component you'd use slots. Slots were always an awkward feature of Svelte, but they're now deprecated in Svelte 5. We won't cover them here, so check out [the docs](https://svelte.dev/docs/special-elements#slot) if you're curious.
+But the main benefit of snippets, in my opinion at least, is for injecting content into components. Previously, if you wanted to pass content into a component you'd use slots. Slots were always an awkward feature of Svelte, but they're now deprecated in Svelte 5. We won't cover them here, so check out [the docs](https://svelte.dev/docs/special-elements#slot) if you're curious.
 
 ## Passing snippets to components
 
@@ -166,7 +166,7 @@ Let's take a look at one more authoring convenience Svelte 5 gives us. If we're 
 </DisplayProduct>
 ```
 
-As before, we have our `<h1>` content directly inside of the tags, as children. But we've also defined a snippet inside of those tags. This is a nice shorthand for passing a snippet as a prop (with the same name) to our component. Don't worry, if the name you give this inline snippet a name that doesn't match a prop, TypeScript will tell you.
+As before, we have our `<h1>` content directly inside of the tags, as children. But we've also defined a snippet inside of those tags. This is a nice shorthand for passing a snippet as a prop (with the same name) to our component. Don't worry, if the name you give this inline snippet doesn't match a prop, TypeScript will tell you.
 
 ## Default content with snippets
 
