@@ -50,20 +50,56 @@ As you might have guessed, snippets can also receive props, which we list in the
 {/snippet}
 ```
 
-And then you can render that snippet with different products in your component. Let's see a minimal example
+Unsurprisingly, snippets can render other snippets
+
+```html
+{#snippet productReview(review: Review)}
+<div class="flex flex-row gap-3">
+  <span>{review.date}</span>
+  <span>{review.content}</span>
+</div>
+{/snippet}
+
+<!-- ts-ignore -->
+
+{#snippet productDisplay(p: Product)}
+<div class="flex flex-col gap-3">
+  <div class="flex flex-row gap-3">
+    <img class="max-w-[100px]" src="{p.url}" alt="product url" />
+    <div class="flex flex-col">
+      <h2 class="text-lg font-bold">{p.name}</h2>
+      <span class="italic">${p.price.toFixed(2)}</span>
+    </div>
+  </div>
+  <h3>Reviews:</h3>
+  <div>{#each p.reviews ?? [] as review} {@render productReview(review)} {/each}</div>
+</div>
+{/snippet}
+```
+
+And then you can reuse that productDisplay snippet with different products in your component. Let's see a minimal, full example
 
 ```html
 <script lang="ts">
+  type Review = {
+    date: string;
+    content: string;
+  };
   type Product = {
     name: string;
     url: string;
     price: number;
+    reviews?: Review[];
   };
 
   let searchedBook = $state<Product>({
     name: "Effective TypeScript: 83 Specific Ways to Improve Your TypeScript, 2nd Edition",
     url: "https://m.media-amazon.com/images/I/71eWL4AqPqL._SL1500_.jpg",
     price: 44.99,
+    reviews: [
+      { date: "2/14/2024", content: "Absolutely loved this book" },
+      { date: "6/2/2024", content: "Even better than the first edition" },
+    ],
   });
   let relatedProduct = $state<Product>({
     name: "Modern C++ Design: Generic Programming and Design Patterns Applied",
@@ -72,13 +108,26 @@ And then you can render that snippet with different products in your component. 
   });
 </script>
 
-{#snippet productDisplay(p: Product)}
+{#snippet productReview(review: Review)}
 <div class="flex flex-row gap-3">
-  <img class="max-w-[100px]" src="{p.url}" alt="product url" />
-  <div class="flex flex-col">
-    <h2 class="text-lg font-bold">{p.name}</h2>
-    <span class="italic">${p.price.toFixed(2)}</span>
+  <span>{review.date}</span>
+  <span>{review.content}</span>
+</div>
+{/snippet}
+
+<!-- ts-ignore -->
+
+{#snippet productDisplay(p: Product)}
+<div class="flex flex-col gap-3">
+  <div class="flex flex-row gap-3">
+    <img class="max-w-[100px]" src="{p.url}" alt="product url" />
+    <div class="flex flex-col">
+      <h2 class="text-lg font-bold">{p.name}</h2>
+      <span class="italic">${p.price.toFixed(2)}</span>
+    </div>
   </div>
+  <h3>Reviews:</h3>
+  <div>{#each p.reviews ?? [] as review} {@render productReview(review)} {/each}</div>
 </div>
 {/snippet}
 
