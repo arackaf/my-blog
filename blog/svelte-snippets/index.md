@@ -6,6 +6,173 @@ description: Introducing snippets in Svelte
 
 # Snippets in Svelte 5
 
+This post is the second in a 3-part series on Svelte 5. [The first part](https://frontendmasters.com/blog/introducing-svelte-5/) was a basic introduction, covering nuts and bolts features like state, props, and effects. This post is all about snippets, an exciting new feature that allows for content reuse, and more importantly, injecting content into components you render.
+
+If you'd like to see and experiment with the code listed here, you can find the repo [here](https://github.com/arackaf/svelte-snippets).
+
+Stay tuned for the third and final post, which will be a deep dive into Svelte 5's new fine-grained reactivity.
+
+Let's get started
+
+## What are snippets
+
+Snippets are a new feature in Svelte 5. They allow you to define, well, snippets of content. They're basically lightweight components that you can fine inside of a component file. Before you get too excited, they do not, as of now, allow you to define multiple components in one file. Snippets cannot be exported from anywhere, and even if they could, they do not allow you to define state; they're limited to props.
+
+They seem initially similar to React's minimally useful Stateless Functional Components from back before hooks was a thing. But snippets also have a second use: they allow you to inject content into other components, and in so doing replace one of Svelte's most awkward features: slots.
+
+## Defining snippets
+
+We define snippets with the #snippet directive. The simplest snippet imagineable looks like this
+
+```svelte
+{#snippet helloWorld()}
+	<span>Hello World</span>
+{/snippet}
+```
+
+That defines the snippet. To render the snippet, we use the `@render` directive, like this
+
+```svelte
+{@render helloWorld()}
+```
+
+As you might have guessed, snippets can also receive props, which we list in the parens, with types if you're using TypeScript.
+
+```svelte
+{#snippet productDisplay(p: Product)}
+	<div class="flex flex-row gap-3">
+		<img class="max-w-[100px]" src={p.url} alt="product url" />
+		<div class="flex flex-col">
+			<h2 class="text-lg font-bold">{p.name}</h2>
+			<span class="italic">${p.price.toFixed(2)}</span>
+		</div>
+	</div>
+{/snippet}
+```
+
+And then you can render that snippet with different products in your component. Let's see a minimal example
+
+```svelte
+<script lang="ts">
+	type Product = {
+		name: string;
+		url: string;
+		price: number;
+	};
+
+	let searchedBook = $state<Product>({
+		name: 'Effective TypeScript: 83 Specific Ways to Improve Your TypeScript, 2nd Edition',
+		url: 'https://m.media-amazon.com/images/I/71eWL4AqPqL._SL1500_.jpg',
+		price: 44.99
+	});
+	let relatedProduct = $state<Product>({
+		name: 'Modern C++ Design: Generic Programming and Design Patterns Applied',
+		url: 'https://m.media-amazon.com/images/I/914ncVx1hxL._SL1413_.jpg',
+		price: 55.49
+	});
+</script>
+
+{#snippet productDisplay(p: Product)}
+	<div class="flex flex-row gap-3">
+		<img class="max-w-[100px]" src={p.url} alt="product url" />
+		<div class="flex flex-col">
+			<h2 class="text-lg font-bold">{p.name}</h2>
+			<span class="italic">${p.price.toFixed(2)}</span>
+		</div>
+	</div>
+{/snippet}
+
+<section class="flex flex-col gap-5">
+	<h1 class="mb-5 text-3xl">Product Display Page</h1>
+
+	{@render productDisplay(searchedBook)}
+
+	<aside>You might also be interested in:</aside>
+
+	{@render productDisplay(relatedProduct)}
+</section>
+```
+
+If that was the extent of Snippets they'd be a minimally useful convenience for re-using small bits of markup within a single component.
+
+But the main benefit of snippets, if my opinion at least, is in injecting content into components. Previously, if you wanted to pass content into a component, you'd use slots. Slots were always an awkward, minimally powerful feature. They're now deprecated in Svelte 5, so we won't cover them, but the docs are [here](https://svelte.dev/docs/special-elements#slot) if you're curious.
+
+## Passing snippets to components
+
+Snippets snine brightest when we pass them into other components. Let's imagine a (grossly simplified) DisplayProduct page. It takes in a product, an optional related product, and a snippet to display the product. This component will also render content in the header, which we'll also pass in as a snippet. Let's see the component
+
+```svelte
+<script lang="ts">
+	import type { Snippet } from 'svelte';
+	import type { Product } from './types';
+
+	type Props = {
+		product: Product;
+		relatedProduct?: Product;
+		productDisplay: Snippet<[Product]>;
+		children: Snippet;
+	};
+
+	let { product, relatedProduct, productDisplay, children }: Props = $props();
+</script>
+
+<section class="flex flex-col gap-5">
+	{@render children()}
+
+	{@render productDisplay(product)}
+
+	{#if relatedProduct}
+		<aside>You might also be interested in:</aside>
+		{@render productDisplay(relatedProduct)}
+	{/if}
+</section>
+```
+
+Let's note a few things. There's a Snippet type that svelte exports for us, so we can type the snippets we're receiving. Specifying the props that a snippet receives is a little weird, because of how TypeScript is: we list the args as a Tuple. So our productDisplay snippet will take a single arg that's a Product.
+
+The snippet for showing the header I decided to name "children" which has some significance as we'll see in a moment.
+
+Let's put this component to use
+
+```svelte
+{#snippet productDisplay(p: Product)}
+	<div class="flex flex-row gap-3">
+		<img class="max-w-[100px]" src={p.url} alt="product url" />
+		<div class="flex flex-col">
+			<h2 class="text-lg font-bold">{p.name}</h2>
+			<span class="italic">${p.price.toFixed(2)}</span>
+		</div>
+	</div>
+{/snippet}
+
+<DisplayProduct product={searchedBook} relatedProduct={recommendedBook} {productDisplay}>
+	<h1 class="mb-5 text-3xl">Product Display Page</h1>
+</DisplayProduct>
+```
+
+We're passing the `productDisplay` snippet in for the `productDisplay` prop (svelte allows you to write {a} instead of a={a} as a convenient shortcut).
+
+But notice the content we put directly inside of the `DisplayProduct` tags. If the component has a prop called `children` that's a snippet, this content will be passed as that snippet. This is a special case just for props called children (similar to the children prop in React). You don't _have_ to do this; you're free to manually pass a `children` prop, just like we did for `productDisplay` if you really want to.
+
+Let's take a look at one more authoring convenience Svelte 5 gives us. If we're just defining a snippet to be passed one time, to one component, Svelte let's us clean the syntax up a bit, like so
+
+```svelte
+<DisplayProduct product={searchedBook} relatedProduct={recommendedBook}>
+	<h1 class="mb-5 text-3xl">Product Display Page</h1>
+	{#snippet productDisplay(p: Product)}
+		<div class="flex flex-row gap-3">
+			<img class="max-w-[100px]" src={p.url} alt="product url" />
+			<div class="flex flex-col">
+				<h2 class="text-lg font-bold">{p.name}</h2>
+				<span class="italic">${p.price.toFixed(2)}</span>
+			</div>
+		</div>
+	{/snippet}
+</DisplayProduct>
+```
+
+As before, we have our `<h1>` content directly inside of the tags, as children. But we've also defined a snippet inside of those tags. This is a nice shorthand for passing a snippet as a prop (with the same name) to our component. Don't worry, if the name you give this inline snippet a name that doesn't match a prop, TypeScript will tell you.
+
 ## Parting thoughts
 
 Snippets are a great new feature in Svelte that allow you to reuse small pieces of html within a component, and more importantly, allow you to pass content into a component.
