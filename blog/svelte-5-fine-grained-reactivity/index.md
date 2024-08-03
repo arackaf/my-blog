@@ -279,7 +279,7 @@ and we can even add a delete button to each row
 
 ```html
 <button onclick={() => tasks.value.splice(idx, 1)} class="border border-red-500 p-3">
-  Delete
+	Delete
 </button>
 ```
 
