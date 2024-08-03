@@ -381,7 +381,7 @@ export const load = () => {
 };
 ```
 
-None of those data will be reactive in your component. This is to be expected. To make data reactive, you need to wrap it in `$state()`. As of now, you can't call `$state` in a loader, only in a universal svelte file (something that ends in `.svelte.ts`). Hopefully in the future Svelte will allow us to have loaders named `+page.svelte.ts` but for now we can just throw something like this in a `reactive-utils.svelte.ts` file
+none of those data will be reactive in your component. This is to be expected. To make data reactive, you need to wrap it in `$state()`. As of now, you can't call `$state` in a loader, only in a universal svelte file (something that ends in `.svelte.ts`). Hopefully in the future Svelte will allow us to have loaders named `+page.svelte.ts` but for now we can just throw something like this in a `reactive-utils.svelte.ts` file
 
 ```ts
 type ReactivePacket<T> = {
