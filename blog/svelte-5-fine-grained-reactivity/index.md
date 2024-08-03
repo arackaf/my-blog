@@ -277,7 +277,7 @@ let tasks = shallowObservable(tasksData);
 let numberOfTasks = $derived(tasks.value.length);
 ```
 
-And with that, rendering should now work, and none of our properties are reactive. Clicking those buttons do nothing.
+And with that, rendering should now work, and none of our properties are reactive. Clicking the edit buttons do nothing.
 
 But we can now add a button to push a new task onto our array
 
@@ -326,21 +326,21 @@ function cloneNonReactive<T>(data: T): T {
 }
 ```
 
-Again note the type assertion, which is unfortunately needed. This same function could also be used for the Add function we saw above, if you prefer.
+Again note the type assertion, which is unfortunately needed. This same function could also be used for the add function we saw above, if you prefer.
 
 To prove editing works, we'll leave the entire template alone, except for the `importance` field, which we'll modify like so
 
 ```html
-<div class="flex flex-row items-center gap-2">
-	<span>{t.importance + getCounter()}</span>
-	<button
-		onclick={() => {
+  <div class="flex flex-row items-center gap-2">
+  <span>{t.importance + getCounter()}</span>
+  <button
+    onclick={() => {
       const taskClone = cloneNonReactive(t);
       taskClone.importance += 'X';
       tasks.value[idx] = cloneNonReactive(taskClone);
-		}}
-		class="border p-2">Update importance</button
-	>
+    }}
+    class="border p-2">Update importance</button
+  >
 </div>
 ```
 
