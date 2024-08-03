@@ -10,13 +10,13 @@ In this post, we'll take a close look at Svelte's new fine-grained reactivity.
 
 ## What is fine-grained reactivity?
 
-The best way to describe fine-grained reactivity is to show what it isn't, and the best example of non-fine grained reactivity is React. In React, if you're in a single component, no matter how big or how small, setting a single piece of state will cause the entire component, and all of the components (unless they're created with React.memo) that are rendered by the component, the component's children, etc, to also re-render. Even if the state you're setting is rendered in a single, simple span tag in the component, and not used anywhere else at all, the entire world from that component, all the way down will be re-rendered.
+The best way to describe fine-grained reactivity is to show what it isn't, and the best example of non-fine grained reactivity is React. In React, if you're in a single component, no matter how big or how small, setting a single piece of state will cause the entire component, and all of the components (unless they're created with React.memo) that are rendered by the component, the component's children, etc, to all re-render. Even if the state you're setting is rendered in a single, simple span tag in the component, and not used anywhere else at all, the entire world from that component, all the way down will be re-rendered.
 
-This may seem absurdly wasteful, but in actuality this is a consequence of many of the features that made React popular when it was new: the data, values, callbacks, etc that we pass through our component trees are pure, vanilla constructs. We pass plain, vanilla JavaScript objects, arrays and functions around our components and everything just works. At the time, this made an incredibly compelling case for React, vs alternatives like Angular 1 and Knockout. But in that time alternatives like Svelte have really closed the gap. My [first post](https://frontendmasters.com/blog/introducing-svelte-5/) on Svelte 5 showed just how simple, flexible, and most importantly reliable Svlete's new state mangaement primitives are. This post will show you the performance wins these primitives buy us.
+This may seem absurdly wasteful, but in reality this is a consequence of the design features that made React popular when it was new: the data, values, callbacks, etc that we pass through our component trees are all plain JavaScript. We pass plain, vanilla JavaScript objects, arrays and functions around our components and everything just works. At the time, this made an incredibly compelling case for React, vs alternatives like Angular 1 and Knockout. But since that time alternatives like Svelte have really closed the gap. My [first post](https://frontendmasters.com/blog/introducing-svelte-5/) on Svelte 5 showed just how simple, flexible, and most importantly reliable Svlete's new state mangaement primitives are. This post will show you the performance wins these primitives buy us.
 
 ## Premature optimization is still bad
 
-This post will walk through some Svelte templates using some trickery to snoop on just how much of a component is being re-rendered when we change state. This is **not** something you will usually, or really ever be doing. As always, write clear and understandable code, and optimize when needed, but not before. The ostensibly inefficient Svelte 4 reactivity we'll look at first is still much, more more performant than what React does out of the box, and React is more than fast enough for the overwhelming majority of use cases.
+This post will walk through some Svelte templates using some trickery to snoop on just how much of a component is being re-rendered when we change state. This is **not** something you will usually, or really ever be doing or caring about. As always, write clear and understandable code, and optimize when needed, but not before. The ostensibly inefficient Svelte 4 reactivity we'll look at first is still much, more more performant than what React does out of the box, and React is more than fast enough for the overwhelming majority of use cases.
 
 But being fast enough doesn't mean we can't still look at how much of a better performance baseline Svelte now starts you off at. With a fast-growing ecosystem, and now an incredibly compelling performance story, hopefully this post will encourage you to at least look at Svelte for your next project.
 
@@ -24,7 +24,7 @@ If you'd like to try out the code we'll be looking at in this post, it's all in 
 
 ## Getting started
 
-The code we'll be looking at is all from a SvelteKit scaffolded project. If you've never used Svelte _Kit_ before that's totally fine. You can check it out [here](https://kit.svelte.dev/docs/creating-a-project), but we're not really using any SvelteKit features until the very, very end of this post, and even then it's just re-hashing what we've already covered.
+The code we'll be looking at is all from a SvelteKit scaffolded project. If you've never used Svelte _Kit_ before that's totally fine. You can check it out [here](https://kit.svelte.dev/docs/creating-a-project), but we're not really using any SvelteKit features until the very, very end of this post, and even then it's just re-hashing what we'll have already covered.
 
 Throughout this post we're going to be inspecting if and when individual bindings in a component are re-evaluated when we change state. There's various ways to do this, but the simplest and frankly dumbest is to just force some global, non-reactive, always-changing state into these bindings. What do I mean by that? In the very, very root page that hosts our web app, I'm adding this little helper
 
@@ -101,7 +101,7 @@ Let's get started
 
 ## Svelte 4
 
-Ok let's get started. We'll render the content we saw above, using Svelte 4.
+We'll render the content we saw above, using Svelte 4.
 
 ![Svelte 4](/svelte-5-fine-grained-reactivity/svelte4.png)
 
@@ -124,8 +124,6 @@ let tasks = $state([
   { id: 12, title: "Task L", assigned: "Adam", importance: "High" },
 ]);
 ```
-
-and all those `on:click` event handlers are now `onclick`.
 
 We render the page, and see the same as before. If you're following along in the repo, be sure to refresh the page after navigating, so the page will start over with the global counter.
 
@@ -169,7 +167,9 @@ class Person {
 
 Not only does this provide you a factory function for creating instance of a Person, via `new Person('Adam', 'Rackis')`, but `Person` can also be used as a type within TypeScript. You can create variables or function parameters of type `Person`. It's one of the few things that exist as a runtime construct, and also a TypeScript type.
 
-So why am I bringing up classes in this post?
+That said, if you find yourself reaching for `extends` in order to create deep inheritance hierarchies with classes, please please re-think your decisions...
+
+Anyway, why am I bringing up classes in this post?
 
 ## Fine-grained reactivity in Svelte 5
 
@@ -200,17 +200,17 @@ let tasks = $state([
 
 I simplified the class a bit by just taking a raw object with all the properties of the class, and assigning them all with `Object.assign`. The object literal is typed in the constructor as `Task`, the same as the class, but that's fine because of TypeScript's [structural typing](https://css-tricks.com/typescript-discriminated-unions/).
 
-And now when we run that, we'll see the same exact thing as before, except now clicking the button to change the id will not re-render anything at all in our Svelte component. To be clear, the `id` is still changing, but Svelte is not re-rendering. This demonstrates Svelte intelligently not wiring any kind of observability into that particular property.
+And now when we run that, we'll see the same exact thing as before, except clicking the button to change the id will not re-render anything at all in our Svelte component. To be clear, the `id` is still changing, but Svelte is not re-rendering. This demonstrates Svelte intelligently not wiring any kind of observability into that particular property.
 
-If you wanted to actually encapsulate / protect the `id`, you could declare id as `#id` which make it a [private property](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/Private_properties) and then expose the value by a getter function.
+If you wanted to actually encapsulate / protect the `id`, you could declare id as `#id` to make it a [private property](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/Private_properties) and then expose the value by a getter function.
 
 ## Going deeper
 
-What if you don't want these tasks to be reactive at the individual property. What if have a _lot_ of these tasks coming down, and rather than have Svelte set up reactivity for each of the tasks' properties, you just want the array itself to be reactive. You want to be able to re-assign / override individual indexes in your array, and have anything bound to that object update—but have assignment to individual properties do nothing.
+What if you don't want these tasks to be reactive at the individual property. What if have a _lot_ of these tasks coming down, and rather than have Svelte set up reactivity for each of the tasks' properties, you just want the array itself to be reactive. You basically want to be able to assign or remove entries to your array, and have Svelte update. But you don't want Svelte setting up any kind of reactivity for each property on each task.
 
 This is a common use case, and other state management setups, like MobX support it directly with the [observable.shallow](helper). Unfortunately Svelte does not have any such helper, as of yet, though I'm hopeful it gets added at some point.
 
-But we can hack it ourselves. We already saw how passing class instances to an array shut off fine-grained reactivity by default, leaving you opt-in, as desired, but setting class fields to `$state()` calls. But our data are likely coming from a database, as plain (though hopefully typed) JavaScript objects, unrelated to any class, and more importantly we likely have zero desire to cobble together a class just for this.
+But we can hack it ourselves. We already saw how passing class instances to an array shut off fine-grained reactivity by default, leaving you to opt-in, as desired, by setting class fields to `$state()` calls. But our data are likely coming from a database, as plain (though hopefully typed) JavaScript objects, unrelated to any class, and more importantly we likely have zero desire to cobble together a class just for this.
 
 So let's simulate that. Let's say that a database is providing our Task objects as JS objects. We (of course) have a type for this
 
@@ -223,7 +223,7 @@ type Task = {
 };
 ```
 
-but we want to put those instances into an array that itself is react, but not the individual properties. With a tiny bit of cleverness we can make it mostly painless
+but we want to put those instances into an array that itself is reactive, but not the individual properties on the tasks. With a tiny bit of cleverness we can make it mostly painless
 
 ```ts
 class NonReactiveObjectGenerator {
@@ -250,17 +250,50 @@ function shallowObservable<T>(data: T[]): ReactivePacket<T[]> {
 }
 ```
 
-Our `NonReactiveObjectGenerator` class takes in any object, and then smears all that object's properties onto itself. Our `ReactivePacket` type is _just_ so we can put a wrapper around the `$state()` object we'll be returning. As we discussed in my [first post](https://frontendmasters.com/blog/introducing-svelte-5/#state) on Svelte 5, you can't directly return reactive state from a function. If you do, the state will be read and unwrapped right at the callsite, and won't be reactive any longer.
+Our `NonReactiveObjectGenerator` class takes in any object, and then smears all that object's properties onto itself. Our `ReactivePacket` type is _just_ so we can put a wrapper around the `$state()` object we'll be returning. As we discussed in my [first post](https://frontendmasters.com/blog/introducing-svelte-5/#state) on Svelte 5, you can't directly return reactive state from a function. If you do, the state will be read and unwrapped right at the call-site, and won't be reactive any longer.
 
-And lastly, we have our `shallowObservable` which takes an array of whatever, maps it onto instances of our `NonReactiveObjectGenerator` class. This will force each instance to be a class instance, with nothing reactive. The ` as T` is us forcing TypeScript to treat these new instances as whatever type was passed in. This is true, but something TypeScript needs help understanding, since it's not (as of now) able to read and understand our call to `Object.assign` in the constructor.
+And lastly, we have our `shallowObservable` which takes an array of whatever, and maps it onto instances of our `NonReactiveObjectGenerator` class. This will force each instance to be a class instance, with nothing reactive. The ` as T` is us forcing TypeScript to treat these new instances as whatever type was passed in. This is accurate, but something TypeScript needs help understanding, since it's not (as of now) able to read and understand our call to `Object.assign` in the constructor.
 
-Now, as desired, none of our properties are reactive. We have to override an array index for Svelte to see an update. Unfortunately we can't just do this
+Now none of our properties are reactive. Clicking those buttons do nothing.
+
+But we can now add a button to push a new task onto our array
+
+```html
+<button
+	onclick={() =>
+		tasks.value.push(
+			new NonReactiveObjectGenerator({
+				id: nextId++,
+				title: 'New task',
+				assigned: 'Adam',
+				importance: 'Low'
+			}) as Task
+		)}
+	class="border p-3"
+>
+  Add
+</button>
+```
+
+and we can even add a delete button to each row
+
+```html
+<button onclick={() => tasks.value.splice(idx, 1)} class="border border-red-500 p-3">
+  Delete
+</button>
+```
+
+Yes, Svelte's reactive array is smart enough to understand push and splice.
+
+You might be wondering if we can still actually edit the indivudual tasks by just re-assigning to that index. The answer is yes, with a tiny caveat.
+
+Overriding an array index (with a _new_ object instance) does work, and makes Svelte update. But we can't just do this
 
 ```ts
 tasks.value[idx] = { ...t, importance: "X" + t };
 ```
 
-since that would then make the new object, which is an object literal, deeply reactive. We have to keep using our class. There's a number of ways to do it, but to keep the typings simple, and to keep the code smell that is the `NonReactiveObjectGenerator` class hidden as much as possible, I wrote up a helper function
+since that would make the new object, which is an object literal, deeply reactive. We have to keep using our class. There's a number of ways to do it, but this time, to keep the typings simple, and to keep the code smell that is the `NonReactiveObjectGenerator` class hidden as much as possible, I wrote up a helper function
 
 ```ts
 function cloneNonReactive<T>(data: T): T {
@@ -268,7 +301,7 @@ function cloneNonReactive<T>(data: T): T {
 }
 ```
 
-Again note the type assertion, which is unfortunately needed.
+Again note the type assertion, which is unfortunately needed. This same function could also be used for the Add function we saw above, if you prefer.
 
 ### Testing things out
 
@@ -287,7 +320,9 @@ let numberOfTasks = $derived(tasks.value.length);
 
 Remember we have to access our array through the `.value` property, now `{#each tasks.value as t, idx}`
 
-To prove everything works, I'll leave the entire template alone, except for the `importance` field, which we'll modify like so
+The add and delete buttons do add and remove tasks from our list.
+
+To prove editing works, we'll leave the entire template alone, except for the `importance` field, which we'll modify like so
 
 ```html
 <div class="flex flex-row items-center gap-2">
