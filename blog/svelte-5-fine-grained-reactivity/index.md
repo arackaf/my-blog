@@ -200,8 +200,198 @@ let tasks = $state([
 
 I simplified the class a bit by just taking a raw object with all the properties of the class, and assigning them all with `Object.assign`. The object literal is typed in the constructor as `Task`, the same as the class, but that's fine because of TypeScript's [structural typing](https://css-tricks.com/typescript-discriminated-unions/).
 
+And now when we run that, we'll see the same exact thing as before, except now clicking the button to change the id will not re-render anything at all in our Svelte component. To be clear, the `id` is still changing, but Svelte is not re-rendering. This demonstrates Svelte intelligently not wiring any kind of observability into that particular property.
+
+If you wanted to actually encapsulate / protect the `id`, you could declare id as `#id` which make it a [private property](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/Private_properties) and then expose the value by a getter function.
+
+## Going deeper
+
+What if you don't want these tasks to be reactive at the individual property. What if have a _lot_ of these tasks coming down, and rather than have Svelte set up reactivity for each of the tasks' properties, you just want the array itself to be reactive. You want to be able to re-assign / override individual indexes in your array, and have anything bound to that object update—but have assignment to individual properties do nothing.
+
+This is a common use case, and other state management setups, like MobX support it directly with the [observable.shallow](helper). Unfortunately Svelte does not have any such helper, as of yet, though I'm hopeful it gets added at some point.
+
+But we can hack it ourselves. We already saw how passing class instances to an array shut off fine-grained reactivity by default, leaving you opt-in, as desired, but setting class fields to `$state()` calls. But our data are likely coming from a database, as plain (though hopefully typed) JavaScript objects, unrelated to any class, and more importantly we likely have zero desire to cobble together a class just for this.
+
+So let's simulate that. Let's say that a database is providing our Task objects as JS objects. We (of course) have a type for this
+
+```ts
+type Task = {
+  id: number;
+  title: string;
+  assigned: string;
+  importance: string;
+};
+```
+
+but we want to put those instances into an array that itself is react, but not the individual properties. With a tiny bit of cleverness we can make it mostly painless
+
+```ts
+class NonReactiveObjectGenerator {
+  constructor(data: unknown) {
+    Object.assign(this, data);
+  }
+}
+
+type ReactivePacket<T> = {
+  get value(): T;
+  set value(newValue: T[]);
+};
+
+function shallowObservable<T>(data: T[]): ReactivePacket<T[]> {
+  let result = $state(data.map(t => new NonReactiveObjectGenerator(t) as T));
+  return {
+    get value() {
+      return result;
+    },
+    set value(newData: T[]) {
+      result = newData;
+    },
+  };
+}
+```
+
+Our `NonReactiveObjectGenerator` class takes in any object, and then smears all that object's properties onto itself. Our `ReactivePacket` type is _just_ so we can put a wrapper around the `$state()` object we'll be returning. As we discussed in my [first post](https://frontendmasters.com/blog/introducing-svelte-5/#state) on Svelte 5, you can't directly return reactive state from a function. If you do, the state will be read and unwrapped right at the callsite, and won't be reactive any longer.
+
+And lastly, we have our `shallowObservable` which takes an array of whatever, maps it onto instances of our `NonReactiveObjectGenerator` class. This will force each instance to be a class instance, with nothing reactive. The ` as T` is us forcing TypeScript to treat these new instances as whatever type was passed in. This is true, but something TypeScript needs help understanding, since it's not (as of now) able to read and understand our call to `Object.assign` in the constructor.
+
+Now, as desired, none of our properties are reactive. We have to override an array index for Svelte to see an update. Unfortunately we can't just do this
+
+```ts
+tasks.value[idx] = { ...t, importance: "X" + t };
+```
+
+since that would then make the new object, which is an object literal, deeply reactive. We have to keep using our class. There's a number of ways to do it, but to keep the typings simple, and to keep the code smell that is the `NonReactiveObjectGenerator` class hidden as much as possible, I wrote up a helper function
+
+```ts
+function cloneNonReactive<T>(data: T): T {
+  return new NonReactiveObjectGenerator(data) as T;
+}
+```
+
+Again note the type assertion, which is unfortunately needed.
+
+### Testing things out
+
+Let's take this for a spin
+
+```ts
+const tasksData: Task[] = [
+  { id: 1, title: "Task A", assigned: "Adam", importance: "Low" },
+  // and so on
+  { id: 12, title: "Task L", assigned: "Adam", importance: "High" },
+];
+
+let tasks = shallowObservable(tasksData);
+let numberOfTasks = $derived(tasks.value.length);
+```
+
+Remember we have to access our array through the `.value` property, now `{#each tasks.value as t, idx}`
+
+To prove everything works, I'll leave the entire template alone, except for the `importance` field, which we'll modify like so
+
+```html
+<div class="flex flex-row items-center gap-2">
+	<span>{t.importance + getCounter()}</span>
+	<button
+		onclick={() => {
+			t.importance += 'X';
+			tasks.value[idx] = cloneNonReactive(t);
+		}}
+		class="border p-2">Update importance</button
+	>
+</div>
+```
+
+Now running shows everything as it's always been
+
+![Svelte 5 shallow reactivity](/svelte-5-fine-grained-reactivity/svelte5-shallow.png)
+
+Now if we click the button to change the id, title or assigned value, nothing changes, because we're still mutating those properties directly, since I didn't change anything, in order to demonstrate that they're not reactive. But clicking the button to update the importance field, runs the code above, and updates the _entire_ row, showing any other changes we've made.
+
+Here I clicked the button to update the title, twice, and then clicked the button to update the importance. The former did nothing, but the latter updated the component to show all changes.
+
+![Svelte 5 shallow reactivity updated](/svelte-5-fine-grained-reactivity/svelte5-shallow-updated.png)
+
+Again, please don't let the foregoing section turn you off to Svelte. It was a little bit of boilerplate we added for a _relatively_ rare edge case where we have good reason to care about performance. Hopefully Svelte will support this directly in the future, but for now it can be approximated relatively easily.
+
+## Svelte Kit
+
+Let's wrap up by briefly talking about how data from SvelteKit loaders is treated in terms of reactivity. In short, it's exactly how you'd expect. First and foremost, if you just return a raw array of objects from your loader,
+
+```ts
+export const load = () => {
+  return {
+    tasks: makeReactive([
+      { id: 1, title: "Task A", assigned: "Adam", importance: "Low" },
+      { id: 2, title: "Task B", assigned: "Adam", importance: "Medium" },
+      { id: 3, title: "Task C", assigned: "Adam", importance: "High" },
+      { id: 4, title: "Task D", assigned: "Mike", importance: "Medium" },
+      { id: 5, title: "Task E", assigned: "Adam", importance: "High" },
+      { id: 6, title: "Task F", assigned: "Adam", importance: "High" },
+      { id: 7, title: "Task G", assigned: "Steve", importance: "Low" },
+      { id: 8, title: "Task H", assigned: "Adam", importance: "High" },
+      { id: 9, title: "Task I", assigned: "Adam", importance: "Low" },
+      { id: 10, title: "Task J", assigned: "Mark", importance: "High" },
+      { id: 11, title: "Task K", assigned: "Adam", importance: "Medium" },
+      { id: 12, title: "Task L", assigned: "Adam", importance: "High" },
+    ]),
+  };
+};
+```
+
+None of those data will be reactive in your component. This is to be expected. To make data reactive, you need to wrap it in `$state()`. As of now, you can't call `$state` in a loader, only in a universal svelte file (something that ends in `.svelte.ts`). Hopefully in the future Svelte will allow us to have loaders named `+page.svelte.ts` but for now we can just throw something like this in some sort of `reactive-utils.svelte.ts` file
+
+```ts
+type ReactivePacket<T> = {
+  get value(): T;
+  set value(newValue: T[]);
+};
+
+export const makeReactive = <T>(arg: T): ReactivePacket<T> => {
+  let result = $state(arg);
+
+  return {
+    get value() {
+      return result;
+    },
+    set value(newValue: T) {
+      result = newValue;
+    },
+  };
+};
+```
+
+and them import it and use it in our loader
+
+```ts
+import { makeReactive } from "./reactive-utils.svelte";
+
+export const load = () => {
+  return {
+    tasks: makeReactive([
+      { id: 1, title: "Task A", assigned: "Adam", importance: "Low" },
+      { id: 2, title: "Task B", assigned: "Adam", importance: "Medium" },
+      { id: 3, title: "Task C", assigned: "Adam", importance: "High" },
+      { id: 4, title: "Task D", assigned: "Mike", importance: "Medium" },
+      { id: 5, title: "Task E", assigned: "Adam", importance: "High" },
+      { id: 6, title: "Task F", assigned: "Adam", importance: "High" },
+      { id: 7, title: "Task G", assigned: "Steve", importance: "Low" },
+      { id: 8, title: "Task H", assigned: "Adam", importance: "High" },
+      { id: 9, title: "Task I", assigned: "Adam", importance: "Low" },
+      { id: 10, title: "Task J", assigned: "Mark", importance: "High" },
+      { id: 11, title: "Task K", assigned: "Adam", importance: "Medium" },
+      { id: 12, title: "Task L", assigned: "Adam", importance: "High" },
+    ]),
+  };
+};
+```
+
+And now those objects will support the same fine-grained reactivity we saw before. To customize which properties are reactive, you'd swap in class instances, instead of vanilla object literals, again just like we saw. All the same rules apply, as before.
+
 ## Wrapping up
 
-One of the most exciting features of Svelte 5 is the fine-grained reactivity it adds. Svelte was already lightweight, and faster than most, if not all of the alternatives. These additions in version 5 only improve on that.
+One of the most exciting features of Svelte 5 is the fine-grained reactivity it adds. Svelte was already lightweight, and faster than most, if not all of the alternatives. These additions in version 5 only improve on that. When added to the state management improvements we've already covered in prior posts, Svelte 5 really becomes a serious framework option.
+
+Consider it for your next project.
 
 Happy Coding!
