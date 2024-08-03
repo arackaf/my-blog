@@ -260,7 +260,7 @@ function shallowObservable<T>(data: T[]): ReactivePacket<T[]> {
 
 Our `NonReactiveObjectGenerator` class takes in any object, and then smears all that object's properties onto itself. Our `ReactivePacket` type is _just_ so we can put a wrapper around the `$state()` object we'll be returning. As we discussed in my [first post](https://frontendmasters.com/blog/introducing-svelte-5/#state) on Svelte 5, you can't directly return reactive state from a function. If you do, the state will be read and unwrapped right at the call-site, and won't be reactive any longer.
 
-And lastly, we have our `shallowObservable` which takes an array of whatever, and maps it onto instances of our `NonReactiveObjectGenerator` class. This will force each instance to be a class instance, with nothing reactive. The ` as T` is us forcing TypeScript to treat these new instances as whatever type was passed in. This is accurate, but something TypeScript needs help understanding, since it's not (as of now) able to read and understand our call to `Object.assign` in the class constructor.
+And lastly, we have our `shallowObservable` which takes an array of whatever, and maps it onto instances of our `NonReactiveObjectGenerator` class. This will force each instance to be a class instance, with nothing reactive. The `as T` is us forcing TypeScript to treat these new instances as whatever type was passed in. This is accurate, but something TypeScript needs help understanding, since it's not (as of now) able to read and understand our call to `Object.assign` in the class constructor.
 
 Don't forget to access the array through the `.value` property, via `{#each tasks.value as t, idx}`
 
@@ -292,9 +292,9 @@ But we can now add a button to push a new task onto our array
 				importance: 'Low'
 			}) as Task
 		)}
-	class="border p-3"
+	class="self-start border p-3"
 >
-  Add
+	Add new task
 </button>
 ```
 
@@ -335,8 +335,9 @@ To prove editing works, we'll leave the entire template alone, except for the `i
 	<span>{t.importance + getCounter()}</span>
 	<button
 		onclick={() => {
-			t.importance += 'X';
-			tasks.value[idx] = cloneNonReactive(t);
+      const taskClone = cloneNonReactive(t);
+      taskClone.importance += 'X';
+      tasks.value[idx] = cloneNonReactive(taskClone);
 		}}
 		class="border p-2">Update importance</button
 	>
@@ -353,7 +354,7 @@ Here I clicked the button to update the title, twice, and then clicked the butto
 
 ![Svelte 5 shallow reactivity updated](/svelte-5-fine-grained-reactivity/svelte5-shallow-updated.png)
 
-Again, please don't let the foregoing section turn you off to Svelte. It was a little bit of boilerplate we added for a _relatively_ rare edge case where we have good reason to care about performance. Hopefully Svelte will support this directly in the future, but for now it can be approximated relatively easily.
+Again, please don't let the foregoing section turn you off to Svelte. It was a little bit of boilerplate we added for a _relatively_ rare edge case where we have good reason to care about performance. Hopefully Svelte will support this directly in the future, but for now it can be approximated easily.
 
 ## Svelte Kit
 
