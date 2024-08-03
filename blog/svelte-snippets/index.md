@@ -36,7 +36,7 @@ That defines the snippet. To render the snippet, we use the `@render` directive,
 {@render helloWorld()}
 ```
 
-As you might have guessed, snippets can also receive props, which we list in the parens, with types if you're using TypeScript.
+As you might have guessed, snippets can also receive props, or really, parameters, since snippets are more of a function, than a component. Parameters are listed in the parens, with types if you're using TypeScript.
 
 ```html
 {#snippet productDisplay(p: Product)}
@@ -172,7 +172,7 @@ Snippets shine brightest when we pass them into other components. Let's imagine 
 </section>
 ```
 
-There's a `Snippet` type that svelte exports for us, so we can type the snippets we're receiving. Specifying the props that a snippet receives is a little weird, because of how TypeScript is: we list the args as a Tuple. So our productDisplay snippet will take a single arg that's a Product.
+There's a `Snippet` type that svelte exports for us, so we can type the snippets we're receiving. Specifying the parameters that a snippet receives is a little weird, because of how TypeScript is: we list the args as a Tuple. So our productDisplay snippet will take a single arg that's a Product.
 
 The snippet for showing the header I decided to name "children" which has some significance as we'll see in a moment.
 
