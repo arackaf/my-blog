@@ -378,7 +378,7 @@ tasks.push(...newArray);
 
 It's up to you which approach you take, but hopefully Svelte ships a `$state.shallow` to provide the best of both worlds: the array would be reactive, and so would the binding, since we don't have to pass it across a function boundary; it would be built directly into `$state`.
 
-## Svelte Kit
+## SvelteKit
 
 Let's wrap up by briefly talking about how data from SvelteKit loaders is treated in terms of reactivity. In short, it's exactly how you'd expect. First and foremost, if you just return a raw array of objects from your loader,
 
@@ -387,23 +387,14 @@ export const load = () => {
   return {
     tasks: [
       { id: 1, title: "Task A", assigned: "Adam", importance: "Low" },
-      { id: 2, title: "Task B", assigned: "Adam", importance: "Medium" },
-      { id: 3, title: "Task C", assigned: "Adam", importance: "High" },
-      { id: 4, title: "Task D", assigned: "Mike", importance: "Medium" },
-      { id: 5, title: "Task E", assigned: "Adam", importance: "High" },
-      { id: 6, title: "Task F", assigned: "Adam", importance: "High" },
-      { id: 7, title: "Task G", assigned: "Steve", importance: "Low" },
-      { id: 8, title: "Task H", assigned: "Adam", importance: "High" },
-      { id: 9, title: "Task I", assigned: "Adam", importance: "Low" },
-      { id: 10, title: "Task J", assigned: "Mark", importance: "High" },
-      { id: 11, title: "Task K", assigned: "Adam", importance: "Medium" },
+      // ...
       { id: 12, title: "Task L", assigned: "Adam", importance: "High" },
     ],
   };
 };
 ```
 
-none of those data will be reactive in your component. This is to be expected. To make data reactive, you need to wrap it in `$state()`. As of now, you can't call `$state` in a loader, only in a universal svelte file (something that ends in `.svelte.ts`). Hopefully in the future Svelte will allow us to have loaders named `+page.svelte.ts` but for now we can just throw something like this in a `reactive-utils.svelte.ts` file
+none of those data will be reactive in your component. This is to be expected. To make data reactive, you need to wrap it in `$state()`. As of now, you can't call `$state` in a loader, only in a universal Svelte file (something that ends in `.svelte.ts`). Hopefully in the future Svelte will allow us to have loaders named `+page.svelte.ts` but for now we can just throw something like this in a `reactive-utils.svelte.ts` file
 
 ```ts
 export const makeReactive = <T>(arg: T[]): T[] => {
@@ -421,16 +412,7 @@ export const load = () => {
   return {
     tasks: makeReactive([
       { id: 1, title: "Task A", assigned: "Adam", importance: "Low" },
-      { id: 2, title: "Task B", assigned: "Adam", importance: "Medium" },
-      { id: 3, title: "Task C", assigned: "Adam", importance: "High" },
-      { id: 4, title: "Task D", assigned: "Mike", importance: "Medium" },
-      { id: 5, title: "Task E", assigned: "Adam", importance: "High" },
-      { id: 6, title: "Task F", assigned: "Adam", importance: "High" },
-      { id: 7, title: "Task G", assigned: "Steve", importance: "Low" },
-      { id: 8, title: "Task H", assigned: "Adam", importance: "High" },
-      { id: 9, title: "Task I", assigned: "Adam", importance: "Low" },
-      { id: 10, title: "Task J", assigned: "Mark", importance: "High" },
-      { id: 11, title: "Task K", assigned: "Adam", importance: "Medium" },
+      // ...
       { id: 12, title: "Task L", assigned: "Adam", importance: "High" },
     ]),
   };
@@ -456,7 +438,9 @@ export const makeReactive = <T>(arg: T[]): T[] => {
 };
 ```
 
-the answer is that the latter is simply disallowed. Svelte forces you to only put `$state()` calls into assignments to variables. It cannot appear as a return value like this. The reason is, while doing that would be fine for arrays, like we have,
+the answer is that the latter is simply disallowed. Svelte forces you to only put `$state()` calls into assignments. It cannot appear as a return value like this. The reason is, while returning $state variables directly across a function boundary works fine for objects and arrays, doing this for primitive values (strings or numbers) would produce a senseless result. The variable could not be re-assigned (same as we saw with the array), but as a primitive, there'd be no other way to edit it. It would just be a non-reactive constant.
+
+Svelte forcing you to take that extra step, and assign $state to a variable before returning, is intended to help prevent you from making that mistake.
 
 ## Wrapping up
 
