@@ -216,9 +216,11 @@ What if you don't want these tasks to be reactive at the individual property at 
 
 You basically want to be able to add or remove entries in your array, and have Svelte update the tasks that are rendered. But you don't want Svelte setting up any kind of reactivity for each property on each task.
 
-This is a common enough use case that other state management systems support this directly, for example MobX's [observable.shallow](https://mobx.js.org/observable-state.html#available-annotations). Unfortunately Svelte does not have any such helper, as of yet, though I'm hopeful it gets added at some point.
+This is a common enough use case that other state management systems support this directly, for example MobX's [observable.shallow](https://mobx.js.org/observable-state.html#available-annotations). Unfortunately Svelte does not have any such helper, as of yet. That said, it _is_ currently being debated, so keep your eyes open for a `$state.shallow()` that would do what we're about to show. But even if it does get added, implementing it ourselves will be a great way to kick the tires of Svelte's new reactivity system. Let's see how.
 
-But we can hack it ourselves. We already saw how passing class instances to an array shut off fine-grained reactivity by default, leaving you to opt-in, as desired, by setting class fields to `$state()`. But our data are likely coming from a database, as plain (hopefully typed) JavaScript objects, unrelated to any class; more importantly we likely have zero desire to cobble together a class just for this.
+### Implementing our own $state.shallow() equivalent
+
+We already saw how passing class instances to an array shut off fine-grained reactivity by default, leaving you to opt-in, as desired, by setting class fields to `$state()`. But our data are likely coming from a database, as plain (hopefully typed) JavaScript objects, unrelated to any class; more importantly we likely have zero desire to cobble together a class just for this.
 
 So let's simulate it. Let's say that a database is providing our Task objects as JS objects. We (of course) have a type for this
 
@@ -240,41 +242,54 @@ class NonReactiveObjectGenerator {
   }
 }
 
-type ReactivePacket<T> = {
-  get value(): T;
-  set value(newValue: T[]);
-};
-
-function shallowObservable<T>(data: T[]): ReactivePacket<T[]> {
+function shallowObservable<T>(data: T[]): T[] {
   let result = $state(data.map(t => new NonReactiveObjectGenerator(t) as T));
-  return {
-    get value() {
-      return result;
-    },
-    set value(newData: T[]) {
-      result = newData;
-    },
-  };
+  return result;
 }
 ```
 
-Our `NonReactiveObjectGenerator` class takes in any object, and then smears all that object's properties onto itself. Our `ReactivePacket` type is _just_ so we can put a wrapper around the `$state()` object we'll be returning. As we discussed in my [first post](https://frontendmasters.com/blog/introducing-svelte-5/#state) on Svelte 5, you can't directly return reactive state from a function. If you do, the state will be read and unwrapped right at the call-site, and won't be reactive any longer.
+Our `NonReactiveObjectGenerator` class takes in any object, and then smears all that object's properties onto itself. And our `shallowObservable` takes an array of whatever, and maps it onto instances of our `NonReactiveObjectGenerator` class. This will force each instance to be a class instance, with nothing reactive. The `as T` is us forcing TypeScript to treat these new instances as whatever type was passed in. This is accurate, but something TypeScript needs help understanding, since it's not (as of now) able to read and understand our call to `Object.assign` in the class constructor.
 
-And lastly, we have our `shallowObservable` which takes an array of whatever, and maps it onto instances of our `NonReactiveObjectGenerator` class. This will force each instance to be a class instance, with nothing reactive. The `as T` is us forcing TypeScript to treat these new instances as whatever type was passed in. This is accurate, but something TypeScript needs help understanding, since it's not (as of now) able to read and understand our call to `Object.assign` in the class constructor.
-
-Don't forget to access the array through the `.value` property, via `{#each tasks.value as t, idx}`
-
-Our component will now change slightly
+If you closely read my [first post](https://frontendmasters.com/blog/introducing-svelte-5/#state) on Svelte 5, you might recall that you can't directly return reactive state from a function, since the state will be read and unwrapped right at the call-site, and won't be reactive any longer. Normally you'd have to do this
 
 ```ts
-const tasksData: Task[] = [
+return {
+  get value() {
+    return result;
+  },
+  set value(newData: T[]) {
+    result = newData;
+  },
+};
+```
+
+Why wasn't that needed here? It's true, the `$state()` value will be read at the function's call site. So with
+
+```ts
+let tasks = shallowObservable(getTasks());
+```
+
+the tasks _variable_ will not be reactive. But the array itself will still be fully reactive. We can still call push, pop, splice and so on. If you can live without needing to re-assign to the variable, this is much simpler. But even if you do need to set the tasks variable to a fresh array of values, you still don't even need to use variable assignment. Stay tuned.
+
+I changed the initial tasks array to help out in a minute, but the rest is what you'd expect
+
+```ts
+const getTasks = () => [
   { id: 1, title: "Task A", assigned: "Adam", importance: "Low" },
-  // and so on
+  { id: 2, title: "Task B", assigned: "Adam", importance: "Medium" },
+  { id: 3, title: "Task C", assigned: "Adam", importance: "High" },
+  { id: 4, title: "Task D", assigned: "Mike", importance: "Medium" },
+  { id: 5, title: "Task E", assigned: "Adam", importance: "High" },
+  { id: 6, title: "Task F", assigned: "Adam", importance: "High" },
+  { id: 7, title: "Task G", assigned: "Steve", importance: "Low" },
+  { id: 8, title: "Task H", assigned: "Adam", importance: "High" },
+  { id: 9, title: "Task I", assigned: "Adam", importance: "Low" },
+  { id: 10, title: "Task J", assigned: "Mark", importance: "High" },
+  { id: 11, title: "Task K", assigned: "Adam", importance: "Medium" },
   { id: 12, title: "Task L", assigned: "Adam", importance: "High" },
 ];
 
-let tasks = shallowObservable(tasksData);
-let numberOfTasks = $derived(tasks.value.length);
+let tasks = shallowObservable(getTasks());
 ```
 
 And with that, rendering should now work, and none of our properties are reactive. Clicking the edit buttons do nothing.
@@ -315,7 +330,7 @@ You might be wondering if we can still actually edit the indivudual tasks. We as
 Overriding an array index (with a _new_ object instance) does work, and makes Svelte update. But we can't just do this
 
 ```ts
-tasks.value[idx] = { ...t, importance: "X" + t };
+tasks[idx] = { ...t, importance: "X" + t };
 ```
 
 since that would make the new object, which is an object literal, deeply reactive. We have to keep using our class. This time, to keep the typings simple, and to keep the code smell that is the `NonReactiveObjectGenerator` class hidden as much as possible, I wrote up a helper function
@@ -326,7 +341,7 @@ function cloneNonReactive<T>(data: T): T {
 }
 ```
 
-Again note the type assertion, which is unfortunately needed. This same function could also be used for the add function we saw above, if you prefer.
+As before, the type assertion is unfortunately needed. This same function could also be used for the add function we saw above, if you prefer.
 
 To prove editing works, we'll leave the entire template alone, except for the `importance` field, which we'll modify like so
 
@@ -337,7 +352,7 @@ To prove editing works, we'll leave the entire template alone, except for the `i
     onclick={() => {
       const taskClone = cloneNonReactive(t);
       taskClone.importance += 'X';
-      tasks.value[idx] = cloneNonReactive(taskClone);
+      tasks[idx] = cloneNonReactive(taskClone);
     }}
     class="border p-2">Update importance</button
   >
@@ -354,7 +369,23 @@ Here I clicked the button to update the title, twice, and then clicked the butto
 
 ![Svelte 5 shallow reactivity updated](/svelte-5-fine-grained-reactivity/svelte5-shallow-updated.png)
 
-Again, please don't let the foregoing section turn you off to Svelte. It was a little bit of boilerplate we added for a _relatively_ rare edge case where we have good reason to care about performance. Hopefully Svelte will support this directly in the future, but for now it can be approximated easily.
+### Re-assigning to the tasks array
+
+We saved a bit of convenience by returning our state value directly from our `shallowObservable` helper, but at the expense of not being able to assign directly to our array. Or did we.
+
+If you know a bit of JavaScript, you might know that
+
+```ts
+tasks.length = 0;
+```
+
+is the old school way to clear an array. And that works with Svelte; the Proxy object Svelte sets up to make our array observable works with that. Similarly, we can set the array to a fully new array of values (after clearing it like we just saw) like this
+
+```ts
+tasks.push(...newArray);
+```
+
+It's up to you which approach you take, but hopefully Svelte ships a `$state.shallow` to provide the best of both worlds: the array would be reactive, and so would the binding, since we don't have to pass it across a function boundary; it would be built directly into `$state`.
 
 ## Svelte Kit
 
@@ -363,7 +394,7 @@ Let's wrap up by briefly talking about how data from SvelteKit loaders is treate
 ```ts
 export const load = () => {
   return {
-    tasks: makeReactive([
+    tasks: [
       { id: 1, title: "Task A", assigned: "Adam", importance: "Low" },
       { id: 2, title: "Task B", assigned: "Adam", importance: "Medium" },
       { id: 3, title: "Task C", assigned: "Adam", importance: "High" },
@@ -376,7 +407,7 @@ export const load = () => {
       { id: 10, title: "Task J", assigned: "Mark", importance: "High" },
       { id: 11, title: "Task K", assigned: "Adam", importance: "Medium" },
       { id: 12, title: "Task L", assigned: "Adam", importance: "High" },
-    ]),
+    ],
   };
 };
 ```
@@ -384,22 +415,9 @@ export const load = () => {
 none of those data will be reactive in your component. This is to be expected. To make data reactive, you need to wrap it in `$state()`. As of now, you can't call `$state` in a loader, only in a universal svelte file (something that ends in `.svelte.ts`). Hopefully in the future Svelte will allow us to have loaders named `+page.svelte.ts` but for now we can just throw something like this in a `reactive-utils.svelte.ts` file
 
 ```ts
-type ReactivePacket<T> = {
-  get value(): T;
-  set value(newValue: T[]);
-};
-
-export const makeReactive = <T>(arg: T): ReactivePacket<T> => {
+export const makeReactive = <T>(arg: T[]): T[] => {
   let result = $state(arg);
-
-  return {
-    get value() {
-      return result;
-    },
-    set value(newValue: T) {
-      result = newValue;
-    },
-  };
+  return result;
 };
 ```
 
@@ -429,6 +447,25 @@ export const load = () => {
 ```
 
 And now those objects will support the same fine-grained reactivity we saw before. To customize which properties are reactive, you'd swap in class instances, instead of vanilla object literals, again just like we saw. All the same rules apply.
+
+If you're wondering why we did
+
+```ts
+export const makeReactive = <T>(arg: T[]): T[] => {
+  let result = $state(arg);
+  return result;
+};
+```
+
+rather than
+
+```ts
+export const makeReactive = <T>(arg: T[]): T[] => {
+  return $state(arg);
+};
+```
+
+the answer is that the latter is simply disallowed. Svelte forces you to only put `$state()` calls into assignments to variables. It cannot appear as a return value like this. The reason is, while doing that would be fine for arrays, like we have,
 
 ## Wrapping up
 
