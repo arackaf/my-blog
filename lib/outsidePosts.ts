@@ -1,5 +1,23 @@
 export const externalPosts = [
   {
+    title: "Fine-Grained Reactivity in Svelte 5",
+    date: "2024-08-14T10:00:00.000Z",
+    description: "A deep dive into Svelte 5's fine-grained reactivity",
+    url: "https://frontendmasters.com/blog/fine-grained-reactivity-in-svelte-5/",
+  },
+  {
+    title: "Snippets in Svelte 5",
+    date: "2024-08-07T10:00:00.000Z",
+    description: "An introduction to Svelte 5 Snippets",
+    url: "https://frontendmasters.com/blog/snippets-in-svelte-5/",
+  },
+  {
+    title: "Introducing Svelte 5",
+    date: "2024-07-19T10:00:00.000Z",
+    description: "An introduction to Svelte 5, covering the basics: state, props and effects",
+    url: "https://frontendmasters.com/blog/introducing-svelte-5/",
+  },
+  {
     title: "Introducing Drizzle",
     date: "2024-06-17T10:00:00.000Z",
     description: "An introduction to one of the more unique ORMs out there: Drizzle",
