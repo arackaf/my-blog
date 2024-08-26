@@ -6,11 +6,11 @@ description: An introduction to Java Optionals
 
 There's an old saying in computer science that null was the "billion dollar mistake." It's actually a quote from [Tony Hoare](https://en.wikipedia.org/wiki/Tony_Hoare), the creator of the null reference.
 
-It's easy to understand the hate for null. We've all run into null reference exceptions in just about any language we've used. But as annoying as null reference exceptions can be, it's easy to wonder how they can be avoided. After all, it's inevitable that you might have a variable that's pending assignment. If not null, how would an absence of a value be represented in a way that would prevent a developer creating exceptions after attempting to interact with that non-value.
+It's easy to understand the hate for null. We've all run into null reference exceptions in just about any language we've used. But as annoying as they can be, it's easy to wonder how they can be avoided. After all, it's inevitable that sometimes you have a variable pending assignment. If not null, how would an absence of a value be represented in a way that would prevent a developer from creating exceptions when attempting to interact with that non-value?
 
 ## Optionals
 
-This post is about the Optional type, which is common way programming languages protect devs from null references. The idea is, the optional type gives you essentially a box, that can be empty (null), or have a value in it. Along with some api's to safely deal with these possibilities.
+This post is about the Optional type, which is a common way programming languages protect devs from null references. The idea is, the optional type gives you essentially a box, that can be empty (null), or have a value in it. Along with some api's to safely deal with these possibilities.
 
 This is a concept that exists in many languages. Swift has a particularly elegant implementation, which is integrated into various language-level features. But for this post, we'll look at Java, which added an Optional type in version 8 of the language, and along the way we'll run into a few other modern Java features.
 
@@ -24,7 +24,7 @@ record Person(String name, int age){}
 
 Records were added to Java 14, and are essentially simplified classes for objects which are mainly just carriers of data.
 
-Ok, let's say we want to declare a variable of type `Person`. Normally we'd write
+Let's say we want to declare a variable of type `Person`. Normally we'd write
 
 ```java
 Person p;
@@ -123,7 +123,7 @@ Let's see some of the better api's Optional ships with.
 
 ## Using Optionals effectively
 
-If we want to use an optional, rather than carefully calling `get` (after verifying there's a value) we can use the `isPresent()` method
+If we want to use an optional, rather than carefully calling `get` (after verifying there's a value) we can use the `ifPresent()` method
 
 ```java
 personMaybe.ifPresent(p -> System.out.println(p.name));
@@ -135,11 +135,11 @@ We pass in a lambda expression that will be invoked with the person value. If th
 personMaybe.ifPresentOrElse(p -> System.out.println(p.name), () -> System.out.println("No person"));
 ```
 
-It's the same as before, except no we provide a lambda for when the optional is empty.
+It's the same as before, except we now provide a lambda for when the optional is empty.
 
 ## Getting values from an Optional
 
-Let's say we want to get a value from an Optional. Let's first expand our `Person` type just a bit.
+Let's say we want to get a value from an Optional. Let's first expand our `Person` type just a bit, and add a `bestFriend` property, of type `Optional<Person>`.
 
 ```java
 record Person(String name, int age, Optional<Person> bestFriend){}
@@ -169,13 +169,15 @@ And since records automatically create getter methods for all properties, the fo
 Optional<String> personsName = personMaybe.map(Person::name);
 ```
 
-And of course Java supports inferred typings now, so you could simply write
+The `::` syntax is a method reference, which was added in Java 8.
+
+And since Java, as of version 10 supports inferred typings, you could also write
 
 ```java
 var personsName = personMaybe.map(Person::name);
 ```
 
-`var` here does _not_ mean what it means in JavaScript, where the value is dynamically typed. Rather, it means what it does in C#, which is merely a shortcut where, instead of typing out the type, you can simply tell the type system to infer the correct type based on what's on the right hand side of the assignment, and just pretend you typed that. Needless to say
+`var` here takes the meaning from C#, not JavaScript. It does _not_ represent a dynamically typed value. Rather, it's merely a shortcut where, instead of typing out your type, you can simply tell the type system to infer the correct type based on what's on the right hand side of the assignment, and just pretend you typed that. Needless to say
 
 ```java
 var x;
@@ -217,7 +219,7 @@ personsBestFriend.ifPresentOrElse(s -> System.out.println(s.name), () -> System.
 
 ## Chaining things together
 
-Rather than pulling the name off of the best friend, let's clean the code above up a bit, by extracting the best friend's name directly, and then using that. Let's also start to use function references more directly, to remove some of the bloat
+Rather than pulling the name off of the best friend, let's clean the code above up a bit, by extracting the best friend's name directly, and then using that. Let's also start to use method references more, to remove some of the bloat
 
 ```java
 Optional<String> bestFriendsName = personMaybe.flatMap(Person::bestFriend).map(Person::name);
@@ -229,15 +231,23 @@ Which we can use as before
 bestFriendsName.ifPresentOrElse(System.out::println, () -> System.out.println("Nothing"));
 ```
 
-As one final trick, let's note that Optionals have an orElse method. If you have an Optional<T>, the orElse takes a value (not an optional) of type T. If the optional had a value, that value is returned. If the optional was empty, the value you provided was returned. It's a good way to convert an optional, to a real value, while providing a default value if the optional was empty. Let's see it in action with the code above, grabbing our person's best friend's name (if there is one).
+As one final trick, let's note that Optionals have an `orElse` method. If you have an `Optional<T>`, orElse takes a value (not an optional) of type T. If the optional had a value, that value is returned. If the optional was empty, the value you provided is returned. It's a good way to convert an optional to a real value, while providing a default value if the optional was empty. Let's see it in action with the code above, grabbing our person's best friend's name (if there is one).
 
 ```java
-String bestFriendsName = personMaybe.flatMap(Person::bestFriend).map(Person::name)
-        .orElse("No friend found");
+String bestFriendsName = personMaybe
+    .flatMap(Person::bestFriend)
+    .map(Person::name)
+    .orElse("No friend found");
 ```
 
-and now we can just use this string, which is guaranteed not to be null
+and now we can just use this string, which is guaranteed to not be null
 
 ```java
 System.out.println(bestFriendsName);
 ```
+
+## Wrapping up
+
+I hope you enjoyed this introduction to Java's Optional type. It's a great tool to make your code safer, and clearer.
+
+Happy coding!
