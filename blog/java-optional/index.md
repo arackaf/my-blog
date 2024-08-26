@@ -192,7 +192,7 @@ java: cannot infer type for local variable x
 
 ## Optionals of optionals
 
-Ok we added the `bestFriend` property of our Person record, which is of type `Optional<Person>`. Let's put it to good use.
+Ok, we added the `bestFriend` property to our Person record, which is of type `Optional<Person>`. Let's put it to good use.
 
 ```java
 Optional<Person> personsBestFriend = personMaybe.map(p -> p.bestFriend);
@@ -205,7 +205,7 @@ Required type: Optional<Person>
 Provided: Optional<Optional<Person>>
 ```
 
-The value we return from the `map` method is placed inside of an optional for us. But, here, the value we return is _already an_ optional, so we're left with an optional of an optional. If we want to "flatten" this optional of an optional into just an optional, we use flatMap (just like we use in JavaScript when we want to flatten an array of arrays from `Array.map`)
+The value we return from the `map` method is placed inside of an optional for us. But, here, the value we return is _already an_ optional, so we're left with an optional of an optional. If we want to "flatten" this optional of an optional into just an optional, we use flatMap (just like we use flatMap in JavaScript when we want to flatten an array of arrays from `Array.map`)
 
 ```java
 Optional<Person> personsBestFriend = personMaybe.flatMap(p -> p.bestFriend);
