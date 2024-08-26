@@ -4,9 +4,9 @@ date: "2024-08-25T20:00:32.169Z"
 description: An introduction to Java Optionals
 ---
 
-There's an old sayign in computer science that null was the "billion dollar mistake." It's actually a quote from [Tony Hoare](https://en.wikipedia.org/wiki/Tony_Hoare), the creator of the null reference.
+There's an old saying in computer science that null was the "billion dollar mistake." It's actually a quote from [Tony Hoare](https://en.wikipedia.org/wiki/Tony_Hoare), the creator of the null reference.
 
-It's easy to understand the hate for null. We've all run into null reference exceptions in just about any language we've used. But as annoying as null reference exceptions can be, it's easy to wonder how they can be avoided. After all, it's inevitable that you might have a variable that's pending assignment. If not null, how would an absense of a value be represented in a way that would prevent a developer creating exceptions after attempting to interact with that non-value.
+It's easy to understand the hate for null. We've all run into null reference exceptions in just about any language we've used. But as annoying as null reference exceptions can be, it's easy to wonder how they can be avoided. After all, it's inevitable that you might have a variable that's pending assignment. If not null, how would an absence of a value be represented in a way that would prevent a developer creating exceptions after attempting to interact with that non-value.
 
 ## Optionals
 
@@ -95,7 +95,7 @@ personMaybe = Optional.ofNullable(x);
 
 ## Using your optional
 
-It's one thing to have an optional type that can hold a value, but how do you _use the_ value? The curdest, most dangerous way to access the value contained in your optional is with the `get` method
+It's one thing to have an optional type that can hold a value, but how do you _use the_ value? The crudest, most dangerous way to access the value contained in your optional is with the `get` method
 
 ```java
 System.out.println(personMaybe.get().name);
@@ -236,7 +236,7 @@ String bestFriendsName = personMaybe.flatMap(Person::bestFriend).map(Person::nam
         .orElse("No friend found");
 ```
 
-and now we can just use this string, which is guarenteed not to be null
+and now we can just use this string, which is guaranteed not to be null
 
 ```java
 System.out.println(bestFriendsName);
