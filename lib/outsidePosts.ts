@@ -1,5 +1,11 @@
 export const externalPosts = [
   {
+    title: "Java Optionals",
+    date: "2024-08-30T10:00:00.000Z",
+    description: "An introduction to Java Optionals",
+    url: "https://frontendmasters.com/blog/java-optionals/",
+  },
+  {
     title: "Fine-Grained Reactivity in Svelte 5",
     date: "2024-08-14T10:00:00.000Z",
     description: "A deep dive into Svelte 5's fine-grained reactivity",
