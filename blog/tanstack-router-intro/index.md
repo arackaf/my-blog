@@ -68,6 +68,175 @@ src/routes/\_\_root.tsx:8:17 - error TS2322: Type '"/"' is not assignable to typ
           <Link to="/" className="[&.active]:font-bold">
 ```
 
+## Buildign the app
+
+Let's get started. We'll add our root page. In Router, we use the file `index.tsx` to represent the root `/` path, wherever we are in the route tree (which we'll explain shortly). We'll create index.tsx, and, assuming you have the dev task running, it should scaffold some code for you that looks like this
+
+```tsx
+import { createFileRoute } from "@tanstack/react-router";
+
+export const Route = createFileRoute("/")({
+  component: () => <div>Hello /!</div>,
+});
+```
+
+There's a bit more boilerplate than you might be used to with metaframeworks like Next or SvelteKit. There, you just either default export a React component, or put a normal Svelte component and everything just works. Here it seems we have have to call a function called `createFileRoute`, and pass in the route where we are. The route is necessary for the type safety Router has, but don't worry, you don't have to manage this yourself. The dev process not only scaffolds code like this for new files, it also keeps those path values in sync for you. Try it - change that path to something else, and save the file; it should change it right back, for you. Or create a folder called `junk` and drag it there - it should change the path to `"/junk/"`.
+
+Ok let's add the following content (after moving it back out of the junk folder).
+
+```tsx
+import { createFileRoute } from "@tanstack/react-router";
+
+export const Route = createFileRoute("/")({
+  component: Index,
+});
+
+function Index() {
+  return (
+    <div className="p-2">
+      <h3>Top level index page</h3>
+    </div>
+  );
+}
+```
+
+Simple and humble. Just a component telling us we're in the top level index page. We're
+
+## Routes
+
+Let's start to create some actual routes. Our root layout indeicated we'd want to have paths for dealing with both tasks, and also epics. Router (by default) uses file-based routing, but provides you two ways to do so, which can be mixed and matched (we'll look at both). You can stack your files into folders which match the path your browsing. Or you can indicate these route hierarchies in individual filenames, separating the paths with dots. If you're thinking only the former is useful, stay tuned.
+
+Just for fun, let's start with the flat file system. Let's create a `tasks.index.tsx` file. This is the same as creating an index.tsx inside of an hypothetical `tasks` folder. For content we'll add some basic content (we're trying to see how Router works, not build an actual todo app).
+
+```tsx
+import { createFileRoute, Link } from "@tanstack/react-router";
+
+export const Route = createFileRoute("/tasks/")({
+  component: Index,
+});
+
+function Index() {
+  const tasks = [
+    { id: "1", title: "Task 1" },
+    { id: "2", title: "Task 2" },
+    { id: "3", title: "Task 3" },
+  ];
+
+  return (
+    <div className="p-2">
+      <h3>Tasks page!</h3>
+      <div className="flex flex-col gap-2 p-3">
+        {tasks.map((t, idx) => (
+          <div key={idx} className="flex gap-3">
+            <div>{t.title}</div>
+            <Link to="/tasks/$taskId" params={{ taskId: t.id }}>
+              View
+            </Link>
+            <Link to="/tasks/$taskId/edit" params={{ taskId: t.id }}>
+              Edit
+            </Link>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+Before we continue, let's add a layout file for all of our tasks routes. Some common content that will be present on all pages routed to under `/tasks`. If we had a `tasks` folder, we'd just throw a `route.tsx` file in there. Instead, we'll add a `tasks.route.tsx` file.
+
+```tsx
+import { createFileRoute, Outlet } from "@tanstack/react-router";
+
+export const Route = createFileRoute("/tasks")({
+  component: () => (
+    <div>
+      Tasks layout <Outlet />
+    </div>
+  ),
+});
+```
+
+Simple and humble; as always, don't forget the `<Outlet />` or else the actual contnet of that path will not render.
+
+And now let's add a path for /tasks, `tasks.index.tsx`.
+
+```tsx
+import { createFileRoute, Link } from "@tanstack/react-router";
+
+export const Route = createFileRoute("/tasks/")({
+  component: Index,
+});
+
+function Index() {
+  const tasks = [
+    { id: "1", title: "Task 1" },
+    { id: "2", title: "Task 2" },
+    { id: "3", title: "Task 3" },
+  ];
+
+  return (
+    <div className="p-2">
+      <h3>Tasks page!</h3>
+      <div className="flex flex-col gap-2 p-3">
+        {tasks.map((t, idx) => (
+          <div key={idx} className="flex gap-3">
+            <div>{t.title}</div>
+            <Link to="/tasks/$taskId" params={{ taskId: t.id }}>
+              View
+            </Link>
+            <Link to="/tasks/$taskId/edit" params={{ taskId: t.id }}>
+              Edit
+            </Link>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+To repeat, `xyz.route.tsx` is a component that renders for the entire route, all the way down. It's essentially a layout, but Router calls them routes. And `xyz.index.tsx` is the file for the individual path at `xyz`.
+
+And this renders. There's not much to look at, but take a quick look before we make one interesting change
+
+![statically typed path param](/tanstack-router-intro/tasks-page.jpg)
+
+Notice the navigation lines from the root layout at the very top. Below that, we see `Tasks layout`, from the tasks route file (other frameworks would refer to this as a layout). And then below that, we have the content for our tasks page.
+
+## Path parameters
+
+The `<Link>` tags in the tasks index file give away where we're headed, but let's build paths to view, and edit tasks. We'll create `/tasks/123` and `/tasks/123/edit` paths, where of course `123` represents whatever the taskId is.
+
+TanStack Router repsents variables inside of a path as path parameters, and they're repsented as path segments that start with a dollar sign. So with that we'll add `tasks.$taskId.index.tsx` and `tasks.$taskId.edit.tsx`. The former will route to `/tasks/123` and the latter will route to `/tasks/123/edit`. Let's take a look at `tasks.$taskId.index.tsx` and find out how we actually get the path parameter that's passed in.
+
+```tsx
+import { createFileRoute, Link } from "@tanstack/react-router";
+
+export const Route = createFileRoute("/tasks/$taskId/")({
+  component: () => {
+    const { taskId } = Route.useParams();
+
+    return (
+      <div className="flex flex-col gap-3 p-3">
+        <div>
+          <Link to="/tasks">Back</Link>
+        </div>
+        <div>View task {taskId}</div>
+      </div>
+    );
+  },
+});
+```
+
+The `Route.useParams()` object that exists on our Route object returns out parameters. But this isn't interesting on its own; every routing framework has something like this. What's particularly compelling is that this one is statically typed. Router is smart enough to know which parameters exist for that route (including parameters from higher up in the route, which we'll see in a moment). That means that not only do we get auto complete
+
+![statically typed path param](/tanstack-router-intro/path-param-auto-complete.jpg)
+
+but if you put an invalid path param in there, you'll get a TypeScript error
+
+![statically typed path param](/tanstack-router-intro/parath-param-typed.jpg)
+
 ## Wrapping up
 
 TanStack router is an incredibly exciting project. It's a superbly-made, flexible client-side router that promises fantastic server-side integration in the near future.
