@@ -237,6 +237,54 @@ but if you put an invalid path param in there, you'll get a TypeScript error
 
 ![statically typed path param](/tanstack-router-intro/parath-param-typed.jpg)
 
+## Advanced routing
+
+Let's start to lean on Router's advanced routing rules (a little) and see some of the advanced features it supports. I'll stress, these are advanced features you won't commonly use; but it's nice to know they're there.
+
+The edit task route is essentially identical, except the path is different, and I put the text to say "Edit" instead of "View." But let's use this route to explore a new TanStack Router feature.
+
+Right now we sort of have two hierarchies: we have the url path, and we have the component hierarchy. So far, these things have lined up 1:1. The url path /tasks/123/edit has rendered
+
+The root route (of course) -> the tasks route.tsx / layout -> the edit tasks route file. The url hierarchy, and the component hierarchy lined up perfectly. But they don't have to.
+
+Just for fun, to see how, let's see how we can remove the main tasks layout file from the edit task route. So we want the `/tasks/123/edit` url to render the same thing, but **without** the `tasks.route.tsx` route file being rendered. To do this, we just rename `tasks.$taskId.edit.tsx` to `tasks_.$taskId.edit.tsx`. Note that `tasks` became `tasks_`. We do need `tasks` in there, where it is, so Router will know how to eventually find the `edit.tsx` file we're rendering. But by naming it `tasks_`, we remove that _component_ from the rendered component tree. And now when we render the edit task route, we get this
+
+![statically typed path param](/tanstack-router-intro/edit-task-without-tasks-layout.jpg)
+
+Notice how the tasks layout is gone.
+
+What if you wanted to do the opposite? What if you have a _component_ hierarchy you want, (ie, you **want** some layout to render in the edit task page), but you **don't** want that layout to affect the url. Well, just put the underscore on the opposite side. So we have `tasks_.$taskId.edit.tsx` which renders the task edit page, but without putting the tasks layout route into the _component hierarchy_. Let's say we have a special layout we want to use only for task editing. Let's create a `_taskEdit.tsx`
+
+```tsx
+import { createFileRoute, Outlet } from "@tanstack/react-router";
+
+export const Route = createFileRoute("/_taskEdit")({
+  component: () => (
+    <div>
+      Special Task Edit Layout <Outlet />
+    </div>
+  ),
+});
+```
+
+and then change our task edit file to this `_taskEdit.tasks_.$taskId.edit.tsx`. And now when we browse to `/tasks/1/edit` we see the task edit page with our custom layout (which did not affect our url)
+
+![custom layout](/tanstack-router-intro/pathless-layout.jpg)
+
+Again, this is an advanced feature. Most of the time you'll use simple, boring, predictable routing rules. But it's nice to know these advanced features exist.
+
+## Directory based routing
+
+Instead of putting file hierarchies into file names with dots, you can also put them in directories. I _usually_ prefer directories, but you can mix and match, and sometimes a judicious use of flat file names for things like pairs of files of `$pathParam.index.tsx` and `$pathParam.edit.tsx` feel natural inside of a directory. All the normal rules apply, so choose what feels best to you.
+
+We won't walk through everything for directories again. We'll just take a peak at the finished product (which is also on GitHub). We have an `epics` path, which lists out a list of, well, epics. For each, we can edit, or view the epic. When viewing, we also show a (static) list of milestones in the epic, which we can also view, or edit. And like before, for fun, when we edit a milestone, we'll remove the milestones route layout.
+
+![directory routing](/tanstack-router-intro/directory-routing.jpg)
+
+So rather than `epics.index.tsx` and `epics.route.tsx` we have `epics/index.tsx` and `epics/route.tsx`. And so on. Again, they're the same rules; just replace the dots in the files names with slashes (and directories).
+
+## Type-safe querystrings
+
 ## Wrapping up
 
 TanStack router is an incredibly exciting project. It's a superbly-made, flexible client-side router that promises fantastic server-side integration in the near future.
