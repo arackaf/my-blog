@@ -6,23 +6,25 @@ description: An introduction to TanStack Router
 
 TanStack router is an incredibly exciting project. It's essentially a fully-featured _client-side_ JavaScript application framework. It provides a mature routing and navigation system, with nested layouts, and efficient data loading capabilities at every point in the route tree. Best of all, it does all of this in a _type-safe_ manner.
 
-What's especially exciting is that as of this writing, there's a TanStack Start in the works, which will add on server-side capabilities to Router, enabling you to build full-stack web applications. Start promises to do this with a server layer applied directly on top of the same TanStack Router this post will be talking about. That makes this a perfect time to get to know Router if you're not already.
+What's especially exciting is that as of this writing, there's a TanStack Start in the works, which will add server-side capabilities to Router, enabling you to build full-stack web applications. Start promises to do this with a server layer applied directly on top of the same TanStack Router we'll be talking about here. That makes this a perfect time to get to know Router if you haven't already.
 
-Router is much more than just a ... router; as we mentioned, it's a full-fledged client-side application framework. So to prevent this post from getting too long, we won't even try to cover it all. Here we'll limit ourselves to routing and navigation, which is a larger topic than you might think, especially considered the type-safe nature of Router.
+Router is much more than just a ... router; as we mentioned, it's a full-fledged client-side application framework. So to prevent this post from getting too long, we won't even try to cover it all. Here we'll limit ourselves to routing and navigation, which is a larger topic than you might think, especially considering the type-safe nature of Router.
 
 ## Getting started
 
-The TanStack Router docs [are here](https://tanstack.com/router/latest/docs/framework/react/overview), and the quick start guide [is here](https://tanstack.com/router/latest/docs/framework/react/quick-start). To be frank, the quick start is a bit more manual, and less quick than it could be. For now. TanStack Start looks to add the same kind of nice scaffolding projects that like SvelteKit and Next already have. But for now you can just clone [the repo](https://github.com/arackaf/tanstack-router-routing-demo) I used for this project and poke around with what we're talking about here.
+The TanStack Router docs [are here](https://tanstack.com/router/latest/docs/framework/react/overview), and the quick start guide [is here](https://tanstack.com/router/latest/docs/framework/react/quick-start). To be frank, the quick start is a bit more manual, and less quick than it could be. For now. TanStack Start looks to add the same kind of nice scaffolding projects that like SvelteKit and Next have. But for now you can just clone [the repo](https://github.com/arackaf/tanstack-router-routing-demo) I used for this project and follow along.
 
 ## The plan
 
-In order to see what Router can do, and how it works we'll pretend to build a task management system, like Jira. Like the real Jira we won't make any effort at making thins look nice, or be pleasant to use. Our goal is to see what Router can do, not build a useful web application.
+In order to see what Router can do, and how it works we'll pretend to build a task management system, like Jira. Like the real Jira we won't make any effort at making things look nice, or be pleasant to use. Our goal is to see what Router can do, not build a useful web application.
 
 We'll cover routing; layouts; path, and search parameters; and of course static typing all along the way.
 
-## Our Root Route
+Let's start at the very top.
 
-Let's look at our root layout, which Router calls `__root.tsx`. If you're following along on your own project, this will go directly under the `routes` folder.
+## The Root Route
+
+This is our root layout, which Router calls `__root.tsx`. If you're following along on your own project, this will go directly under the `routes` folder.
 
 ```ts
 import { createRootRoute, Link, Outlet } from "@tanstack/react-router";
@@ -56,13 +58,15 @@ The `createRootRoute` function does what it says. The `<Link />` component is al
 
 ## Running the app
 
-Unsurprisingly, we can run this app with `npm run dev` which will run our project on `http://localhost:5173/`. More importantly, the dev watch process monitors the routes we'll be adding, and maintains a `routeTree.gen.ts` file. This maintains, and syncs metadata about our routes in order to help build static types, which will help us work with our routes safely. Speaking of, if you're building this from scratch, you might have noticed some TypeScript errors on our Link tags, since those url's don't yet exist. That's right: TanStack Router deeply integrates TypeScript into the route level, and will even validate your Link tags are all pointing somewhere valid.
+We run our app with `npm run dev` which will run our project on `http://localhost:5173/`. More importantly, the dev watch process monitors the routes we'll be adding, and maintains a `routeTree.gen.ts` file. This syncs metadata about our routes in order to help build static types, which will help us work with our routes safely. Speaking of, if you're building this from scratch, you might have noticed some TypeScript errors on our Link tags, since those url's don't yet exist. That's right: TanStack Router deeply integrates TypeScript into the route level, and will even validate that your Link tags are pointing somewhere valid.
 
 To be clear, this is not because of any editor plugins. The TypeScript integration itself is producing errors, as it would in your CI/CD system.
 
-```
+<pre>
 src/routes/\_\_root.tsx:8:17 - error TS2322: Type '"/"' is not assignable to type '"." | ".." | undefined'.
+</pre>
 
+```ts
           <Link to="/" className="[&.active]:font-bold">
 ```
 
@@ -78,7 +82,9 @@ export const Route = createFileRoute("/")({
 });
 ```
 
-There's a bit more boilerplate than you might be used to with metaframeworks like Next or SvelteKit. There, you just either default export a React component, or plop down a normal Svelte component and everything _just works_. Here it seems we have have to call a function called `createFileRoute`, and pass in the route to where we are. The route is necessary for the type safety Router has, but don't worry, you don't have to manage this yourself. The dev process not only scaffolds code like this for new files, it also keeps those path values in sync for you. Try it - change that path to something else, and save the file; it should change it right back, for you. Or create a folder called `junk` and drag it there - it should change the path to `"/junk/"`.
+There's a bit more boilerplate than you might be used to with metaframeworks like Next or SvelteKit. There, you just default export a React component, or plop down a normal Svelte component and everything _just works_. Here it seems we have have to call a function called `createFileRoute`, and pass in the route to where we are.
+
+The route is necessary for the type safety Router has, but don't worry, you don't have to manage this yourself. The dev process not only scaffolds code like this for new files, it also keeps those path values in sync for you. Try it—change that path to something else, and save the file; it should change it right back, for you. Or create a folder called `junk` and drag it there: it should change the path to `"/junk/"`.
 
 Ok let's add the following content (after moving it back out of the junk folder).
 
@@ -141,7 +147,7 @@ function Index() {
 }
 ```
 
-Before we continue, let's add a layout file for all of our tasks routes. Some common content that will be present on all pages routed to under `/tasks`. If we had a `tasks` folder, we'd just throw a `route.tsx` file in there. Instead, we'll add a `tasks.route.tsx` file.
+Before we continue, let's add a layout file for all of our tasks routes, housing some common content that will be present on all pages routed to under `/tasks`. If we had a `tasks` folder, we'd just throw a `route.tsx` file in there. Instead, we'll add a `tasks.route.tsx` file.
 
 ```tsx
 import { createFileRoute, Outlet } from "@tanstack/react-router";
@@ -163,7 +169,7 @@ And this renders. There's not much to look at, but take a quick look before we m
 
 ![statically typed path param](/tanstack-router-intro/tasks-page.jpg)
 
-Notice the navigation lines from the root layout at the very top. Below that, we see `Tasks layout`, from the tasks route file (other frameworks would refer to this as a layout). And then, below that, we have the content for our tasks page.
+Notice the navigation links from the root layout at the very top. Below that, we see `Tasks layout`, from the tasks route file (essentially a layout). And then, below that, we have the content for our tasks page.
 
 ## Path parameters
 
@@ -190,7 +196,7 @@ export const Route = createFileRoute("/tasks/$taskId/")({
 });
 ```
 
-The `Route.useParams()` object that exists on our Route object returns out parameters. But this isn't interesting on its own; every routing framework has something like this. What's particularly compelling is that this one is statically typed. Router is smart enough to know which parameters exist for that route (including parameters from higher up in the route, which we'll see in a moment). That means that not only do we get auto complete
+The `Route.useParams()` object that exists on our Route object returns our parameters. But this isn't interesting on its own; every routing framework has something like this. What's particularly compelling is that this one is statically typed. Router is smart enough to know which parameters exist for that route (including parameters from higher up in the route, which we'll see in a moment). That means that not only do we get auto complete
 
 ![statically typed path param](/tanstack-router-intro/path-param-auto-complete.jpg)
 
@@ -210,19 +216,19 @@ if we'd left off the params here (or specified anything other than `taskId`), we
 
 Let's start to lean on Router's advanced routing rules (a little) and see some of the nice features it supports. I'll stress, these are advanced features you won't commonly use; but it's nice to know they're there.
 
-The edit task route is essentially identical, except the path is different, and I put the text to say "Edit" instead of "View." But let's use this route to explore a new TanStack Router feature.
+The edit task route is essentially identical, except the path is different, and I put the text to say "Edit" instead of "View." But let's use this route to explore a TanStack Router feature we haven't seen.
 
-Conceptually we have two hierarchies: we have the url path, and we have the component hierarchy. So far, these things have lined up 1:1. The url path
+Conceptually we have two hierarchies: we have the url path, and we have the component tree. So far, these things have lined up 1:1. The url path
 
 `/tasks/123/edit`
 
 has rendered
 
-`root route (of course) -> the tasks route layout -> the edit tasks route file`
+`root route -> tasks route layout -> edit task path`
 
 The url hierarchy, and the component hierarchy lined up perfectly. But they don't have to.
 
-Just for fun, to see how, let's see how we can remove the main tasks layout file from the edit task route. So we want the `/tasks/123/edit` url to render the same thing, but **without** the `tasks.route.tsx` route file being rendered. To do this, we just rename `tasks.$taskId.edit.tsx` to `tasks_.$taskId.edit.tsx`. Note that `tasks` became `tasks_`. We do need `tasks` in there, where it is, so Router will know how to eventually find the `edit.tsx` file we're rendering. But by naming it `tasks_`, we remove that _component_ from the rendered component tree, even though `tasks` is still in the url. And now when we render the edit task route, we get this
+Just for fun, to see how, let's see how we can remove the main tasks layout file from the edit task route. So we want the `/tasks/123/edit` url to render the same thing, but **without** the `tasks.route.tsx` route file being rendered. To do this, we just rename `tasks.$taskId.edit.tsx` to `tasks_.$taskId.edit.tsx`. Note that `tasks` became `tasks_`. We do need `tasks` in there, where it is, so Router will know how to eventually find the `edit.tsx` file we're rendering, _based on the url_. But by naming it `tasks_`, we remove that _component_ from the rendered component tree, even though `tasks` is still in the url. And now when we render the edit task route, we get this
 
 ![statically typed path param](/tanstack-router-intro/edit-task-without-tasks-layout.jpg)
 
@@ -252,7 +258,7 @@ Again, this is an advanced feature. Most of the time you'll use simple, boring, 
 
 Instead of putting file hierarchies into file names with dots, you can also put them in directories. I _usually_ prefer directories, but you can mix and match, and sometimes a judicious use of flat file names for things like pairs of `$pathParam.index.tsx` and `$pathParam.edit.tsx` feel natural inside of a directory. All the normal rules apply, so choose what feels best _to you_.
 
-We won't walk through everything for directories again. We'll just take a peak at the finished product (which is also on GitHub). We have an `epics` path, which lists out a list of, well, epics. For each, we can edit, or view the epic. When viewing, we also show a (static) list of milestones in the epic, which we can also view, or edit. And like before, for fun, when we edit a milestone, we'll remove the milestones route layout.
+We won't walk through everything for directories again. We'll just take a peak at the finished product (which is also on GitHub). We have an `epics` path, which lists out, well, epics. For each, we can edit, or view the epic. When viewing, we also show a (static) list of milestones in the epic, which we can also view, or edit. And like before, for fun, when we edit a milestone, we'll remove the milestones route layout.
 
 ![directory routing](/tanstack-router-intro/directory-routing.jpg)
 
@@ -266,7 +272,7 @@ Before moving on, let's briefly pause and look at the `$milestoneId.index.tsx` r
 
 The cherry on the top of this post will be, in the author's opinion, one of the most obnoxious aspects of web development: dealing with search params (sometimes called querystrings). Basically the stuff that comes after the `?` in a url: `/tasks?search=foo&status=open`. The underlying platform primitive `URLSearchParams` can be tedious to work with, and frameworks don't usually do much better, often providing you an un-typed bag of properties, and offering minimal help in constructing a new url with new, updated querystring values.
 
-It should come as no surprise that TanStack Router provides a convenient, fully-featured mechanism for managing search params, **which are also type-safe**. Let's dive in. We'll take a good, high-level look, but the full docs [are here](https://tanstack.com/router/latest/docs/framework/react/guide/search-params).
+It should come as no surprise that TanStack Router provides a convenient, fully-featured mechanism for managing search params, **which are also type-safe**. Let's dive in. We'll take a high-level look, but the full docs [are here](https://tanstack.com/router/latest/docs/framework/react/guide/search-params).
 
 We'll add search param support for the `/epics/$epicId/milestones` route. We'll allow various values in the search params that would allow the user to search milestones under a given epic. We've seen the `createFileRoute` function countless times. Typically we just pass a `component` to it.
 
@@ -318,7 +324,7 @@ http://localhost:5173/epics/1/milestones?page=1&search=&tags=%5B%5D
 
 TanStack ran our validation function, and then replaced our url with the correct, valid search params. If you don't like that it forces the url to be "ugly" like that, stay tuned; that's easily worked around. But first let's work with what we have.
 
-We've been using the `Route.useParams` method multiple times. There's also a `Route.useSearch` that does the same thing. But let's do something a little different. We've previously been putting everything in the same route file, so we could just directly reference the Route object from the same lexical scope. Let's build a separate component to read, and update these search params.
+We've been using the `Route.useParams` method multiple times. There's also a `Route.useSearch` that does the same thing, for search params. But let's do something a little different. We've previously been putting everything in the same route file, so we could just directly reference the Route object from the same lexical scope. Let's build a separate component to read, and update these search params.
 
 I've added a `MilestoneSearch.tsx` component. You might think you could just import the `Route` object from the route file. But that's dangerous. You're likely to create a circular dependency, which might or might not work, depending on your bundler. And even if it "works" you might have some hidden issues lurking.
 
@@ -338,7 +344,7 @@ We won't belabor the form elements and click handlers to sync and gather new val
 const navigate = useNavigate({ from: "/epics/$epicId/milestones/" });
 ```
 
-We call it, and tell it where we're navigating _from_. Now we tell it where we want to _go_ (the same place we are), and are given a `search` function from which we return the search params for this current route. Naturally, TypeScript will yell at us if we leave anything off. As a convenience, Router will pass this search function the current values, making it easy to just add / override something. So to page up, we can do
+We call it, and tell it where we're navigating _from_. Now we use the result and tell it where we want to _go_ (the same place we are), and are given a `search` function from which we return the new search params. Naturally, TypeScript will yell at us if we leave anything off. As a convenience, Router will pass this search function the current values, making it easy to just add / override something. So to page up, we can do
 
 ```ts
 navigate({
@@ -371,7 +377,7 @@ which will make our URL look like this
 /epics/1/milestones?page=1&search=Hello%20World&tags=%5B"tag%201"%2C"tag%202"%5D
 ```
 
-Again, the search, and the array of strings was serialized for us.
+Again, the search, and the array of strings were serialized for us.
 
 If we want to _link to_ a page with search params, we specify those search params on the Link tag
 
@@ -448,8 +454,8 @@ It's up to you which tradeoff you'd like to make.
 
 ## Wrapping up
 
-TanStack router is an incredibly exciting project. It's a superbly-made, flexible client-side router that promises fantastic server-side integration in the near future.
+TanStack router is an incredibly exciting project. It's a superbly-made, flexible client-side framework that promises fantastic server-side integration in the near future.
 
-We've barely scratched the surface, here. We just covered the absolute basics of type-safe navigation, layouts, path params, and search params. Stay tuned for future posts where we'll dive deep into loaders, and even server integration on top or Router with TanStack Start
+We've barely scratched the surface. We just covered the absolute basics of type-safe navigation, layouts, path params, and search params. Stay tuned for future posts where we'll dive deep into loaders, and even server integration on top or Router with TanStack Start
 
 Happy Coding!
