@@ -283,7 +283,81 @@ We won't walk through everything for directories again. We'll just take a peak a
 
 So rather than `epics.index.tsx` and `epics.route.tsx` we have `epics/index.tsx` and `epics/route.tsx`. And so on. Again, they're the same rules; just replace the dots in the files names with slashes (and directories).
 
+Before moving on from here, let's briefly pause and look at the `$milestoneId.index.tsx` route. There's a `$milestoneId` in the path, so of course we can find that path param. But look up, higher in the route tree. There's also an `$epicId` param two layer higher. It should come as no surprise that Router is smart enough to realize this, and set the typings up such that both are present.
+
+![multiple path params](/tanstack-router-intro/multiple-path-params.jpg)
+
 ## Type-safe querystrings
+
+The cherry on the top of this post will be one of, in this author's opinion, one of the most obnoxious aspects of web development: dealing with search params (sometimes called querystrings). Basically the stuff that comes after the `?` in a url: `/tasks?search=foo&status=open`. The underlying platform primitive `URLSearchParams` can be tedious to work with, and frameworks don't usually do much better, often providing you with an un-typed bag of properties, and offering minimal help in constructing a new url with new, updated querystring values.
+
+It should come as no surprise that TanStack Router provides a convenient, fully-featured mechnism for managing search params, **which are also type-safe**. Let's dive in. We'll take a good high-level look, but the full docs [are here](https://tanstack.com/router/latest/docs/framework/react/guide/search-params).
+
+We'll add search param support for the `/epics/$epicId/milestones` route. We'll allow various values in the search params that would allow the user to search through the various milestones under a given epic. We've seen the `createFileRoute` function countless times. Typically we just pass a `component` to it.
+
+```tsx
+export const Route = createFileRoute("/epics/$epicId/milestones/")({
+  component: ({}) => {
+    // ...
+```
+
+There's lots of other functions it supports. For search params we want `validateSearch`. This is our opportunity to tell Router _which_ search params this route supports, and how to validate what's currently in the url. After all, the user is free to type whatever they want into a url, regardless of the TypeScript typings you set up. It's your job to take potentially invalid values, and project them to something valid.
+
+First, let's define a type for our search params
+
+```ts
+type SearchParams = {
+  page: number;
+  search: string;
+  tags: string[];
+};
+```
+
+and now let's implement our `validateSearch` method. This receives a `Record<string, unknown>` representing whatever the user has in the url, and from that, we return something matching our type. Let's take a look.
+
+```tsx
+export const Route = createFileRoute("/epics/$epicId/milestones/")({
+  validateSearch(search: Record<string, unknown>): SearchParams {
+    return {
+      page: Number(search.page ?? "1") ?? 1,
+      search: (search.search as string) || "",
+      tags: Array.isArray(search.tags) ? search.tags : [],
+    };
+  },
+  component: ({}) => {
+```
+
+Note that (unlike `URLSearchParams`) we are not limited to just string values. We can put objects or arrays in there, and TanStack will do the work of serializing and de-serializing it for us. Not only that, but you can even specify [custom serialization mechanisms](https://tanstack.com/router/latest/docs/framework/react/guide/custom-search-param-serialization).
+
+Let's manually browse to this path, without any search params, and see what happens. When we browse to
+
+```
+http://localhost:5173/epics/1/milestones
+```
+
+Router replaces (does not redirect) us to
+
+```
+http://localhost:5173/epics/1/milestones?page=1&search=&tags=%5B%5D
+```
+
+TanStack ran our validation function, and then replaced our url with the correct, valid search params. If you don't like that it forces the url to be "ugly" like that, stay tuned; that's easily worked around. But first let's work with what we have.
+
+### Reading search params
+
+We've been using the `Route.useParams` method multiple times. There's also a `Route.useSearch` that does the same thing. But let's do something a little different. We've previously been putting everything in the same route file, so we could just directly reference the Route object from the same lexical scope. Let's build a separate component to read, and update these search params.
+
+I've added a `MilestoneSearch.tsx` component. You might think you could just import the `Route` object from the route file. But that's dangerous. You're likely to create a circular dependency, which might or might not work, depending on the bundler. And even if it "works" you might have some hidden issues lurking.
+
+Fortunately Router gives you a direct api to handle this: `getRouteApi` which is exported from `@tanstack/react-router`. We path it a (statically typed) route, and it gives us back the correct route object
+
+```ts
+const route = getRouteApi("/epics/$epicId/milestones/");
+```
+
+and now we can call `useSearch` on that route object and get our statically typed result.
+
+![get search params](/tanstack-router-intro/get-search-params.jpg)
 
 ## Wrapping up
 
