@@ -374,7 +374,9 @@ navigate({
 });
 ```
 
-Or to set some search and tags values, we could do
+Naturally, there's also a `params` prop to this function, if you're browsing to a route with path parameters that you have to specify (or else TypeScript will yell at you, like always). We don't need an `$epicId` path param since there's already one on the route, and since we're going to the same place we already are (as specified indicated by the `from` value in useNavigate and the `to: "."` value in navigate function) Router knows to just keep what's there, there.
+
+If we want to set a search value and tags, we could do
 
 ```ts
 const newSearch = "Hello World";
@@ -395,6 +397,14 @@ which will make our URL look like this
 ```
 
 Again, the search, and the array of strings was serialized for us.
+
+If we want to _link to_ a page with search params, we specify those search params on the Link tag
+
+```tsx
+<Link to="/epics/$epicId/milestones" params={{ epicId }} search={{ search: "", page: 1, tags: [] }}>
+  View milestones
+</Link>
+```
 
 ### Making our url prettier
 
@@ -462,5 +472,7 @@ It's up to you which tradeoff you'd like to make.
 ## Wrapping up
 
 TanStack router is an incredibly exciting project. It's a superbly-made, flexible client-side router that promises fantastic server-side integration in the near future.
+
+We've barely scratched the surface, here. We just covered the absolute basics of type-safe navigation, path params, and search params
 
 Happy Coding!
