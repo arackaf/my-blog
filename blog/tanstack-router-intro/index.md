@@ -343,8 +343,6 @@ http://localhost:5173/epics/1/milestones?page=1&search=&tags=%5B%5D
 
 TanStack ran our validation function, and then replaced our url with the correct, valid search params. If you don't like that it forces the url to be "ugly" like that, stay tuned; that's easily worked around. But first let's work with what we have.
 
-### Reading search params
-
 We've been using the `Route.useParams` method multiple times. There's also a `Route.useSearch` that does the same thing. But let's do something a little different. We've previously been putting everything in the same route file, so we could just directly reference the Route object from the same lexical scope. Let's build a separate component to read, and update these search params.
 
 I've added a `MilestoneSearch.tsx` component. You might think you could just import the `Route` object from the route file. But that's dangerous. You're likely to create a circular dependency, which might or might not work, depending on the bundler. And even if it "works" you might have some hidden issues lurking.
@@ -358,6 +356,108 @@ const route = getRouteApi("/epics/$epicId/milestones/");
 and now we can call `useSearch` on that route object and get our statically typed result.
 
 ![get search params](/tanstack-router-intro/get-search-params.jpg)
+
+We won't belabor the form elements and click handlers to sync and gather new values for these search parameters. Let's just assume we have some new values, and see how we set them. For this, we can use the `useNavigate` hook.
+
+```ts
+const navigate = useNavigate({ from: "/epics/$epicId/milestones/" });
+```
+
+We call it, and tell it where we're navigating _from_. Now we tell it where we want to _go_ (the same place we are), and are given a `search` function from which we return the search params for this current route. Naturally, TypeScript will yell at us if we leave anything off. To page up, we can do
+
+```ts
+navigate({
+  to: ".",
+  search: prev => {
+    return { ...prev, page: prev.page + 1 };
+  },
+});
+```
+
+Or to set some search and tags values, we could do
+
+```ts
+const newSearch = "Hello World";
+const tags = ["tag 1", "tag 2"];
+
+navigate({
+  to: ".",
+  search: prev => {
+    return { page: 1, search: newSearch, tags };
+  },
+});
+```
+
+which will make our URL look like this
+
+```
+/epics/1/milestones?page=1&search=Hello%20World&tags=%5B"tag%201"%2C"tag%202"%5D
+```
+
+Again, the search, and the array of strings was serialized for us.
+
+### Making our url prettier
+
+As we saw, currently, browsing to
+
+```
+http://localhost:5173/epics/1/milestones
+```
+
+will replace the url with this
+
+```
+http://localhost:5173/epics/1/milestones?page=1&search=&tags=%5B%5D
+```
+
+since we told Router that our page will always have a page, search, and tags value. If we want, we can make all of these values optional. In JavaScript (and TypeScript) a value does not exist if it holds the value `undefined`. So we could change our type to this
+
+```ts
+type SearchParams = {
+  page: number | undefined;
+  search: string | undefined;
+  tags: string[] | undefined;
+};
+```
+
+or this (which is the same thing)
+
+```ts
+type SearchParams = Partial<{
+  page: number;
+  search: string;
+  tags: string[];
+}>;
+```
+
+and then do the extra work to put undefined values in place of default values
+
+```ts
+validateSearch(search: Record<string, unknown>): SearchParams {
+  const page = Number(search.page ?? "1") ?? 1;
+  const searchVal = (search.search as string) || "";
+  const tags = Array.isArray(search.tags) ? search.tags : [];
+
+  return {
+    page: page === 1 ? undefined : page,
+    search: searchVal || undefined,
+    tags: tags.length ? tags : undefined,
+  };
+},
+```
+
+this will also complicate places where you _use_ these values, since, naturally, they might be undefined. Our nice simple pageUp call now looks like this
+
+```ts
+navigate({
+  to: ".",
+  search: prev => {
+    return { ...prev, page: (prev.page || 1) + 1 };
+  },
+});
+```
+
+It's up to you which tradeoff you'd like to make.
 
 ## Wrapping up
 
