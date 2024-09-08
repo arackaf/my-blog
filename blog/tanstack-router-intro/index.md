@@ -4,7 +4,7 @@ date: "2024-09-01T10:00:00.000Z"
 description: An introduction to TanStack Router
 ---
 
-TanStack router is an incredibly exciting project. It's essentially a fully-featured _client-side_ JavaScript application framework. It provides a mature routing and navigation system, with nested layouts, and efficient data loading capabilities at every point in the route tree. Best of all, it does all of this in a _type-safe_ manner.
+TanStack Router is an incredibly exciting project. It's essentially a fully-featured _client-side_ JavaScript application framework. It provides a mature routing and navigation system, with nested layouts, and efficient data loading capabilities at every point in the route tree. Best of all, it does all of this in a _type-safe_ manner.
 
 What's especially exciting is that as of this writing, there's a TanStack Start in the works, which will add server-side capabilities to Router, enabling you to build full-stack web applications. Start promises to do this with a server layer applied directly on top of the same TanStack Router we'll be talking about here. That makes this a perfect time to get to know Router if you haven't already.
 
@@ -147,7 +147,7 @@ function Index() {
 }
 ```
 
-Before we continue, let's add a layout file for all of our tasks routes, housing some common content that will be present on all pages routed to under `/tasks`. If we had a `tasks` folder, we'd just throw a `route.tsx` file in there. Instead, we'll add a `tasks.route.tsx` file.
+Before we continue, let's add a layout file for all of our tasks routes, housing some common content that will be present on all pages routed to under `/tasks`. If we had a `tasks` folder, we'd just throw a `route.tsx` file in there. Instead, we'll add a `tasks.route.tsx` file. Since we're using flat files, here, we can also just name it tasks.tsx. But I like keeping things consistent with directory-based files (which we'll see in a bit), so I like opting for `tasks.route.tsx`.
 
 ```tsx
 import { createFileRoute, Outlet } from "@tanstack/react-router";
@@ -310,6 +310,8 @@ export const Route = createFileRoute("/epics/$epicId/milestones/")({
 
 Note that (unlike `URLSearchParams`) we are not limited to just string values. We can put objects or arrays in there, and TanStack will do the work of serializing and de-serializing it for us. Not only that, but you can even specify [custom serialization mechanisms](https://tanstack.com/router/latest/docs/framework/react/guide/custom-search-param-serialization).
 
+Moreover, for a production application, you'll likely want to use a more serious validation mechanism, like Zod. In fact, Router has a number of adapters you can use out of the box, including zod. Check out the docs [here](https://tanstack.com/router/latest/docs/framework/react/guide/search-params#zod-adapter).
+
 Let's manually browse to this path, without any search params, and see what happens. When we browse to
 
 ```
@@ -403,7 +405,7 @@ will replace the url with this
 http://localhost:5173/epics/1/milestones?page=1&search=&tags=%5B%5D
 ```
 
-since we told Router that our page will always have a page, search, and tags value. If we want, we can make all of these values optional. In JavaScript (and TypeScript) a value does not exist if it holds the value `undefined`. So we could change our type to this
+since we told Router that our page will always have a page, search, and tags value. If you care about your url, and want that transformation to _not_ happen, you have some options. We can make all of these values optional. In JavaScript (and TypeScript) a value does not exist if it holds the value `undefined`. So we could change our type to this
 
 ```ts
 type SearchParams = {
@@ -449,6 +451,8 @@ navigate({
   },
 });
 ```
+
+On the plus side, our url will now omit search params with default values, and for that matter, our `<Link>` tags to this page now don't have to specify _any_ search values, since they're all optional.
 
 It's up to you which tradeoff you'd like to make.
 
