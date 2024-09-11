@@ -456,7 +456,7 @@ On the plus side, our url will now omit search params with default values, and f
 
 ### Another option
 
-Router actually provides you another option. Currently `validateSearch` accepts just an untyped `Record<string, unknown>` since the url can accept anything. The "true" type of our search params is what we _return_ from this function. Tweaking the _return type_ is how we've been changing things.
+Router actually provides you another way to do this. Currently `validateSearch` accepts just an untyped `Record<string, unknown>` since the url can contain anything. The "true" type of our search params is what we _return_ from this function. Tweaking the _return type_ is how we've been changing things.
 
 But Router allows you to opt into another mode, where you can specify _both_ a structure of incoming search params, with optional values, _as well as_ the return type, which represents the validated, finalized type for the search params that will be **used** by your application code. Let's see how.
 
