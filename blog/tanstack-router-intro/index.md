@@ -12,7 +12,7 @@ Router is much more than just a ... router; as we mentioned, it's a full-fledged
 
 ## Getting started
 
-The TanStack Router docs [are here](https://tanstack.com/router/latest/docs/framework/react/overview), and the quick start guide [is here](https://tanstack.com/router/latest/docs/framework/react/quick-start). To be frank, the quick start is a bit more manual, and less quick than it could be. For now. TanStack Start looks to add the same kind of nice scaffolding projects that like SvelteKit and Next have. But for now you can just clone [the repo](https://github.com/arackaf/tanstack-router-routing-demo) I used for this project and follow along.
+The TanStack Router docs [are here](https://tanstack.com/router/latest/docs/framework/react/overview), and the quick start guide [is here](https://tanstack.com/router/v1/docs/framework/react/quick-start), which has a nice tool for scaffolding a fresh Router project. You can also clone the repo used for this post [here](https://github.com/arackaf/tanstack-router-routing-demo) and follow along.
 
 ## The plan
 
@@ -147,7 +147,7 @@ function Index() {
 }
 ```
 
-Before we continue, let's add a layout file for all of our tasks routes, housing some common content that will be present on all pages routed to under `/tasks`. If we had a `tasks` folder, we'd just throw a `route.tsx` file in there. Instead, we'll add a `tasks.route.tsx` file. Since we're using flat files, here, we can also just name it tasks.tsx. But I like keeping things consistent with directory-based files (which we'll see in a bit), so I like opting for `tasks.route.tsx`.
+Before we continue, let's add a layout file for all of our tasks routes, housing some common content that will be present on all pages routed to under `/tasks`. If we had a `tasks` folder, we'd just throw a `route.tsx` file in there. Instead, we'll add a `tasks.route.tsx` file. Since we're using flat files, here, we can also just name it `tasks.tsx`. But I like keeping things consistent with directory-based files (which we'll see in a bit), so I like opting for `tasks.route.tsx`.
 
 ```tsx
 import { createFileRoute, Outlet } from "@tanstack/react-router";
