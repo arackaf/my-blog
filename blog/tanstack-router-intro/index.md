@@ -454,7 +454,45 @@ navigate({
 
 On the plus side, our url will now omit search params with default values, and for that matter, our `<Link>` tags to this page now don't have to specify _any_ search values, since they're all optional.
 
-It's up to you which tradeoff you'd like to make.
+### Another option
+
+Router actually provides you another option. Currently `validateSearch` accepts just an untyped `Record<string, unknown>` since the url can accept anything. The "true" type of our search params is what we _return_ from this function. Tweaking the _return type_ is how we've been changing things.
+
+But Router allows you to opt into another mode, where you can specify _both_ a structure of incoming search params, with optional values, _as well as_ the return type, which represents the validated, finalized type for the search params that will be **used** by your application code. Let's see how.
+
+First let's specify two types for these search params
+
+```ts
+type SearchParams = {
+  page: number;
+  search: string;
+  tags: string[];
+};
+
+type SearchParamsInput = Partial<{
+  page: number;
+  search: string;
+  tags: string[];
+}>;
+```
+
+Now let's
+
+```ts
+import { SearchSchemaInput } from "@tanstack/react-router";
+```
+
+`SearchSchemaInput` is how we signal to Router that we want to specify different search params for what we'll _receive_ compared to what we'll _produce_. We do it by intersecting our desired input type with this type, like this
+
+```ts
+validateSearch(search: SearchParamsInput & SearchSchemaInput): SearchParams {
+```
+
+Now we perform the same original validation we had before, to produce real values, and that's that. We can now browse to our page with a `<Link>` tag, and specify no search params at all, and it'll accept it, and not modify the url, while still producing the same strongly-typed search param values as before.
+
+That said, when we _update_ our url, we can't just "splat" all previous values, plus the value we're setting, since those params will now have values, and therefore get updated into the url. The GitHub repo has a branch called `feature/optional-search-params-v2` showing this second approach.
+
+Experiment and choose what works best for you and your use case.
 
 ## Wrapping up
 
