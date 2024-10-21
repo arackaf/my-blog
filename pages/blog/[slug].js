@@ -51,11 +51,9 @@ export default function Post({ post, morePosts, preview }) {
     <Layout preview={preview} className={postCssClass}>
       <Container>
         <h4>
-          <Link href="/">
-            <a className="back-link">
-              <BackArrow height="18" />
-              <span>Adam's Blog</span>
-            </a>
+          <Link href="/" className="back-link">
+            <BackArrow height="18" />
+            <span>Adam's Blog</span>
           </Link>
         </h4>
 

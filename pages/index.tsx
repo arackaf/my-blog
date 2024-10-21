@@ -4,7 +4,7 @@ import Layout from "../components/layout";
 import { getAllPosts } from "../lib/api";
 import Head from "next/head";
 import Link from "next/link";
-import Image from "next/future/image";
+import Image from "next/image";
 
 import { GithubIcon } from "../components/svg/githubIcon";
 import { TwitterIcon } from "../components/svg/twitterIcon";
@@ -28,7 +28,7 @@ export default function Index({ allPosts }) {
             <div className="blog-header">
               <span>
                 <NextWrapper sync={true} blurhash="L9Fhx14T144o5Q01~p-5lVD%x[tl" width="125" height="125">
-                  <Image src={AvatarImg} height={125} width={125} loading="eager" />
+                  <Image alt="" src={AvatarImg} height={125} width={125} loading="eager" />
                 </NextWrapper>
               </span>
               <div className="titles">
@@ -72,9 +72,7 @@ export default function Index({ allPosts }) {
                       {post.title} &nbsp;<i className="fad fa-external-link-alt"></i>
                     </a>
                   ) : (
-                    <Link href={`blog/${post.slug}`}>
-                      <a>{post.title}</a>
-                    </Link>
+                    <Link href={`blog/${post.slug}`}>{post.title}</Link>
                   )}
                 </h3>
                 <small>
