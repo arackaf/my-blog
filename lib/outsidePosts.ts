@@ -1,5 +1,11 @@
 export const externalPosts = [
   {
+    title: "Introducing TanStack Router",
+    date: "2024-09-13T10:00:00.000Z",
+    description: "An introduction to TanStack Router, showing type-safe routing",
+    url: "https://frontendmasters.com/blog/introducing-tanstack-router/",
+  },
+  {
     title: "Java Optionals",
     date: "2024-08-30T10:00:00.000Z",
     description: "An introduction to Java Optionals",
