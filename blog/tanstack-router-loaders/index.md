@@ -18,6 +18,28 @@ The app does load actual data via SQLite, along with some forced delays, so we c
 
 As we said above, Router is essentially a client-side framework; in theory there are hooks to get SSR working, but they're very much DIY. If this disappoints you, I'd urge just a bit of patience. TanStack Start, which is currently in Beta, is a new project that, for all intents and purposes, adds SSR capabilities to the very same TanStack Router we'll be talking about. What makes me especially excited about Start is that it adds these server-side capabilities in a very non-intrusive way, which does not change or invalidate anything we'll be talking about in this post (or talked about in my last post on Router, linked above). If that's not entirely clear and you'd like to learn more, stay tuned for my future post on TanStack Start.
 
-## Getting Started
+## The plan
+
+As we said above, TanStack Router is an entire application framework. You could teach an entire course on it, and indeed there's no shortage of YouTube videos out there. This blog will turn into a book if we try to cover each and every option in depth, so we'll cover the relevant features, and show code snippets where helpful. But refer to the [docs](https://tanstack.com/router/latest/docs/framework/react/overview) for details, or of course the [repo for this post](https://github.com/arackaf/tanstack-router-loader-demo) to see the examples described here, in their entirety.
+
+## Starting at the top: context
+
+When we create our router, we can give it some "context." This is basically global state. For our project, we'll pass in our queryClient for react-query (which we'll be using a little later). Passing the context in is simple enough
+
+```ts
+const router = createRouter({ routeTree, context: { queryClient } });
+```
+
+and then to make sure Router integrates what we put on context into the static types, we create our root route like this
+
+```ts
+export const Route = createRootRouteWithContext<MyRouterContext>()({
+  component: Root,
+});
+```
+
+This context will be available to all routes in the tree, inside api methods like `loader`, which we'll get to shortly.
+
+### Adding to context
 
 ## Wrapping up
