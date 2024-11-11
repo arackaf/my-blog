@@ -24,6 +24,8 @@ As we said above, Router is essentially a client-side framework; in theory there
 
 As we said above, TanStack Router is an entire application framework. You could teach an entire course on it, and indeed there's no shortage of YouTube videos out there. This blog will turn into a book if we try to cover each and every option in depth, so we'll cover the relevant features, and show code snippets where helpful. But refer to the [docs](https://tanstack.com/router/latest/docs/framework/react/overview) for details, or of course the [repo for this post](https://github.com/arackaf/tanstack-router-loader-demo) to see the examples described here, in their entirety.
 
+Don't let the extremely wide range of features scare you. The **vast** majority of the time some basic loaders loading what you need will get you exactly what you need, but we'll cover some of the advanced features, too, so you know they're there, if you ever do need them.
+
 ## Starting at the top: context
 
 When we create our router, we can give it some "context." This is basically global state. For our project, we'll pass in our queryClient for react-query (which we'll be using a little later). Passing the context in is simple enough
@@ -98,5 +100,70 @@ For now, here's some code in our root route to mark the time for when the initia
 This code is in our root route, so it will never re-run, since there's no path parameters the root route depends on.
 
 Now everywhere in our route tree will have a `timestarted` value that we can use to detect any delays from data fetches in our tree.
+
+## Loaders
+
+Let's actually load some data. Router provides us a `loader` function for this purpose. Any of our route configurations can accept a loader function, which we can use to load data. Loaders all run in parallel. It would be back if a layout needed to complete loading its data, before the path beneath it started. Loader's receive any path params on the route's url, any search params (querystring values) the route has subscribed to, the context, and a few other goodies, and loads whatever data it needs. Router will detect what you return, and allow components to retreive it via the `useLoaderData` hook.
+
+### Loader in a route
+
+Let's take a look at tasks.route.tsx
+
+This is a route that will run for any url at all starting with `/app/tasks`. It will run for that route, for `/app/tasks/$taskId`, for `app/tasks/$taskId/edit`, and so on.
+
+```ts
+export const Route = createFileRoute("/app/tasks")({
+  component: TasksLayout,
+  loader: async ({ context }) => {
+    const now = +new Date();
+    console.log(`/tasks route loader. Loading task layout info at + ${now - context.timestarted}ms since start`);
+
+    const tasksOverview = await fetchJson<TaskOverview[]>("api/tasks/overview");
+    return { tasksOverview };
+  },
+  gcTime: 1000 * 60 * 5,
+  staleTime: 1000 * 60 * 2,
+});
+```
+
+We receive the context, and grab the `timestarted` value from it. We request some overview data on our tasks, and send that data down.
+
+`gcTime` controls how long old route data are keps in cache. So if we browse from tasks, over to epics, and then come back in 5 minutes, nothing will be there, and the page will load in fresh. `staleTime` controls how long a cached entry is considered "fresh." This determines whether cached data are refetched in the background. Here it's set to two minutes. This means if the user hits this page, then goes to the epics page, waits 3 minutes, then browses back to tasks, the cached data will show, while the tasks data is re-fetched in the background, and (if changes) update the UI.
+
+You're probably wondering if TanStack Router tells you this background re-fetch is happening, so you can show an inline spinner, and yes, you can detect this via
+
+```ts
+const { isFetching } = Route.useMatch();
+```
+
+### Loader in a page
+
+Now let's take a look at the tasks page
+
+```ts
+export const Route = createFileRoute("/app/tasks/")({
+  component: Index,
+  loader: async ({ context }) => {
+    const now = +new Date();
+    console.log(`/tasks/index path loader. Loading tasks at + ${now - context.timestarted}ms since start`);
+
+    const tasks = await fetchJson<Task[]>("api/tasks");
+    return { tasks };
+  },
+  gcTime: 1000 * 60 * 5,
+  staleTime: 1000 * 60 * 2,
+  pendingComponent: () => <div className="m-4 p-4 text-xl">Loading tasks list...</div>,
+  pendingMs: 150,
+  pendingMinMs: 200,
+});
+```
+
+This is the route for the specific url `/app/tasks`. If the user were to browse to `/app/tasks/$taskId` then this route would no longer run at all. This is a specific page, not a layout (which Router calls a "route"). Basically the same as before, except now we're loading the list of tasks to display on this page.
+
+We've added some new properties this time though. `pendingComponent` allows us to render some content while the loader is working. We also specified `pendingMs`, which controls how long we _wait_ before showing the pending component. Lastly, `pendingMinMs` allows us to force the pending component to stay on the screen for a specified amount of time, even if the data are ready. This can be useful to avoid an extremely brief flash of a loading component, which can be jarring to the user.
+
+If we peak in our dev tools, we should see something like this
+
+![loaders running in parallel](/tanstack-router-loaders/img-1-loaders-parallel.jpg)
 
 ## Wrapping up
