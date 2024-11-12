@@ -162,8 +162,80 @@ This is the route for the specific url `/app/tasks`. If the user were to browse 
 
 We've added some new properties this time though. `pendingComponent` allows us to render some content while the loader is working. We also specified `pendingMs`, which controls how long we _wait_ before showing the pending component. Lastly, `pendingMinMs` allows us to force the pending component to stay on the screen for a specified amount of time, even if the data are ready. This can be useful to avoid an extremely brief flash of a loading component, which can be jarring to the user.
 
+If you're wondering why we'd even want to use `pendingMinMs` to delay a loading screen, it's for subsequent navigations. Rather than _immediately_ transition from the current page to a new page's loading component, this setting lets us stay on the current page for a moment, in the hopes that the new page will be ready quickly enough that we don't have to show any pending component at all. Of course, on the initial load, when the web app first starts up, these pendingComponents do show immediately, as you'd expect.
+
+### Loaders running in parallel
+
 If we peak in our dev tools, we should see something like this
 
 ![loaders running in parallel](/tanstack-router-loaders/img-1-loaders-parallel.jpg)
+
+As we can see, these requests started a mere milisecond apart from each other, since the loaders are running in parallel (each request takes at least 750ms, due to the artificial delay in the api endpoints).
+
+#### Different routes using the same data
+
+If we look at the loader for the `app/tasks/$taskId` route, and the loader to the `app/tasks/$taskId/edit` route, we see the same fetch call
+
+```ts
+const task = await fetchJson<Task>(`api/tasks/${taskId}`);
+```
+
+This makes sense since we need to load the actual task in order to display it, or in order to display it in a form for the user to make changes. Unfortunately though, if you click the edit button for any task, then go back to the tasks list (without saving anything), then click the edit button for the same task, you should notice the same exact data being requested. This makes sense. Both loaders happen to make the same fetch() call, and there's nothing in our client to cache the call. This is probably fine 99% of the time, but this is one of the many things react-query will improve for us, in a bit.
+
+## Updating data
+
+If you click the edit button for any task, you should be brought to a page with an extremely basic form that will let you edit the task's name. Once we click save, we want to navigate back to the tasks list, but most importantly, we need to tell Router that we've changed some data, and that it will need to invalidate some cached entries, and re-fetch when we go back to those routes. Here's the whole code
+
+```ts
+import { useRouter } from "@tanstack/react-router";
+
+// ...
+
+const router = useRouter();
+const save = async () => {
+  await postToApi("api/task/update", {
+    id: task.id,
+    title: newTitleEl.current!.value,
+  });
+
+  router.invalidate({
+    filter: route => {
+      return (
+        route.routeId == "/app/tasks/" ||
+        (route.routeId === "/app/tasks/$taskId/" && route.params.taskId === taskId) ||
+        (route.routeId === "/app/tasks_/$taskId/edit" && route.params.taskId === taskId)
+      );
+    },
+  });
+
+  navigate({ to: "/app/tasks" });
+};
+```
+
+Note the call to `router.invalidate`. This tells Router to mark any cached entries matching that filter as stale, causing us to re-fetch it the next time we browse to those paths. Here we invalidated the main tasks list, as well as the view, and edit pages for the individual task we just modified.
+
+Now when we navigate back to the main tasks page we'll immediately see the prior, now-stale data, but new data will fetch, and update the UI when present. Recall that we can use `const { isFetching } = Route.useMatch();` to show an inline spinner while this fetch is happening.
+
+If you'd prefer to completely remove the cache entries, and have the task page's "Loading" component show, then you can use `router.clearCache` instead, with the same exact api. That will _remove_ those cache entries completely, forcing Router to completely re-fetch them, and show the pending component. This is because there is no longer any stale data left in the cache; clearCache removed it.
+
+There is one small caveat though: Router will prevent you from clearing the cache for the page you're on. So you could do something like this
+
+```ts
+router.clearCache({
+  filter: route => {
+    return route.routeId == "/app/tasks/" || (route.routeId === "/app/tasks_/$taskId/edit" && route.params.taskId === taskId);
+  },
+});
+
+router.invalidate({
+  filter: route => {
+    return route.routeId === "/app/tasks_/$taskId/edit" && route.params.taskId === taskId;
+  },
+});
+```
+
+but really, at this point you should probably be looking to use react-query, which we'll cover now.
+
+## TanStack Query
 
 ## Wrapping up
