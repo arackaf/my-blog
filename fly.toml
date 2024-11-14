@@ -3,7 +3,7 @@
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'adam-rackis-blog'
+app = 'adam-rackis-blog-tanstack'
 primary_region = 'iad'
 
 [build]
