@@ -493,4 +493,128 @@ function Index() {
 
 We just wrap the changing page value in `useDeferredValue`, and just like that, our page does not suspend when the new query is in flight. And to detect that a new query is running, we just compare the real, correct `page` value, with the `deferredPage` value. If they're different, we know new values are loading, and we can display a loading spinner (or in this case, put an opacity overlay on the epics list)
 
+### Queries are re-used!
+
+When using react-query for data management, we can now re-use the same query across different routes. Both the view epic, and edit epic pages need to fetch info on the epic the user is about to view, or edit. Now we can define those options in one place, like we have before
+
+```ts
+export const epicQueryOptions = (timestarted: number, id: string) => ({
+  queryKey: ["epic", id],
+  queryFn: async () => {
+    const timeDifference = +new Date() - timestarted;
+
+    console.log(`Loading api/epic/${id} data at`, timeDifference);
+    const epic = await fetchJson<Epic>(`api/epics/${id}`);
+    return epic;
+  },
+  staleTime: 1000 * 60 * 5,
+  gcTime: 1000 * 60 * 5,
+});
+```
+
+use them in both routes, and have them be cached in between (assuming we set the caching values to allow that). You can try it in the demo app: view an epic, go back to the list, then edit the same epic (or vice versa). Only the first of those pages you visit should cause the fetch to happen in your network tab.
+
+### Updating with react-query
+
+Just like with tasks, with epics we have a page where we can edit an individual epic. Looks like at what the saving logic looks like now.
+
+Let's quickly review the query _keys_ for the epics queries we've seen so far. For an individual epic, it was
+
+```ts
+export const epicQueryOptions = (timestarted: number, id: string) => ({
+  queryKey: ["epic", id],
+```
+
+For the epics list, it was this
+
+```ts
+export const epicsQueryOptions = (timestarted: number, page: number) => ({
+  queryKey: ["epics", "list", page],
+```
+
+the epics count
+
+```ts
+export const epicsCountQueryOptions = (timestarted: number) => ({
+  queryKey: ["epics", "count"],
+```
+
+and finally, the epics overview
+
+```ts
+export const epicsSummaryQueryOptions = (timestarted: number) => ({
+  queryKey: ["epics", "summary"],
+```
+
+Notice the patter: `epics` followed by various things for the queries that affected multiple epics, and for an individual epic, we did `['epic', ${epicId}]`. With that in mind, let's see just how easy it is to invalidate these queries after a mutation:
+
+```ts
+const save = async () => {
+  setSaving(true);
+  await postToApi("api/epic/update", {
+    id: epic.id,
+    name: newName.current!.value,
+  });
+
+  queryClient.removeQueries({ queryKey: ["epics"] });
+  queryClient.removeQueries({ queryKey: ["epic", epicId] });
+
+  navigate({ to: "/app/epics", search: { page: 1 } });
+
+  setSaving(false);
+};
+```
+
+the magic is on these lines
+
+```ts
+queryClient.removeQueries({ queryKey: ["epics"] });
+queryClient.removeQueries({ queryKey: ["epic", epicId] });
+```
+
+With one fell sweep, we remove **all** cached entries for **any** query that _started with_ `epics`, or started with `['epic', ${epicId}]`, and Query will handle the rest. Now, when we navigate back toe the epics page (or any page that used these queries), we'll see the suspense boundary show, while fresh data are loaded. If you'd prefer to keep stale data on the screen, while the fresh data load, that's fine too: just use `queryClient.invalidateQueries` instead. If you'd like to detect if a query is re-fetching in the background, so you can display an inline spinner, use the `isFetching` property returned from `useSuspenseQuery`
+
+```ts
+const { data: epicsData, isFetching } = useSuspenseQuery(epicsQueryOptions(context.timestarted, deferredPage));
+```
+
+### Odds and ends
+
+We've gone pretty deep on TanStack Route and Query. Let's take a look at one last trick. If you recall, we saw that pending components ship a related `pendingMinMs` that forced a pending component to stay on the page a minimum amount of time, even if the data were ready. This was to avoid a jarring flash of a loading state. We also saw that TanStack Router uses Suspense to show those pending components, which means that react-query's `useSuspenseQuery` will seemlessly integrate with it. Well, almost seemlessly. Router can only leverage that value based on the promise we return from the Router's loader. But now we don't really return any promise from the loader; we prefetch some stuff, and rely on component-level data fetching to do the real work.
+
+Well there's nothing stopping you from doing both! Right now our loader looks like this
+
+```ts
+async loader({ context, deps }) {
+  const queryClient = context.queryClient;
+
+  queryClient.prefetchQuery(epicsQueryOptions(context.timestarted, deps.page));
+  queryClient.prefetchQuery(epicsCountQueryOptions(context.timestarted));
+},
+```
+
+Query also ships with a `queryClient.ensureQueryData` method, which can load query data, and return a promise for that request. If we really want to use the `pendingMinMs`
+
+One thing you do _not_ want to do it
+
+```ts
+await queryClient.ensureQueryData(epicsQueryOptions(context.timestarted, deps.page)),
+await queryClient.ensureQueryData(epicsCountQueryOptions(context.timestarted)),
+```
+
+since that will block on each request, serially. In other words, a waterfall. But to kick off both requests immediately, and wait on them in the loader (without a waterfall), you can do this
+
+```ts
+await Promise.allSettled([
+  queryClient.ensureQueryData(epicsQueryOptions(context.timestarted, deps.page)),
+  queryClient.ensureQueryData(epicsCountQueryOptions(context.timestarted)),
+]);
+```
+
+Which works, and keeps the pending component on the screen for the duration of `pendingMinMs`
+
+You won't always, or even usually need to do this. But it's handy for when you do
+
 ## Wrapping up
+
+This has been a whirlwind route of TanStack Router, and Query, but nopefully not an overwhelming one. These tools are incredibly powerful, and offer the ability to do just about anything. I hope this post will help some people put them to good use!
