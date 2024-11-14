@@ -14,7 +14,7 @@ The code for everything we're covering is [here](https://github.com/arackaf/tans
 
 The app does load actual data via SQLite, along with some forced delays, so we can more clearly see (and fix) network waterfalls. If you want to run the project, clone it, run `npm i`, and then open **two** terminals. In the first, run `npm run server`, which will create the SQLite database, seed it with data, and set up the api endpoints to fetch, and update data; in the second, run `npm run dev` to start the main project, which will be on `http://localhost:5173/`. There is some (extremely basic) features to edit data. If at any point you want to completely reset the data, just reset the server task in your terminal.
 
-The app is contrived. It exists to show Router's capabilities. We'll often have contrived use cases, and frankly questionable design decisions. This was purposeful, in order to simuate real-world data loading scenerios, without needing a real-world application.
+The app is contrived. It exists to show Router's capabilities. We'll often have contrived use cases, and frankly questionable design decisions. This was purposeful, in order to simulate real-world data loading scenarios, without needing a real-world application.
 
 ## But what about SSR
 
@@ -68,7 +68,7 @@ Here's a good example of what to avoid, with an opportunity to see why. This bef
   },
 ```
 
-We'll be lookig at some data loading in a bit, and measure what starts when. You can go into the `getCurrentUser` function and uncomment the artificial delay in there, and see it block _everything_. This is especially obvious if you're running Router's dev tools. You'll see this path block, and only once ready, allow all loaders below to execute.
+We'll be looking at some data loading in a bit, and measure what starts when. You can go into the `getCurrentUser` function and uncomment the artificial delay in there, and see it block _everything_. This is especially obvious if you're running Router's dev tools. You'll see this path block, and only once ready, allow all loaders below to execute.
 
 But this is a good enough example to show how this works. The `user` object is now in context, visible to routes beneath it.
 
@@ -103,7 +103,7 @@ Now everywhere in our route tree will have a `timestarted` value that we can use
 
 ## Loaders
 
-Let's actually load some data. Router provides a `loader` function for this. Any of our route configurations can accept a loader function, which we can use to load data. Loaders all run in parallel. It would be bad if a layout needed to complete loading its data before the path beneath it started. Loaders receive any path params on the route's url, any search params (querystring values) the route has subscribed to, the context, and a few other goodies, and loads whatever data it needs. Router will detect what you return, and allow components to retreive it via the `useLoaderData` hook—strongly typed, of course.
+Let's actually load some data. Router provides a `loader` function for this. Any of our route configurations can accept a loader function, which we can use to load data. Loaders all run in parallel. It would be bad if a layout needed to complete loading its data before the path beneath it started. Loaders receive any path params on the route's url, any search params (querystring values) the route has subscribed to, the context, and a few other goodies, and loads whatever data it needs. Router will detect what you return, and allow components to retrieve it via the `useLoaderData` hook—strongly typed, of course.
 
 ### Loader in a route
 
@@ -128,7 +128,7 @@ export const Route = createFileRoute("/app/tasks")({
 
 We receive the context, and grab the `timestarted` value from it. We request some overview data on our tasks, and send that data down.
 
-`gcTime` controls how long old route data are keps in cache. So if we browse from tasks, over to epics, and then come back in 5 minutes, nothing will be there, and the page will load in fresh. `staleTime` controls how long a cached entry is considered "fresh." This determines whether cached data are refetched in the background. Here it's set to two minutes. This means if the user hits this page, then goes to the epics page, waits 3 minutes, then browses back to tasks, the cached data will show, while the tasks data is re-fetched in the background, and (if changes) update the UI.
+`gcTime` controls how long old route data are kept in cache. So if we browse from tasks, over to epics, and then come back in 5 minutes, nothing will be there, and the page will load in fresh. `staleTime` controls how long a cached entry is considered "fresh." This determines whether cached data are refetched in the background. Here it's set to two minutes. This means if the user hits this page, then goes to the epics page, waits 3 minutes, then browses back to tasks, the cached data will show, while the tasks data is re-fetched in the background, and (if changes) update the UI.
 
 You're probably wondering if TanStack Router tells you this background re-fetch is happening, so you can show an inline spinner, and yes, you can detect this via
 
@@ -176,7 +176,7 @@ If we peak in our dev tools, we should see something like this
 
 ![loaders running in parallel](/tanstack-router-loaders/img-1-loaders-parallel.jpg)
 
-As we can see, these requests started a mere milisecond apart from each other, since the loaders are running in parallel (each request takes at least 750ms, due to the artificial delay in the api endpoints).
+As we can see, these requests started a mere millisecond apart from each other, since the loaders are running in parallel (each request takes at least 750ms, due to the artificial delay in the api endpoints).
 
 #### Different routes using the same data
 
@@ -453,7 +453,7 @@ loader({ context }) {
 },
 ```
 
-The loader receives the route tree's context, from which it grabs the queryClient. From there, we jsut call `prefetchQuery` and pass in the same options.
+The loader receives the route tree's context, from which it grabs the queryClient. From there, we just call `prefetchQuery` and pass in the same options.
 
 Let's move on to the Epics page. To review, this is the relevant code from our Epics page
 
@@ -483,7 +483,7 @@ And now when we check the console, we see something a lot nicer
 
 ### Fetching state
 
-What happens when we page up. The page value will change in the url, Router will send a new page value down into our loader, and our component. And then, our `useSuspenseQuery` will execute with new query values, and suspend again. That means our existing list of tasks will disappear, and show the "loading tasks" pending componet. That would be a terrible UX.
+What happens when we page up. The page value will change in the url, Router will send a new page value down into our loader, and our component. And then, our `useSuspenseQuery` will execute with new query values, and suspend again. That means our existing list of tasks will disappear, and show the "loading tasks" pending component. That would be a terrible UX.
 
 Fortunately, React offers us a nice solution, with the `useDeferredValue` hook. The docs are [here](https://react.dev/reference/react/useDeferredValue), but this basically allows us to "defer" a state change. If a state change causes our deferred value causes the page to suspend, React will keep the existing UI in place, and the deferred value will simply hold the old value. Let's see it in action
 
@@ -588,7 +588,7 @@ const { data: epicsData, isFetching } = useSuspenseQuery(epicsQueryOptions(conte
 
 ### Odds and ends
 
-We've gone pretty deep on TanStack Route and Query. Let's take a look at one last trick. If you recall, we saw that pending components ship a related `pendingMinMs` that forced a pending component to stay on the page a minimum amount of time, even if the data were ready. This was to avoid a jarring flash of a loading state. We also saw that TanStack Router uses Suspense to show those pending components, which means that react-query's `useSuspenseQuery` will seemlessly integrate with it. Well, almost seemlessly. Router can only use the `pendingMinMs` value based on the promise we return from the Router's loader. But now we don't really return any promise from the loader; we prefetch some stuff, and rely on component-level data fetching to do the real work.
+We've gone pretty deep on TanStack Route and Query. Let's take a look at one last trick. If you recall, we saw that pending components ship a related `pendingMinMs` that forced a pending component to stay on the page a minimum amount of time, even if the data were ready. This was to avoid a jarring flash of a loading state. We also saw that TanStack Router uses Suspense to show those pending components, which means that react-query's `useSuspenseQuery` will seamlessly integrate with it. Well, almost seamlessly. Router can only use the `pendingMinMs` value based on the promise we return from the Router's loader. But now we don't really return any promise from the loader; we prefetch some stuff, and rely on component-level data fetching to do the real work.
 
 Well there's nothing stopping you from doing both! Right now our loader looks like this
 
@@ -625,4 +625,4 @@ You won't always, or even usually need to do this. But it's handy for when you d
 
 ## Wrapping up
 
-This has been a whirlwind route of TanStack Router, and Query, but nopefully not an overwhelming one. These tools are incredibly powerful, and offer the ability to do just about anything. I hope this post will help some people put them to good use!
+This has been a whirlwind route of TanStack Router, and Query, but hopefully not an overwhelming one. These tools are incredibly powerful, and offer the ability to do just about anything. I hope this post will help some people put them to good use!
