@@ -18,7 +18,7 @@ The app is contrived. It exists to show Router's capabilities. We'll often have 
 
 ## But what about SSR
 
-As we said above, Router is essentially a client-side framework; in theory there are hooks to get SSR working, but they're very much DIY. If this disappoints you, I'd urge just a bit of patience. TanStack Start, which is currently in Beta, is a new project that, for all intents and purposes, adds SSR capabilities to the very same TanStack Router we'll be talking about. What makes me especially excited about Start is that it adds these server-side capabilities in a very non-intrusive way, which does not change or invalidate anything we'll be talking about in this post (or talked about in my last post on Router, linked above). If that's not entirely clear and you'd like to learn more, stay tuned for my future post on TanStack Start.
+As we said above, Router is essentially a client-side framework; in theory there are hooks to get SSR working, but they're very much DIY. If this disappoints you, I'd urge just a bit of patience. TanStack Start—as of this writing, very close to being in Beta—is a new project that, for all intents and purposes, adds SSR capabilities to the very same TanStack Router we'll be talking about. What makes me especially excited about Start is that it adds these server-side capabilities in a very non-intrusive way, which does not change or invalidate anything we'll be talking about in this post (or talked about in my last post on Router, linked above). If that's not entirely clear and you'd like to learn more, stay tuned for my future post on TanStack Start.
 
 ## The plan
 
@@ -55,7 +55,7 @@ Context can change. We set up truly global context when we start Router up at ou
 Here's a good example of what to avoid, with an opportunity to see why. This `beforeLoad` fetches the current user, and places it into context, and doing a redirect if there is no user.
 
 ```ts
-  async beforeLoad({}) {
+  async beforeLoad() {
     const user = await getCurrentUser();
     if (!user) {
       throw redirect({
@@ -82,7 +82,7 @@ What we have is sufficient to show how the `beforeLoad` callback works.
 
 #### Context (function)
 
-There's also a context `function` we can provide routes. This is a non-async function that also gives us an opportunity to add to context. But it runs much more conservatively. This function only runs when the url changes in a way that's relevant to _that route_. So for a route of, say, `app/epics/$epicId`, the context function will re-run when the epicId param changes. This might seem strange, but it's useful for modifying the context, but only when the route has changed, especially when you need to put non-primitive values (objects and functions) onto context. These non-primitive values are always compared by reference, and therefore always unique against the last value generated. As a result, they would cause render churning if added in `beforeLoad`, since Router would (incorrectly) think it needed to re-render a route when nothing has changed.
+There's also a context `function` we can provide routes. This is a non-async function that also gives us an opportunity to add to context. But it runs much more conservatively. This function only runs when the url changes in a way that's relevant to _that route_. So for a route of, say, `app/epics/$epicId`, the context function will re-run when the epicId param changes. This might seem strange, but it's useful for modifying the context, but only when the route has changed, especially when you need to put non-primitive values (objects and functions) onto context. These non-primitive values are always compared by reference, and therefore always unique against the last value generated. As a result, they would cause render churning if added in `beforeLoad`, since React would (incorrectly) think it needed to re-render a route when nothing had changed.
 
 For now, here's some code in our root route to mark the time for when the initial render happens, so we can compare that to the timestamp of when various queries run in our tree. This will help us see, and fix network waterfalls.
 
@@ -176,7 +176,7 @@ If we peak in our dev tools, we should see something like this
 
 ![loaders running in parallel](/tanstack-router-loaders/img-1-loaders-parallel.jpg)
 
-As we can see, these requests started a mere millisecond apart from each other, since the loaders are running in parallel (each request takes at least 750ms, due to the artificial delays in the api endpoints).
+As we can see, these requests started a mere millisecond apart from each other, since the loaders are running in parallel (since this isn't the real Jira, I had to manually add a delay of 750ms to each of the api endpoints).
 
 #### Different routes using the same data
 
@@ -192,7 +192,7 @@ This makes sense since we need to load the actual task in order to display it, o
 
 If you click the edit button for any task, you should be brought to a page with an extremely basic form that will let you edit the task's name. Once we click save, we want to navigate back to the tasks list, but most importantly, we need to tell Router that we've changed some data, and that it will need to invalidate some cached entries, and re-fetch when we go back to those routes.
 
-This is where Router's built-in capabilities start to get stretched, and where we might start to want react-query (discussed below). Router will absolutely let you invalidate routes, to force re-fetches. But eh api is fairly simple, and fine-grained. We basically have to describe each route we want invalidated (or removed). Let's take a look:
+This is where Router's built-in capabilities start to get stretched, and where we might start to want react-query (discussed below). Router will absolutely let you invalidate routes, to force re-fetches. But the api is fairly simple, and fine-grained. We basically have to describe each route we want invalidated (or removed). Let's take a look:
 
 ```ts
 import { useRouter } from "@tanstack/react-router";
@@ -220,7 +220,9 @@ const save = async () => {
 };
 ```
 
-Note the call to `router.invalidate`. This tells Router to mark any cached entries matching that filter as stale, causing us to re-fetch them the next time we browse to those paths. Here we invalidated the main tasks list, as well as the view, and edit pages for the individual task we just modified.
+Note the call to `router.invalidate`. This tells Router to mark any cached entries matching that filter as stale, causing us to re-fetch them the next time we browse to those paths. We could also pass absolutely nothing to that same `invalidate` method, which would tell Router to invalidate _everything_.
+
+Here we invalidated the main tasks list, as well as the view, and edit pages for the individual task we just modified.
 
 Now when we navigate back to the main tasks page we'll immediately see the prior, now-stale data, but new data will fetch, and update the UI when present. Recall that we can use `const { isFetching } = Route.useMatch();` to show an inline spinner while this fetch is happening.
 
