@@ -10,7 +10,7 @@ Note that while the code samples in this post use React, none of the concepts ar
 
 ## Starting at the beginning: basic css loading
 
-Let's say we're rendering this component..
+Let's say we're rendering this component...
 
 ```jsx
 const Component = () => (
