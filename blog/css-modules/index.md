@@ -6,11 +6,11 @@ description: An introduction to loading css with webpack, and enabling css-modul
 
 The css ecosystem is immense and, at times, intimidating. This post will start at the beginning. We'll go over loading basic css with webpack, then move on to css modules, and wrap up with Sass. If you have some experience loading css in webpack-based web applications, some of this may be old news for you.
 
-Note that while the code samples in this post use React, none of the concepts are specific to it in the least. Also, this post does *not* cover css-in-js, for the simple reason that I haven't yet gotten around to diving into that ecosystem; I'm hoping by the time I do, it'll be a bit less crowded :)
+Note that while the code samples in this post use React, none of the concepts are specific to it in the least. Also, this post does _not_ cover css-in-js, for the simple reason that I haven't yet gotten around to diving into that ecosystem; I'm hoping by the time I do, it'll be a bit less crowded :)
 
 ## Starting at the beginning: basic css loading
 
-Let's say we're rendering this component.
+Let's say we're rendering this component..
 
 ```jsx
 const Component = () => (
@@ -87,7 +87,7 @@ Finally, under the plugins array, also at the top level of your webpack.config o
 
 ```javascript
 new MiniCssExtractPlugin({
-  filename: isProd ? "[name]-[contenthash].css" : "[name].css"
+  filename: isProd ? "[name]-[contenthash].css" : "[name].css",
 });
 ```
 
@@ -145,7 +145,7 @@ const Component = () => (
 
 We now import an object from the css file. The keys of this object are the class names we wrote originally in the css file, and the property values are the dynamically generated class names. Note the weird syntax around the `list-item` class. JavaScript identifiers cannot be hyphenated, so you'll either need to alias it, or just use valid JS names in your css modules.
 
-*Edit* - after publishing this, Marc Bernstein pointed out on Twitter that css-loader has a `camelCase` option that will convert hyphenated class names to camel-cased equivalents. You can read the docs on it [here](https://github.com/webpack-contrib/css-loader#camelcase)
+_Edit_ - after publishing this, Marc Bernstein pointed out on Twitter that css-loader has a `camelCase` option that will convert hyphenated class names to camel-cased equivalents. You can read the docs on it [here](https://github.com/webpack-contrib/css-loader#camelcase)
 
 Applying everything like so should reveal the same ugly output as before
 
@@ -156,7 +156,7 @@ Applying everything like so should reveal the same ugly output as before
 
 ## Best of Both Worlds?
 
-So far so good, but what if, like me, you think global styles aren't so bad, *sometimes*. What if you have some styles that you plan to be universal in your app, used almost everywhere, and manually importing them as dynamic values just isn't worth the effort? Examples might include a `.btn`, `.table`, or even a `.pane` class. What if the `.pane` class is intended to be used far and wide, with exactly one meaning. Can we make that class (and others) be global, while using css-modules for module-specific stylings, like our list classes, above.
+So far so good, but what if, like me, you think global styles aren't so bad, _sometimes_. What if you have some styles that you plan to be universal in your app, used almost everywhere, and manually importing them as dynamic values just isn't worth the effort? Examples might include a `.btn`, `.table`, or even a `.pane` class. What if the `.pane` class is intended to be used far and wide, with exactly one meaning. Can we make that class (and others) be global, while using css-modules for module-specific stylings, like our list classes, above.
 
 You can, and you have two options: you can define each and every global css class with `:global()` (see the [css-modules docs](https://github.com/css-modules/css-modules) for more info), or, my preferred approach, you can use a naming scheme to differentiate global css files from css-modules.
 
