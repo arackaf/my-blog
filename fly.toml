@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for adam-rackis-blog-tanstack on 2024-11-13T19:00:11-06:00
+# fly.toml app configuration file generated for adam-rackis-blog on 2024-10-21T11:43:26-07:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'adam-rackis-blog-tanstack'
+app = 'adam-rackis-blog'
 primary_region = 'iad'
 
 [build]
@@ -13,7 +13,7 @@ primary_region = 'iad'
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 1
   processes = ['app']
 
 [[vm]]
