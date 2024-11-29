@@ -375,7 +375,7 @@ s3.send(new PutObjectCommand(dumpParams))
   });
 ```
 
-A better Docker expert could probably come up with something better, but this works well enough.
+I'm sure someone who's actually good with Docker could come up with something better, but this works well enough.
 
 To see this whole thing all together, in one place, you can see it in my GitHub [here](https://github.com/arackaf/booklist/tree/master/data/my-library-pg-backup).
 
