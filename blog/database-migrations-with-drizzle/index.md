@@ -129,6 +129,48 @@ we tell Drizzle to look at our database, and generate a schema from it.
 
 ![Drizzle pull](/drizzle-migrations/drizzle-pull.png)
 
+### Files generated
+
+First and foremost, inside of the `drizzle-schema` folder there's now a `schema.ts` file with our Drizzle schema. Here's what a few entries from that file look like
+
+```ts
+import { pgTable, serial, varchar, foreignKey, integer, text, date } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+
+export const users = pgTable("users", {
+  id: serial().primaryKey().notNull(),
+  username: varchar({ length: 50 }),
+  name: varchar({ length: 250 }),
+  avatar: varchar({ length: 500 }),
+});
+
+export const tasks = pgTable(
+  "tasks",
+  {
+    id: serial().primaryKey().notNull(),
+    name: varchar({ length: 250 }),
+    epicid: integer(),
+    userid: integer(),
+  },
+  table => {
+    return {
+      fkTaskUser: foreignKey({
+        columns: [table.userid],
+        foreignColumns: [users.id],
+        name: "fk_task_user",
+      }),
+      fkTaskEpic: foreignKey({
+        columns: [table.epicid],
+        foreignColumns: [epics.id],
+        name: "fk_task_epic",
+      }),
+    };
+  }
+);
+```
+
+The `users` entity is simple enough: a table with some columns. The `tasks` entity is a bit more interesting, show the same, but also some Foreign Key definitions
+
 ## Concluding thoughts
 
 Drizzle is an incredibly exciting ORM. Not only does it manage to add an impressive layer of static typing on top of SQL, allowing you to enjoy the power and flexibility of SQL with the type safety you already expect from TypeScript. But it also provides an impressive suite of commands for syncing your changing database with your ORM schema.
