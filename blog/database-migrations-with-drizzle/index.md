@@ -169,7 +169,9 @@ export const tasks = pgTable(
 );
 ```
 
-The `users` entity is simple enough: a table with some columns. The `tasks` entity is a bit more interesting, show the same, but also some Foreign Key definitions
+The `users` entity is simple enough: a table with some columns. The `tasks` entity is a bit more interesting. It's also a table with some fields, but we can also see some foreign keys being defined. In Postgres, foreign keys merely create a constraint that's checked on inserts and updates, to verify that a valid value is set, corresponding to a row in the target table. But it has no effect on application code, so you might wonder why Drizzle saw fit to bother creating it. There's basically two reasons: relationships, and enabling schema-first development.
+
+### relationships
 
 ## Concluding thoughts
 
