@@ -70,8 +70,8 @@ CREATE TABLE users (
 CREATE TABLE tasks (
     id SERIAL PRIMARY KEY,
     name VARCHAR(250),
-    epicId INT,
-    userId INT
+    epic_id INT,
+    user_id INT
 );
 
 CREATE TABLE epics (
@@ -94,12 +94,12 @@ CREATE TABLE tasks_tags (
 
 ALTER TABLE tasks
     ADD CONSTRAINT fk_task_user
-    FOREIGN KEY (userId)
+    FOREIGN KEY (user_id)
     REFERENCES users (id);
 
 ALTER TABLE tasks
     ADD CONSTRAINT fk_task_epic
-    FOREIGN KEY (epicId)
+    FOREIGN KEY (epic_id)
     REFERENCES epics (id);
 
 ALTER TABLE tasks_tags
@@ -149,18 +149,18 @@ export const tasks = pgTable(
   {
     id: serial().primaryKey().notNull(),
     name: varchar({ length: 250 }),
-    epicid: integer(),
-    userid: integer(),
+    epicId: integer("epic_id"),
+    userId: integer("user_id"),
   },
   table => {
     return {
       fkTaskUser: foreignKey({
-        columns: [table.userid],
+        columns: [table.userId],
         foreignColumns: [users.id],
         name: "fk_task_user",
       }),
       fkTaskEpic: foreignKey({
-        columns: [table.epicid],
+        columns: [table.epicId],
         foreignColumns: [epics.id],
         name: "fk_task_epic",
       }),
