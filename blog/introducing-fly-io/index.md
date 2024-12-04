@@ -22,7 +22,9 @@ The ability to handle long-running processes greatly expands the range of apps F
 
 ## But I don't know Docker
 
-Don't worry, Fly will, as you're about to see, help you scaffold a Dockerfile from any common app framework. We'll take a quick look at what's generated, and explain the high points. That said, Docker is one of the most valuable tools for a new engineer to get familiar with, so if Fly motivates you to learn more, so much the better!
+Don't worry, Fly will, as you're about to see, help you scaffold a Dockerfile from any common app framework. We'll take a quick look at what's generated, and explain the high points.
+
+That said, Docker is one of the most valuable tools for a new engineer to get familiar with, so if Fly motivates you to learn more, so much the better! If you'd like to go deeper, FrontendMasters has an entire course on Docker [here](https://frontendmasters.com/courses/complete-intro-containers-v2/).
 
 ## Let's launch an app!
 
@@ -164,6 +166,8 @@ RUN apt-get update -qq && \
 tells the linux package manager to install some things Fly thinks Next might need, but in actuality [probably doesn't](https://x.com/leeerob/status/1862312276985868783). Don't be surprised if these lines are absent when you read this, and try for yourself.
 
 Lastly, if you were wondering why the package.json and lock files were copied, followed by `npm install` _and then_ followed by copying the rest of the application code, the reason is (Docker) performance. Briefly, each line in the Dockerfile creates a "layer." These layers can be cached and re-used if nothing has changed. If anything _has_ changed, that invalidates the cache for that layer, _and also_ all layers after it. So you'll want to push your likely-to-change work as low as possible. Your application code will almost always change between deployments; the dependencies in your package.json will change much less frequently. So we do that install first, by itself, so it will be more likely to be cached, and speed up our builds.
+
+I tried my best to provide the absolute minimal amount of a Docker intro to make this post make sense, without being overhwelming. I hope I've succeeded. If you'd like to learn more, there's tons of books and YouTube videos, and even an entire course [here on FrontEnd Masters](https://frontendmasters.com/courses/complete-intro-containers-v2/).
 
 ## Fly.toml
 
@@ -402,6 +406,10 @@ Needless to say, Fly makes it easy to add a custom domain to your app. You'll ju
 ### Secrets
 
 You'll probably have some secrets you want run in your app, in production. If you're thinking you could just bundle a .env.prod file into your Docker image, yes, you could. But that's considered a bad idea. Instead, leverage Fly's secret management. The docs [are here](https://fly.io/docs/js/the-basics/secrets/), and are roughly what you'd expect.
+
+## Learning more
+
+This post started brushing up against some full-stack topics. If this sparked your interest, be sure to check out the [entire course](https://frontendmasters.com/courses/fullstack-v3/) on full-stack engineering here on Frontend Masters.
 
 ## Wrapping up
 
