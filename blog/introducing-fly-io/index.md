@@ -248,7 +248,7 @@ It's not ideal, but if you want to make your Fly pg box publicly available, you 
 
 ### Consider using a dedicated host for serious applications.
 
-Fly's [built-in Postgres support](https://fly.io/docs/postgres/) is superb, but there's some things you'll have to [manage yourself](https://fly.io/docs/postgres/getting-started/what-you-should-know/#heres-what-you-manage). If that's not for you, [Supabase](https://supabase.com/) is an incredible dedicated pg host. Fly even has [a service](https://fly.io/docs/supabase/) for creating Supabase db's on Fly infra, for extra low latency. It's currently only in public alpha, but it might be worth keeping an eye on.
+Fly's [built-in Postgres support](https://fly.io/docs/postgres/) is superb, but there's some things you'll have to [manage yourself](https://fly.io/docs/postgres/getting-started/what-you-should-know/#heres-what-you-manage). If that's not for you, [Supabase](https://supabase.com/) is a fully managed pg host, and it's superb. Fly even has [a service](https://fly.io/docs/supabase/) for creating Supabase db's on Fly infra, for extra low latency. It's currently only in public alpha, but it might be worth keeping an eye on.
 
 ## Interlude
 
