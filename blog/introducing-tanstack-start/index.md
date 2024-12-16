@@ -74,9 +74,21 @@ Or what about a loader that loads 5 different pieces of data. After the page loa
 
 You might think using a component-level data loading solution like react-query can help. react-query is great, but it doesn't eliminate these problems. If you have two different pages that each have 5 data sources, of which 4 are shared in common, browsing from the first page to the second will cause the second page to re-request all 5 pieces of data, even though 4 of them are already present in client-side state from the first page. The server is unaware of what happens to exist on the client. The server is not keeping track of what state you have in your browser; in fact the "server" might just be a Lambda function that spins up, satisfies your request, and then dies off.
 
+![Inefficient data](/introducing-tanstack-start/extra-data.png)
+
+In the picture, we can see a loader from the server sending down data for queryB, which we already have in our TanStack cache.
+
 ### Where to, from here?
 
-The root problem is that these meta-frameworks inevitably have server-only code running on each path, integrating with long-running client-side state. This leads to conflicts and inefficiencies which need to be managed. There's ways of handling these things, which I touched on above. But it's not a completely clean fit. So what makes TanStack Start different?
+The root problem is that these meta-frameworks inevitably have server-only code running on each path, integrating with long-running client-side state. This leads to conflicts and inefficiencies which need to be managed. There's ways of handling these things, which I touched on above. But it's not a completely clean fit.
+
+### How much does it matter?
+
+Let's be clear right away: if this situation is killing performance of your site, you have bigger problems. If these extra calls are putting undue strain on your services, you have bigger problems.
+
+That said, one of the first rules of distributed systems is to never trust your network. The more of these calls we're firing off, the better the chances that some of them might randomly be slow for some reason beyond our control. Or fail.
+
+We typically tolerate requesting more than we need in these scenarios because it's hard to avoid with our current tooling. But I'm here to show you some new, better tooling that side-steps these issues altogether.
 
 ### Isomorphic loaders
 
@@ -102,7 +114,7 @@ We're not building anything new, here. We're taking existing code, and moving th
 
 All of the routes, and loaders we set up with Router are still valid. Start sits on top of Router, and adds server processing. Our loaders will execute on the server for the first load of the page, and then on the client as the user browses. But there's a small problem. While the server environment these loaders will execute in does indeed have a `fetch` function, there are differences between client-side fetch, and server-side fetch—for example cookies, and fetching to relative paths.
 
-To solve this, Start lets you define a [server function](https://tanstack.com/router/latest/docs/framework/react/start/server-functions). Server functions can be called from the client, or from the server; but the server function itself always executes on the server. You can define a server function in the same file as your route, or in a separate file; if you do the former, TanStack will do the work of ensuring that server-only code does not ever exist in your client bundle.
+To solve this, Start lets you define a [server function](https://tanstack.com/router/latest/docs/framework/react/start/server-functions). Server functions can be called from the client, or from the server; but the server function itself always _executes on_ the server. You can define a server function in the same file as your route, or in a separate file; if you do the former, TanStack will do the work of ensuring that server-only code does not ever exist in your client bundle.
 
 Let's define a server function to load our tasks, and then call it from the tasks loader.
 
@@ -122,7 +134,15 @@ export const getTasksList = createServerFn({ method: "GET" }).handler(async () =
 
 We have access to a `getCookie` utility from the vinxi library on which Start is built. Server functions actually provide a lot more functionality than this simple example shows. Be sure to check out [the docs](https://tanstack.com/router/latest/docs/framework/react/start/server-functions) to learn more.
 
-And now we can just _call it_ from our loader
+If you're curious about the fetch call
+
+```ts
+fetch(`http://localhost:3000/api/tasks`, { method: "GET", headers: { Cookie: "user=" + result } });
+```
+
+that's just how I'm loading data for this project, on the server. I have a separate project running a set of Express endpoints querying a simple SQLite db. You can fetch your data however you need from within these server functions, be it via an orm like Drizzle, an external service endpoint like I have here, or you could even just connect right to a database and query what you need; but that latter option should probably be discouraged for production applications.
+
+And now we can call our server function from our loader
 
 ```ts
 loader: async ({ context }) => {
