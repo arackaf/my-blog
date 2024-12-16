@@ -4,21 +4,21 @@ date: "2024-12-15T20:00:32.169Z"
 description: An Introduction to TanStack Start
 ---
 
-This is a post I've been looking forward to writing for a long time; it's also an incredibly difficult post to write. The best way to think about TanStack Start is that it's just a thin server layer atop the TanStack Router we already know and love. Not only that, but the nature of this server layer means that it side-steps the pain points other web meta-frameworks suffer from.
+This is a post I've been looking forward to writing for a long time; it's also a difficult one to write. The best way to think about TanStack Start is that it's just a thin server layer atop the TanStack Router we already know and love. Not only that, but the nature of this server layer means that it side-steps the pain points other web meta-frameworks suffer from.
 
 The goal (and challenge) of this post will be to show why a server layer on top of a JavaScript router is valuable, and _why_ TanStack Start's implementation is unique compared to the alternatives (in a good way). From there, showing how TanStack Start actually works will be relatively straightforward. Let's go!
 
 ## Why Server Render?
 
-Client-rendered web applications, frequently called "Single Page Applications" or "SPAs" were popular for a long time, and actually still are. With this type of app, the server sends down a mostly empty html page, possibly with some sort of splash image or loading spinner, maybe some navigation components, and mostly importantly, with some script tags that load your framework of choice (React, Vue, Svelte, etc), along with all your application code.
+Client-rendered web applications, often called "Single Page Applications" or "SPAs" were popular for a long time, and actually still are. With this type of app, the server sends down a mostly empty html page, possibly with some sort of splash image or loading spinner, maybe some navigation components, and most important, some script tags that load your framework of choice (React, Vue, Svelte, etc), along with all your application code.
 
-These apps were always fun to build, and in spite of the hate they often get, they (usually) worked just fine (any kind of software can be bad). But they did suffer from one disadvantage: initial render performance. Remember, the initial render of the page was just an empty shell of your app. This displayed while your script files loaded and executed, and once _those_ scripts were run, your application code would most likely need to request data before your actual app could display. Under the covers, your app is doing something along the lines of this
+These apps were always fun to build, and in spite of the hate they often get, they (usually) worked just fine (any kind of software can be bad). But they did suffer from one disadvantage: initial render performance. Remember, the initial render of the page was just an empty shell of your app. This displayed while your script files loaded and executed, and once _those_ scripts were run, your application code would most likely need to request data before your actual app could display. Under the covers, your app is doing something like this
 
 ![CSR Flow](/introducing-tanstack-start/csr-perf-flow.png)
 
 The initial render of the page, from the web server, renders only an empty shell of your application. Then some scripts are requested, and then parsed and executed. When those application scripts run, you (likely) send some other requests for data. Once _that_ is done, your page will displayed.
 
-To put it more succinctly, with client-rendered web apps, when the user first loads your app, they'll just get a loading spinner. Make your company's logo above it, if they're lucky.
+To put it more succinctly, with client-rendered web apps, when the user first loads your app, they'll just get a loading spinner. Maybe your company's logo above it, if they're lucky.
 
 ![CSR Flow](/introducing-tanstack-start/csr-user.png)
 
@@ -28,7 +28,7 @@ Maybe.
 
 But if our tools now make it easy to do better, why not do better?
 
-### SSR
+### Server Side Rendering
 
 With SSR, the picture looks more like this
 
@@ -36,7 +36,7 @@ With SSR, the picture looks more like this
 
 The server sends down the complete, finished page that the user can see immediately. We do still need to load our scripts and hydrate, so our page can be _interactive_. But that's usually fast, and the user will still have content to see while that happens.
 
-Our hypothetical user looks more like this, now, since the server is responding with a full page the user can see.
+Our hypothetical user now looks like this, since the server is responding with a full page the user can see.
 
 ![SSR User](/introducing-tanstack-start/ssr-user.png)
 
@@ -64,13 +64,15 @@ Why do we need a new meta-framework? There's many possible answers to that quest
 
 ### An Impedance Mismatch is Born
 
-Notice the two worlds that exist: the server, where data loading code will always run, and the client. These frameworks always provide some mechanism to mutate data, and then re-fetch things to show the updated state. Imagine your loader for a page loads some tasks, user settings, and announcements. When the user edits a task, and revalidates, these frameworks will almost always re-run the entire loader, and superfluously re-load the user's announcements and user settings, in addition to tasks, even though tasks are the only thing that changes.
+Notice the two worlds that exist: the server, where data loading code will always run, and the client. It's the difference and separation between these worlds that can cause issues in various ways.
+
+For example, frameworks always provide some mechanism to mutate data, and then re-fetch things to show the updated state. Imagine your loader for a page loads some tasks, user settings, and announcements. When the user edits a task, and revalidates, these frameworks will almost always re-run the entire loader, and superfluously re-load the user's announcements and user settings, in addition to tasks, even though tasks are the only thing that changes.
 
 Are there fixes? Of course. Many of these frameworks will allow you to create extra loaders, to spread the data loading across them, and revalidate only _some_ of those loaders. Other frameworks encourage you to cache these data. These solutions all work, but come with their own tradeoffs. And remember, they're solutions to a problem that meta-frameworks created, by having server-side loading code for every path in your app.
 
 Or what about a loader that loads 5 different pieces of data. After the page loads, the user starts browsing around, occasionally coming back to that first page. These frameworks will usually cache that previously-displayed page, for a time. Or not. But it's all or none. When the loader re-runs, all 5 pieces of data will re-fire, even if 4 of them can be cached safely.
 
-You might think using a component-level data loading solution like react-query can solve these problems. react-query is great, but it doesn't eliminate these problems. If you have two different pages that each have 5 data sources, of which 4 are shared in common, browsing from the first page to the second will indeed cause the second page to re-request all 5 pieces of data, even though 4 of them are already present in client-side state from the first page. The server is unaware of what happens to exist on the client. The server is not keeping track of what state you have in your browser; in fact the "server" might just be a Lambda function that spins up, satisfies your request, and then dies off.
+You might think using a component-level data loading solution like react-query can help. react-query is great, but it doesn't eliminate these problems. If you have two different pages that each have 5 data sources, of which 4 are shared in common, browsing from the first page to the second will indeed cause the second page to re-request all 5 pieces of data, even though 4 of them are already present in client-side state from the first page. The server is unaware of what happens to exist on the client. The server is not keeping track of what state you have in your browser; in fact the "server" might just be a Lambda function that spins up, satisfies your request, and then dies off.
 
 ### Where to, from here?
 
@@ -92,13 +94,13 @@ The repo for this post [is here](https://github.com/arackaf/tanstack-start-blog-
 
 If you'd like to set something up yourself, check out [the getting started guide](https://tanstack.com/router/latest/docs/framework/react/start/getting-started). If you'd like to use react-query, be sure to add the library for that. You can see an example [here](https://github.com/TanStack/router/blob/main/examples%2Freact%2Fstart-basic-react-query%2Fapp%2Frouter.tsx). Depending on when you read this, there might be a cli to do all of this for you.
 
-This post will continue to use the same code I used in my [prior posts](https://frontendmasters.com/blog/introducing-tanstack-router/) on TanStack Router. I basically set up a new Start project, copied over all the route code, and tweaked a few import paths (since the default Start project has a slightly different folder structure). I also removed all of the artificial delays, unless otherwise noted. I want our data to be fast by default, and slow in a few places where we'll use streaming to manage the slowness.
+This post will continue to use the same code I used in my [prior posts](https://frontendmasters.com/blog/introducing-tanstack-router/) on TanStack Router. I basically set up a new Start project, copied over all the route code, and tweaked a few import paths since the default Start project has a slightly different folder structure. I also removed all of the artificial delays, unless otherwise noted. I want our data to be fast by default, and slow in a few places where we'll use streaming to manage the slowness.
 
 ### Loading data
 
 All of the routes, and loaders we set up with Router are still valid. Start sits on top of Router, and adds server processing. Our loaders will execute on the server for the first load of the page, and then the client as the user browses. But there's a small problem. While the server environment these loaders will execute in does indeed have a `fetch` function, in reality there are significant differences between client-side fetch, and server-side fetch—for example, cookies, and fetching to relative paths.
 
-To solve for this, Start lets you define a [server function](https://tanstack.com/router/latest/docs/framework/react/start/server-functions). Server functions can be called from the client, or from the server; but the server function itself always executes on the server. You can define a server function in the same file as your route, or in a separate file; if you do the former, TanStack will do the work of ensuring that server-only code does not ever exist in your client bundle.
+To solve this, Start lets you define a [server function](https://tanstack.com/router/latest/docs/framework/react/start/server-functions). Server functions can be called from the client, or from the server; but the server function itself always executes on the server. You can define a server function in the same file as your route, or in a separate file; if you do the former, TanStack will do the work of ensuring that server-only code does not ever exist in your client bundle.
 
 Let's define a server function to load our tasks, and then call it from the tasks loader.
 
