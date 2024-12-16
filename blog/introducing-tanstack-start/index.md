@@ -77,3 +77,128 @@ In TanStack, we do have loaders. These are defined by TanStack Router. I wrote a
 Start takes what we already have with Router, and adds server handling to it. On the initial load, your loader will run on the server, load your data, and send it down. On all subsequent client-side navigations, your loader will run on the client, like it already does. If you like react-query, you'll be happy to know that's integrated too. Your react-query client can run on the server to load, and send data down. On subsequent navigations, these loaders will run on the client, which means your react-query queryClient will have full access to the client-side cache, and will know what does not need to be loaded.
 
 It's honestly such a refreshing, simple, and most importantly, effective pattern that it's hard not being annoyed none of the other frameworks thought of it first. Admittedly, SvelteKit does have universal loaders which are isomorphic in the same way, but without a component-level query library like react-query integrated with the server piece.
+
+## TanStack Start
+
+Enough setup, let's look at some code. TanStack Start is still in beta, so some of the setup is still a bit manual, for now.
+
+The repo for this post [is here](https://github.com/arackaf/tanstack-start-blog-dataloading).
+
+If you'd like to set something up yourself, the getting started guide [is here](https://tanstack.com/router/latest/docs/framework/react/start/getting-started). If you'd like to use react-query, be sure to add the library for that. You can see an example of that [here](https://github.com/TanStack/router/blob/main/examples%2Freact%2Fstart-basic-react-query%2Fapp%2Frouter.tsx). Depending on when you read this, there might be a cli to do all of this for you.
+
+This post will continue to use the same code I used in my [prior posts](https://frontendmasters.com/blog/introducing-tanstack-router/) on TanStack Route. I basically set up a new Start project, copied over all the route code, and tweaked a few import paths (since the default Start project has a slightly different folder structure). I also removed all of the artificial delays, unless otherwise noted. I want our data to be fast by default, and slow in a few places where we'll use streaming to manage the slowness.
+
+### Loading data
+
+All of the routes, and loaders we set up with Router are still valid. Start sits on top of Router, and adds server processing. Our loaders will execute on the server for the first load of the page, and then the client as the user browses. But there's a small problem. While the server environment these loaders will execute in does indeed have a `fetch` function defined, in reality there are significant differences between client-side fetch, and server-side fetch—for example, cookies, fetching to relative paths.
+
+To solve for this, Start lets you define a server function. Server functions can be called from the browser, or from the server, but the server function itself always executes on the server. You can define a server function in the same file as your route, or in a separate file; if you do the former, TanStack will do the work of ensuring that server-only code does not ever exist in your client bundle.
+
+Let's define a server function to load our tasks, and then call it from the tasks loader.
+
+```ts
+import { getCookie } from "vinxi/http";
+import { createServerFn } from "@tanstack/start";
+import { Task } from "../../types";
+
+export const getTasksList = createServerFn({ method: "GET" }).handler(async () => {
+  const result = getCookie("user");
+
+  return fetch(`http://localhost:3000/api/tasks`, { method: "GET", headers: { Cookie: "user=" + result } })
+    .then(resp => resp.json())
+    .then(res => res as Task[]);
+});
+```
+
+We have access to a `getCookie` utility from the vinxi library on which Start is built. Server functions actually provide a lot more functionality than this simple example shows. Be sure to check out [the docs](https://tanstack.com/router/latest/docs/framework/react/start/server-functions) to learn more.
+
+And now we can just _call it_ from our loader
+
+```ts
+loader: async ({ context }) => {
+    const now = +new Date();
+    console.log(`/tasks/index path loader. Loading tasks at + ${now - context.timestarted}ms since start`);
+    const tasks = await getTasksList();
+    return { tasks };
+  },
+```
+
+that's all there is to it. It's almost anti-climactic. The page loads, as it did in the last post. Except now it server renders. You can shut JavaScript off, and the page will still load and dispaly (and hyperlinks will still work, of course).
+
+![Tasks page](/introducing-tanstack-start/tasks-page.png)
+
+### Streaming
+
+Let's make the individual task loading slow (we'll just keep the delay that was already in there), so we can see how we can stream it in. Here's our server function to load a single task
+
+```ts
+export const getTask = createServerFn({ method: "GET" })
+  .validator((id: string) => id)
+  .handler(async ({ data }) => {
+    return fetch(`http://localhost:3000/api/tasks/${data}`, { method: "GET" })
+      .then(resp => resp.json())
+      .then(res => res as Task);
+  });
+```
+
+Note the `validator` which is how we can strongly type our server function (and validate the inputs). But otherwise it's more of the same.
+
+Now let's call it in our loader, and see about enabling streaming
+
+Here's our loader
+
+```ts
+  loader: async ({ params, context }) => {
+    const { taskId } = params;
+
+    if (taskId == "22") {
+      throw new Error("I don't want to");
+    }
+    const now = +new Date();
+    console.log(`/tasks/${taskId} path loader. Loading at + ${now - context.timestarted}ms since start`);
+    const task = getTask({ data: taskId });
+
+    return { task };
+  },
+```
+
+Did you catch it? We called `getTask` **without** awaiting it. That means task is just a promise, which Start and Router allows us to return from our loader (ideally we should maybe name it taskPromise or similar).
+
+But how do we consume this promise, show loading state, and `await` the real value. There's two ways. TanStack Router defines and [Await](https://tanstack.com/router/latest/docs/framework/react/api/router/awaitComponent#await-component) component for just this purpose. But if you're using React 19, you can use the new `use` psuedo-hook
+
+```ts
+function TaskView() {
+  const { task: taskPromise } = Route.useLoaderData();
+  const { isFetching } = Route.useMatch();
+
+  const task = use(taskPromise);
+
+  return (
+    <div className="flex flex-col gap-4 p-3">
+      <Link to="/app/tasks">Back to tasks list</Link>
+      <div className="flex flex-col gap-2">
+        <div>
+          Task {task.id} {isFetching ? "Loading ..." : null}
+        </div>
+        <h1 className="text-lg">{task.title}</h1>
+        <Link className="text-blue-500 underline" to="/app/tasks/$taskId/edit" params={{ taskId: task.id }}>
+          Edit
+        </Link>
+        <div />
+      </div>
+    </div>
+  );
+}
+```
+
+Use will cause this component to suspend, which will show the nearest Suspense boundary in the tree. Fortunately, the `pendingComponent` you set up in Router also doubles as a Suspense boundary. TanStack is impressively well integrated with modern React features.
+
+Now when we load an individual task's page, we'll first see the overview data which loaded quickly, and server rendered, above the Suspense boundary for the task data we're streaming
+
+![Tasks streaming](/introducing-tanstack-start/streaming-tasks.png)
+
+When the task data come in, the promise will resolve, the server will push the data down, and our use call can provide data for our component.
+
+![Tasks streaming finish](/introducing-tanstack-start/streaming-tasks-finish.png)
+
+## React Query
