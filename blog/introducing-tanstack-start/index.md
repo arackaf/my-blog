@@ -12,13 +12,13 @@ The goal (and challenge) of this post will be to show why a server layer on top 
 
 Client-rendered web applications, frequently called "Single Page Applications" or "SPAs" were popular for a long time, and actually still are. With this type of app, the server sends down a mostly empty html page, possibly with some sort of splash image or loading spinner, maybe some navigation components, and mostly importantly, with some script tags that load your framework of choice (React, Vue, Svelte, etc), along with all your application code.
 
-These apps were always fun to build, and in spite of the hate they often get, they (usually) worked just fine (any kind of software can be bad). But they did suffer from one disadvantge: initial render performance. Remember, the initial render of the page was just an empty shell of your app. This displayed while your script files loaded and executed, and once _those_ scripts were run, your application code would most likely need to request data before your actual app could display. Under the covers, your app is doing something along the lines of this
+These apps were always fun to build, and in spite of the hate they often get, they (usually) worked just fine (any kind of software can be bad). But they did suffer from one disadvantage: initial render performance. Remember, the initial render of the page was just an empty shell of your app. This displayed while your script files loaded and executed, and once _those_ scripts were run, your application code would most likely need to request data before your actual app could display. Under the covers, your app is doing something along the lines of this
 
 ![CSR Flow](/introducing-tanstack-start/csr-perf-flow.png)
 
 The initial render of the page, from the web server, renders only an empty shell of your application. Then some scripts are requested, and then parsed and executed. When those application scripts run, you (likely) send some other requests for data. Once _that_ is done, your page will displayed.
 
-To put it more succintly, with client-rendered web apps, when the user first loads your app, they'll just get a loading spinner. Make your company's logo above it, if they're lucky.
+To put it more succinctly, with client-rendered web apps, when the user first loads your app, they'll just get a loading spinner. Make your company's logo above it, if they're lucky.
 
 ![CSR Flow](/introducing-tanstack-start/csr-user.png)
 
@@ -62,7 +62,7 @@ It's hard to get right. But here's the thing: **getting this right is the one of
 
 Why do we need a new meta-framework? There's many possible answers to that question, but I'll give mine. Existing meta-frameworks suffer from some variation on the same issue. They'll provide some mechanism to load data on the server. This mechanism is often called a "loader," or in the case of Next, it's just RSCs. Or in Next's pages directory, it's the `getServerSideProps` function. The specifics don't matter. What matters is, for each route, whether the initial load of the page, or client-side navigation via links, some server-side code will run, send down the data, and then render the new page.
 
-### An Impedence Mismatch is Born
+### An Impedance Mismatch is Born
 
 Notice the two worlds that exist: the server, where data loading code will always run, and the client. These frameworks always provide some mechanism to mutate data, and then re-fetch things to show the updated state. Imagine your loader for a page loads some tasks, user settings, and announcements. When the user edits a task, and revalidates, these frameworks will almost always re-run the entire loader, and superfluously re-load the user's announcements and user settings, in addition to tasks, even though tasks are the only thing that changes.
 
@@ -129,7 +129,7 @@ loader: async ({ context }) => {
   },
 ```
 
-that's all there is to it. It's almost anti-climactic. The page loads, as it did in the last post. Except now it server renders. You can shut JavaScript off, and the page will still load and dispaly (and hyperlinks will still work).
+that's all there is to it. It's almost anti-climactic. The page loads, as it did in the last post. Except now it server renders. You can shut JavaScript off, and the page will still load and display (and hyperlinks will still work).
 
 ![Tasks page](/introducing-tanstack-start/tasks-page.png)
 
