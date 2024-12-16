@@ -202,3 +202,55 @@ When the task data come in, the promise will resolve, the server will push the d
 ![Tasks streaming finish](/introducing-tanstack-start/streaming-tasks-finish.png)
 
 ## React Query
+
+As before, let's integrate react-query. And as before, there's not much for us to do. Since we integrated the `@tanstack/react-router-with-query` package when we started, our queryClient will be available on the server, and will sync up with the queryClient on the client, and put data (or in-flight streamed promises) into cache.
+
+Let's start with our main epics page. Our loader looked like this before
+
+```ts
+  async loader({ context, deps }) {
+    const queryClient = context.queryClient;
+
+    queryClient.ensureQueryData(epicsQueryOptions(context.timestarted, deps.page));
+    queryClient.ensureQueryData(epicsCountQueryOptions(context.timestarted));
+  }
+```
+
+That would kick off the requests on the server, but let the page render, and then suspend in the component that called `useSuspenseQuery`—what we've been calling streaming.
+
+Let's change it to actually load our data in our loader, and server render the page instead. The change couldn't be simpler
+
+```ts
+async loader({ context, deps }) {
+  const queryClient = context.queryClient;
+
+  await Promise.allSettled([
+    queryClient.ensureQueryData(epicsQueryOptions(context.timestarted, deps.page)),
+    queryClient.ensureQueryData(epicsCountQueryOptions(context.timestarted)),
+  ]);
+},
+```
+
+We just await the calls. Make sure you don't just sequentially await each individual call; that would create a waterfall. And be sure to use `Promise.allSettled`, rather than `Promise.all`, since the latter will quit immediately if any of the promises error out.
+
+### Streaming with react-query
+
+As I implied above, to stream data with react-query, just do the exact same thing, but don't await the promise. Let's do that for the page for viewing an individual epic.
+
+```ts
+loader: ({ context, params }) => {
+  const { queryClient, timestarted } = context;
+
+  queryClient.ensureQueryData(epicQueryOptions(timestarted, params.epicId));
+},
+```
+
+And now if this page is loaded initially, the query for this data will start on the server, and stream to the client. If the data are pending, our suspense boundary will show, triggered automatically by react-query's `useSuspenseBoundary` hook.
+
+If the user browses to this page, the loader will instead run on the client, and fetch those same data from the server, and trigger the same suspense boundary.
+
+## Parting thoughts
+
+I hope this post was useful to you. It wasn't a deep dive into TanStack Start; the docs (or an online course, which is bound to exist before long) is a better venue for that. Instead I hope I was able to show why server rendering can offer almost any web app performance boost, and why TanStack Start is a superb tool for doing so. Not only does it simplify a great deal of things by running loaders isomorphically, but it even integrates wonderfully with react-query.
+
+The react-query integration is especially exciting to me. It delivers component-level data fetching while still allowing for server fetching, streaming, all without sacrificing one bit of convenience. It's genuinely the best of all worlds, and a better solution than I've seen anywhere else.
