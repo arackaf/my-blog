@@ -96,9 +96,9 @@ This post will continue to use the same code I used in my [prior posts](https://
 
 ### Loading data
 
-All of the routes, and loaders we set up with Router are still valid. Start sits on top of Router, and adds server processing. Our loaders will execute on the server for the first load of the page, and then the client as the user browses. But there's a small problem. While the server environment these loaders will execute in does indeed have a `fetch` function defined, in reality there are significant differences between client-side fetch, and server-side fetch—for example, cookies, fetching to relative paths.
+All of the routes, and loaders we set up with Router are still valid. Start sits on top of Router, and adds server processing. Our loaders will execute on the server for the first load of the page, and then the client as the user browses. But there's a small problem. While the server environment these loaders will execute in does indeed have a `fetch` function, in reality there are significant differences between client-side fetch, and server-side fetch—for example, cookies, and fetching to relative paths.
 
-To solve for this, Start lets you define a server function. Server functions can be called from the browser, or from the server, but the server function itself always executes on the server. You can define a server function in the same file as your route, or in a separate file; if you do the former, TanStack will do the work of ensuring that server-only code does not ever exist in your client bundle.
+To solve for this, Start lets you define a [server function](https://tanstack.com/router/latest/docs/framework/react/start/server-functions). Server functions can be called from the client, or from the server; but the server function itself always executes on the server. You can define a server function in the same file as your route, or in a separate file; if you do the former, TanStack will do the work of ensuring that server-only code does not ever exist in your client bundle.
 
 Let's define a server function to load our tasks, and then call it from the tasks loader.
 
@@ -129,7 +129,7 @@ loader: async ({ context }) => {
   },
 ```
 
-that's all there is to it. It's almost anti-climactic. The page loads, as it did in the last post. Except now it server renders. You can shut JavaScript off, and the page will still load and dispaly (and hyperlinks will still work, of course).
+that's all there is to it. It's almost anti-climactic. The page loads, as it did in the last post. Except now it server renders. You can shut JavaScript off, and the page will still load and dispaly (and hyperlinks will still work).
 
 ![Tasks page](/introducing-tanstack-start/tasks-page.png)
 
@@ -147,7 +147,7 @@ export const getTask = createServerFn({ method: "GET" })
   });
 ```
 
-Note the `validator` which is how we can strongly type our server function (and validate the inputs). But otherwise it's more of the same.
+Note the `validator` function, which is how we strongly type our server function (and validate the inputs). But otherwise it's more of the same.
 
 Now let's call it in our loader, and see about enabling streaming
 
@@ -157,9 +157,6 @@ Here's our loader
   loader: async ({ params, context }) => {
     const { taskId } = params;
 
-    if (taskId == "22") {
-      throw new Error("I don't want to");
-    }
     const now = +new Date();
     console.log(`/tasks/${taskId} path loader. Loading at + ${now - context.timestarted}ms since start`);
     const task = getTask({ data: taskId });
@@ -168,11 +165,13 @@ Here's our loader
   },
 ```
 
-Did you catch it? We called `getTask` **without** awaiting it. That means task is just a promise, which Start and Router allows us to return from our loader (ideally we should maybe name it taskPromise or similar).
+Did you catch it? We called `getTask` **without** awaiting it. That means task is just a promise, which Start and Router allows us to return from our loader (ideally we should maybe name it something like `taskPromise`).
 
-But how do we consume this promise, show loading state, and `await` the real value. There's two ways. TanStack Router defines and [Await](https://tanstack.com/router/latest/docs/framework/react/api/router/awaitComponent#await-component) component for just this purpose. But if you're using React 19, you can use the new `use` psuedo-hook
+But how do we _consume_ this promise, show loading state, and `await` the real value. There's two ways. TanStack Router defines an [Await](https://tanstack.com/router/latest/docs/framework/react/api/router/awaitComponent#await-component) component for this. But if you're using React 19, you can use the new `use` psuedo-hook
 
 ```ts
+import { use } from "react";
+
 function TaskView() {
   const { task: taskPromise } = Route.useLoaderData();
   const { isFetching } = Route.useMatch();
@@ -197,19 +196,19 @@ function TaskView() {
 }
 ```
 
-Use will cause this component to suspend, which will show the nearest Suspense boundary in the tree. Fortunately, the `pendingComponent` you set up in Router also doubles as a Suspense boundary. TanStack is impressively well integrated with modern React features.
+`use` will cause the component to suspend, and show the nearest `Suspense` boundary in the tree. Fortunately, the `pendingComponent` you set up in Router also doubles as a Suspense boundary. TanStack is impressively well integrated with modern React features.
 
 Now when we load an individual task's page, we'll first see the overview data which loaded quickly, and server rendered, above the Suspense boundary for the task data we're streaming
 
 ![Tasks streaming](/introducing-tanstack-start/streaming-tasks.png)
 
-When the task data come in, the promise will resolve, the server will push the data down, and our use call can provide data for our component.
+When the task comes in, the promise will resolve, the server will push the data down, and our `use` call will provide data for our component.
 
 ![Tasks streaming finish](/introducing-tanstack-start/streaming-tasks-finish.png)
 
 ## React Query
 
-As before, let's integrate react-query. And as before, there's not much for us to do. Since we integrated the `@tanstack/react-router-with-query` package when we started, our queryClient will be available on the server, and will sync up with the queryClient on the client, and put data (or in-flight streamed promises) into cache.
+As before, let's integrate react-query. And as before, there's not much to do. Since we added the `@tanstack/react-router-with-query` package when we got started, our `queryClient` will be available on the server, and will sync up with the queryClient on the client, and put data (or in-flight streamed promises) into cache.
 
 Let's start with our main epics page. Our loader looked like this before
 
@@ -237,11 +236,11 @@ async loader({ context, deps }) {
 },
 ```
 
-We just await the calls. Make sure you don't just sequentially await each individual call; that would create a waterfall. And be sure to use `Promise.allSettled`, rather than `Promise.all`, since the latter will quit immediately if any of the promises error out.
+We just `await` the calls. Make sure you don't just sequentially `await` each individual call; that would create a waterfall. And be sure to use `Promise.allSettled`, rather than `Promise.all`, since the latter will quit immediately if any of the promises error out.
 
 ### Streaming with react-query
 
-As I implied above, to stream data with react-query, just do the exact same thing, but don't await the promise. Let's do that for the page for viewing an individual epic.
+As I implied above, to stream data with react-query, just do the exact same thing, but _don't_ `await` the promise. Let's do that for the page for viewing an individual epic.
 
 ```ts
 loader: ({ context, params }) => {
@@ -253,10 +252,10 @@ loader: ({ context, params }) => {
 
 And now if this page is loaded initially, the query for this data will start on the server, and stream to the client. If the data are pending, our suspense boundary will show, triggered automatically by react-query's `useSuspenseBoundary` hook.
 
-If the user browses to this page, the loader will instead run on the client, and fetch those same data from the server, and trigger the same suspense boundary.
+If the user browses to this page, the loader will instead run on the client, and fetch those same data from the same server function, and trigger the same suspense boundary.
 
 ## Parting thoughts
 
-I hope this post was useful to you. It wasn't a deep dive into TanStack Start; the docs (or an online course, which is bound to exist before long) is a better venue for that. Instead I hope I was able to show why server rendering can offer almost any web app performance boost, and why TanStack Start is a superb tool for doing so. Not only does it simplify a great deal of things by running loaders isomorphically, but it even integrates wonderfully with react-query.
+I hope this post was useful to you. It wasn't a deep dive into TanStack Start; the docs (or an online course, which is bound to exist before long) is a better venue for that. Instead I hope I was able to show _why_ server rendering can offer almost any web app a performance boost, and why TanStack Start is a superb tool for doing so. Not only does it simplify a great deal of things by running loaders isomorphically, but it even integrates wonderfully with react-query.
 
 The react-query integration is especially exciting to me. It delivers component-level data fetching while still allowing for server fetching, streaming, all without sacrificing one bit of convenience. It's genuinely the best of all worlds, and a better solution than I've seen anywhere else.
