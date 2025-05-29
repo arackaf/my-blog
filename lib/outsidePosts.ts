@@ -1,5 +1,35 @@
 export const externalPosts = [
   {
+    title: "Introducing TanStack Start",
+    date: "2024-12-18T10:00:00.000Z",
+    description: "A high-level introduction to TanStack Start, featuring integration with react-query",
+    url: "https://frontendmasters.com/blog/introducing-tanstack-start/",
+  },
+  {
+    title: "Introducing Fly.io",
+    date: "2024-12-12T10:00:00.000Z",
+    description: "An introduction to the Fly.io platform",
+    url: "https://frontendmasters.com/blog/introducing-fly-io/",
+  },
+  {
+    title: "Drizzle Database Migrations",
+    date: "2024-12-09T10:00:00.000Z",
+    description: "Using Drizzle to manage and sync your database schema",
+    url: "https://frontendmasters.com/blog/drizzle-database-migrations/",
+  },
+  {
+    title: "Loading Data with TanStack Router: react-query",
+    date: "2024-11-21T10:00:00.000Z",
+    description: "Integrating TanStack Router with react-query for rich, fine-grained data loading",
+    url: "https://frontendmasters.com/blog/tanstack-router-data-loading-2/",
+  },
+  {
+    title: "Loading Data with TanStack Router: Getting Going",
+    date: "2024-11-20T10:00:00.000Z",
+    description: "Using TanStack Router's built-in features to load, and invalidate data",
+    url: "https://frontendmasters.com/blog/tanstack-router-data-loading-1/",
+  },
+  {
     title: "Introducing TanStack Router",
     date: "2024-09-13T10:00:00.000Z",
     description: "An introduction to TanStack Router, showing type-safe routing",
