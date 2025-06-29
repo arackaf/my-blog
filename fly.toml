@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for adam-rackis-blog-staging on 2024-11-28T12:30:40-06:00
+# fly.toml app configuration file generated for adam-rackis-blog on 2024-10-21T11:43:26-07:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'adam-rackis-blog-staging'
+app = 'adam-rackis-blog'
 primary_region = 'iad'
 
 [build]
