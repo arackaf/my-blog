@@ -130,6 +130,7 @@ type BackendResponse = {
   item_metadata: Record<string, string>;
   item_origin_code: string;
 };
+
 function getBackendResponse(): BackendResponse[] {
   return [];
 }
