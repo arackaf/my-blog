@@ -183,7 +183,7 @@ function main() {
 
 This works and produces the error we want to see. But it's just a byproduct of the (frankly weird) way we chose to write it, and this protection would disappear if anyone were to come along, see this weird, pointless intermediate variable declaration, and "helpfully" refactor the code to just immediately return the object literal like we just had.
 
-The better solution is to just use `satisfies` to prevent the unwanted widening; that's why it exists!
+The better solution is to use `satisfies` to prevent the unwanted widening; that's why it exists!
 
 ```typescript
 function main() {
@@ -207,7 +207,7 @@ And now we're back to the more idiomatic code we started with, with the same str
 Before we wrap up, let's briefly consider this alternative you might be wondering about
 
 ```typescript
-function main3() {
+function main() {
   const backendItems = getBackendResponse();
   insertInventoryItems(
     backendItems.map(item => {
@@ -221,7 +221,7 @@ function main3() {
 }
 ```
 
-This produces no errors at all. `as` is a typecast. It's something to avoid; it essentially allows you to "lie" to the type checker and _assert_ that a given expression matches a given type. In this case, the cast is quite simple because this object already matches the InventoryItem type. It has a sku, and a description. It also has some extra "stuff" but TypeScript doesn't really mind. It's the `satisfies` keyword which additionally forces typescript to also _not_ allow a wider type, and therefor _start_ minding about this extra "stuff."
+This produces no errors at all. `as` is a typecast. It's something to avoid; it essentially allows you to "lie" to the type checker and _assert_ that a given expression matches a given type. In this case, the cast pointless because this object already matches the `InventoryItem` type. It has a sku, and a description. It also has some extra "stuff" but TypeScript doesn't really mind. It's the `satisfies` keyword which additionally forces TypeScript to also _not_ allow a wider type, and therefor _start_ minding about extra properties.
 
 For completeness, this version of the casting code actually does fail
 
