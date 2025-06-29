@@ -55,7 +55,7 @@ This is called "excess property checking." It happens when assigning an object l
 
 ## The Satisfies keyword
 
-To provide the most simplistic example of the satisfies keyword, let's go back to this code
+To provide the most simplistic example of using `satisfies`, let's go back to this code
 
 ```typescript
 const val3 = {
@@ -182,7 +182,7 @@ function main() {
 
 This works and produces the error we want to see. But it's just a byproduct of the (frankly weird) way we chose to write it, and this protection would disappear if anyone were to come along, see this weird, pointless intermediate variable declaration, and "helpfully" refactor the code to just immediately return the object literal like we just had.
 
-The better solution is to just use the satisfies keywork to prevent the unwanted widening; that's why it exists!
+The better solution is to just use `satisfies` to prevent the unwanted widening; that's why it exists!
 
 ```typescript
 function main() {
@@ -251,6 +251,6 @@ since `unknown` is a "top" type, which means anything can be cast to it, and fro
 
 ## Wrapping up
 
-Use the `satisfies` keyword when you want to prevent type widenings, in situations where a top-level variable declaration doesn't quite fit well.
+Use `satisfies` when you want to prevent type widenings, in situations where a top-level variable declaration doesn't quite fit well.
 
 Happy coding!
