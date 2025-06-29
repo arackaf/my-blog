@@ -37,7 +37,7 @@ const val = {
 let thing4: Thing1 = val;
 ```
 
-The `Thing1` type only calls for a name property, that's a string. If you also specify some other stuff, TypeScript is (usually) ok with it. This might seem surprising coming from other languages, but it's a pragmatic tradeoff given that TypeScripts primary purpose is to provide some manner of TypeSafety to a completely untyped programming language: JavaScript.
+The `Thing1` type only calls for a name property, that's a string. If you also specify other properties, TypeScript is (usually) ok with it. This might seem surprising coming from other languages, but it's a pragmatic tradeoff given that TypeScript's primary purpose is to provide some manner of type safety to a completely untyped programming language: JavaScript.
 
 I said usually above because occasionally TypeScript will be a bit stricter about not allowing "extra" values like we saw above. In particular, when assigning an object literal to a variable that's declared with a type, TypeScript will require a strict matching.
 
@@ -51,7 +51,7 @@ const val2: Thing1 = {
 };
 ```
 
-This is called "excess property checking." It happens when assigning an object literal to a variable with a declared type, like we just saw, and also when passing an object literal to a function with a paremter that has a declared type.
+This is called "excess property checking." It happens when assigning an object literal to a variable with a declared type, like we just saw, and also when passing an object literal to a function paremter that has a declared type.
 
 ## The Satisfies keyword
 
@@ -93,9 +93,11 @@ const val3: Thing1 = {
 };
 ```
 
-***CALLOUT
-The `satisfies` keyword allows you to assert that a certain value "satisfies" a given type, while *preventing* a wider type from being inferred.
-***CALLOUT
+\*\*\*CALLOUT
+
+The `satisfies` keyword allows you to assert that a certain value "satisfies" a given type, while _preventing_ a wider type from being inferred.
+
+\*\*\*CALLOUT
 
 Bare with me.
 
@@ -178,7 +180,7 @@ function main() {
 }
 ```
 
-This works and produces the error we want to see. But it's just a biproduct of the (frankly weird) way we chose to write it, and this protection would disappear if anyone were to come along, see this weird, pointless intermediate variable declaration, and "helpfully" refactor the code to just immediately return the object literal like we just had.
+This works and produces the error we want to see. But it's just a byproduct of the (frankly weird) way we chose to write it, and this protection would disappear if anyone were to come along, see this weird, pointless intermediate variable declaration, and "helpfully" refactor the code to just immediately return the object literal like we just had.
 
 The better solution is to just use the satisfies keywork to prevent the unwanted widening; that's why it exists!
 
@@ -220,7 +222,7 @@ function main3() {
 
 This produces no errors at all. `as` is a typecast. It's something to avoid; it essentially allows you to "lie" to the type checker and _assert_ that a given expression matches a given type. In this case, the cast is quite simple because this object already matches the InventoryItem type. It has a sku, and a description. It also has some extra "stuff" but TypeScript doesn't really mind. It's the `satisfies` keyword which additionally forces typescript to also _not_ allow a wider type, and therefor _start_ minding about this extra "stuff."
 
-For completeness, this version of the casting code actually fails even harder
+For completeness, this version of the casting code actually does fail
 
 ```typescript
 function main3() {
@@ -241,7 +243,7 @@ function main3() {
 }
 ```
 
-TypeScript will allow you to lie, but up to an extent. If the cast makes absolutely no sense, TypeScript won't allow it. As the error indicates, if you, for some reason, actually wanted to go through with this case, you'd do
+TypeScript will allow you to lie, but only so far. If the cast makes absolutely no sense, TypeScript won't allow it. As the error indicates, if you, for some reason, actually wanted to go through with this code, you'd do
 
 `as unknown as InventoryItem;`
 
