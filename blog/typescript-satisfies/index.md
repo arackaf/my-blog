@@ -99,11 +99,11 @@ The `satisfies` keyword allows you to assert that a certain value "satisfies" a 
 
 \*\*\*CALLOUT
 
-Bare with me.
+Bear with me.
 
 You're probably thinking that this is completely pointless, since we can just move `Thing1` up, and into a proper type declaration, and even save a few keystrokes while doing so!
 
-But not all situations lend themselves to this.
+But not all situations lend themselves to this solution.
 
 Let's take a look at a slightly more complex, more realistic example
 
@@ -142,7 +142,7 @@ The `getBackendResponse` function is hard coded to return an empty array, but ju
 function insertInventoryItems(items: InventoryItem[]) {}
 ```
 
-Ok let's put things together, fetch some backend items, manipulate those backend items into the proper structure for our own `InventoryItem` type, and then call our `insertInventoryItems` function
+Ok let's put things together, fetch some items from our external system, manipulate them into the proper structure for our own `InventoryItem` type, and then call our `insertInventoryItems` function
 
 ```typescript
 function main() {
