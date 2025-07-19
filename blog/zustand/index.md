@@ -255,11 +255,11 @@ Obviously for a trivial app like this it doesn't matter, but for a large app at 
 
 The full docs are [here](https://github.com/pmndrs/zustand). Zustand has a delightfully small surface areas, so I'd urge you to just read the docs if you're curious.
 
-That said, there's a few features worth calling out here
+That said, there's a few features worth calling out here.
 
 ### Async friendly
 
-Zustand doesn't care where or when your `set` function is called. You're free to have async methods in your store, which call `set` after a fetch.
+Zustand doesn't care where or when the `set` function is called. You're free to have async methods in your store, which call `set` after a fetch.
 
 The docs offer this example
 
@@ -277,7 +277,7 @@ const useFishStore = create(set => ({
 
 We already know that we can call `set(oldState => newState)` but what if we need (or just want) to read the _current_ state inside one of our actions?
 
-It turns out out create also has a second argument, `get`, that you can reference for this very purpose
+It turns out create also has a second argument, `get`, that you can reference for this very purpose
 
 ```ts
 export const useTasksStore = create<TasksState>((set, get) => ({
@@ -286,11 +286,13 @@ export const useTasksStore = create<TasksState>((set, get) => ({
 And now you can do something like this
 
 ```ts
-clearEvenTasks: () => {
+logOffTasks: () => {
   const oddTasks = get().tasks.filter((_, index) => index % 2 === 0);
-  set({ tasks: oddTasks });
+  console.log({ oddTasks: oddTasks });
 },
 ```
+
+The first line grabs a piece of state, completely detached from any updates.
 
 ### Reading state outside of React components
 
@@ -308,7 +310,7 @@ useEffect(() => {
 
 ### Pushing further
 
-Zustand also supports manual, fine-grained subscriptions; bindings for vanilla JavaScript, with no React at all; and integrates well with immutable helpers like Immer; and some other, more advanced goodies, we won't try to cover here. Check out the docs if this post has sparked your interest!
+Zustand also supports manual, fine-grained subscriptions; bindings for vanilla JavaScript, with no React at all; and integrates well with immutable helpers like Immer; it also has some other, more advanced goodies we won't try to cover here. Check out the docs if this post has sparked your interest!
 
 ## Concluding thoughts
 
