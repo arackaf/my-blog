@@ -221,6 +221,38 @@ const currentFilter = useTasksStore(state => state.currentFilter);
 
 Now our call returns only our `currentView` value in the first example, or our `tasks` array or `currentFilter` in our second, and third lines respectively.
 
+If you don't like having those multiple distinct calls like that, you're free to use Zustand's `useShallow` helper
+
+```ts
+import { useShallow } from "zustand/react/shallow";
+
+// ...
+const { tasks, setTasks } = useTasksStore(
+  useShallow(state => ({
+    tasks: state.tasks,
+    setTasks: state.setTasks,
+  }))
+);
+```
+
+The useShallow hook let's us return an object with the state we want, and will trigger a re-render only if a shallow check on the properties in this object changes.
+
+If you want to save a few lines of code, you're also free to return an array
+
+```ts
+const [tasks, setTasks] = useTasksStore(useShallow(state => [state.tasks, state.setTasks]));
+```
+
+which does the same thing.
+
+The zustand-optimized version of the app only uses the `useTasksStore` hook with a selector function, which means we can observer our improved re-rendering.
+
+So changing the current UI view will only rerender the components that use the ui view part of the state.
+
+![image](/zustand/img4-zustand-optimized.png)
+
+Obviously for a trivial app like this it doesn't matter, but for a large app at scale this can be beneficial, especially for your users on slower devices.
+
 ## Concluding thoughts
 
 Zustand is a wonderfully simple, frankly fun library to use to manage state management in React. And as an added bonus, it can also improve your render performance.
