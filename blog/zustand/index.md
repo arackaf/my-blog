@@ -273,6 +273,43 @@ const useFishStore = create(set => ({
 }));
 ```
 
+### Reading state inside your store, but outside of set
+
+We already know that we can call `set(oldState => newState)` but what if we need (or just want) to read the _current_ state inside one of our actions?
+
+It turns out out create also has a second argument, `get`, that you can reference for this very purpose
+
+```ts
+export const useTasksStore = create<TasksState>((set, get) => ({
+```
+
+And now you can do something like this
+
+```ts
+clearEvenTasks: () => {
+  const oddTasks = get().tasks.filter((_, index) => index % 2 === 0);
+  set({ tasks: oddTasks });
+},
+```
+
+### Reading state outside of React components
+
+Zustand gives you back a react _hook_ from `create`. But what if you want to read your state outside of a React component? Zustand attaches a `getState()` method directly onto your hook, which you can call anywhere
+
+```ts
+useEffect(() => {
+  setTimeout(() => {
+    console.log("Can't call a hook here");
+    const tasks = useTasksStore.getState().tasks;
+    console.log({ tasks });
+  }, 1000);
+}, []);
+```
+
+### Pushing further
+
+Zustand also supports manual, fine-grained subscriptions; bindings for vanilla JavaScript, with no React at all; and integrates well with immutable helpers like Immer; and some other, more advanced goodies, we won't try to cover here. Check out the docs if this post has sparked your interest!
+
 ## Concluding thoughts
 
 Zustand is a wonderfully simple, frankly fun library to use to manage state management in React. And as an added bonus, it can also improve your render performance.
