@@ -4,15 +4,13 @@ date: "2025-07-05T10:00:00.000Z"
 description: An introduction to Zustand, a small but powerful state management library for React
 ---
 
-## Fun introduction to Zustand
-
 Zustand is a minimal, but fun and effective state management library. It's somewhat weird for me to write an introductory blog post on a tool that's over 5 years old, and pretty popular. But it's popular for a reason, and there's almost certainly more devs who aren't familiar with it than are; so if you're in the former group, hopefully this post will be the concise and impactful introduction you didn't know you needed.
 
 The code for everything in this post is on [my github](https://github.com/arackaf/zustand-sandbox).
 
 ## Getting started
 
-We'll look at a toy app, that does the minimal possible amount of work so we can focus on the state management. The app is a basic shell of a task management library. It shows a (static) like of tasks, there's a button to add a new task, a heading showing the number of tasks, and then a component to change the ui view between three options.
+We'll look at a toy app, that does the minimal possible amount of work so we can focus on state management. The app is a basic shell of a task management library. It shows a (static) like of tasks, there's a button to add a new task, a heading showing the number of tasks, and then a component to change the ui view between three options.
 
 Moreover, the same app was written 3 times, once using vanilla React context for state, once using Zustand simply but non-idiomatically, and then a third version using Zustand more properly, so we can see some of the performance benefits it offers.
 
@@ -20,7 +18,7 @@ Moreover, the same app was written 3 times, once using vanilla React context for
 
 Each of the 3 apps is identical, except for the label just above the Add New Task button.
 
-Each app is broken down more or less identically to this.
+Each app is broken down more or less identically as so.
 
 ```tsx
 function App() {
@@ -51,11 +49,11 @@ For this post, we'll first see what this looks like using React context, and the
 
 ## The vanilla version
 
-There's a very good argument to be made that React's context feature was not designed to be a state management library; but that hasn't stopped many devs from trying. In order to avoid excessive prop drilling, while avoiding _yet another_ external dependency, devs will often put the state needed for a certain part of their UI into context, and then access it lower in the component tree, as needed.
+There's a very good argument to be made that React's context feature was not designed to be a state management library; but that hasn't stopped many devs from trying. In order to avoid excessive prop drilling, while avoiding _yet another_ external dependency, devs will often put the state needed for a certain part of their UI into context, and then access it lower in the component tree where needed.
 
 Our app here has its entire state stored like this, but that's just a product of how unrealistically small it is.
 
-Ok let's get started. First we have to declare our context
+Let's get started. First we have to declare our context
 
 ```ts
 const TasksContext = createContext<TasksState>(null as any);
@@ -160,11 +158,13 @@ export const useTasksStore = create<TasksState>(set => ({
 }));
 ```
 
-We give Zustand a function that takes a `set` function. Zustand will call this function and pass a set callback, and you return your state. The result of the create function will be a react hook that you use to _read_ your state.
+Basically we pass a function to `create`, and return ... our state. Just like that. Simple and humble. The function we pass also takes an argument, which I've called `set`. The result of the `create` function, which I've named `useTasksStore` here, will be a react hook that you use to _read_ your state.
 
-Your state is free to use the `set` function however you want in order to update your state.
+### Updating state
 
-Notice our updating functions like
+Updating our state couldn't be simpler. The `set` function we see above is how we do that.
+
+Notice our updating functions like this
 
 ```ts
 setCurrentView: (newView: TasksView) => set({ currentView: newView }),
@@ -178,7 +178,7 @@ Naturally there's an override: if we pass `true` for the second argument to `set
 clear: () => set({}, true);
 ```
 
-Would wipe our state, and replace it with an empty object; use this cautiously!
+would wipe our state, and replace it with an empty object; use this cautiously!
 
 ### Reading our state
 
@@ -186,7 +186,7 @@ To read our state in the components which need it, we just ... call the hook tha
 
 **
 CALLOUT
-This is actually not the best way to use Zustand - stay tuned for a better way to use this api
+This is actually not the best way to use Zustand - keep reading for a better way to use this api
 **
 
 ```ts
@@ -209,7 +209,7 @@ const { yourFields } = useTasksStore();
 
 Zustand is well optimized, and will cause the component with the call to `useTasksStore` to only re-render when the _result_ of the hook call changes. By default it returns an object with your entire state. And when you change any piece of your state, the surrounding object will of course have to be recreated by Zustand, and will no longer match.
 
-Instead, you pass a selector argument into `useTasksStore`, in order to _select_ the piece of state you want. The simplest usage would look like this
+Instead, you should pass a selector argument into `useTasksStore`, in order to _select_ the piece of state you want. The simplest usage would look like this
 
 ```ts
 const currentView = useTasksStore(state => state.currentView);
@@ -217,7 +217,9 @@ const tasks = useTasksStore(state => state.tasks);
 const currentFilter = useTasksStore(state => state.currentFilter);
 ```
 
-Now our call returns only our `currentView` value in the first line, or our `tasks` array, or `currentFilter` in our second, and third lines respectively.
+Now our call returns only the `currentView` value in the first line, or our `tasks` array, or `currentFilter` in our second, and third lines respectively.
+
+The value returned for `currentView` will only be different if you've _changed_ that state value, and so on with `tasks`, and `currentFilter`. That means if _none_ of these values have changed, then this component will not rerender, even if _other_ values in our Zustand store have changed.
 
 If you don't like having those multiple calls, you're free to use Zustand's `useShallow` helper
 
@@ -233,7 +235,7 @@ const { tasks, setTasks } = useTasksStore(
 );
 ```
 
-The `useShallow` hook lets us return an object with the state we want, and will trigger a re-render only if a shallow check on the properties in this object changes.
+The `useShallow` hook lets us return an object with the state we want, and will trigger a rerender only if a shallow check on the properties in this object change.
 
 If you want to save a few lines of code, you're also free to return an array with useShallow
 
@@ -275,9 +277,9 @@ const useFishStore = create(set => ({
 
 ### Reading state inside your store, but outside of set
 
-We already know that we can call `set(oldState => newState)` but what if we need (or just want) to read the _current_ state inside one of our actions?
+We already know that we can call `set(oldState => newState)` but what if we need (or just want) to read the _current_ state inside one of our actions, unrelated to an update?
 
-It turns out create also has a second argument, `get`, that you can reference for this very purpose
+It turns out create also has a second argument, `get`, that you can use for this very purpose
 
 ```ts
 export const useTasksStore = create<TasksState>((set, get) => ({
@@ -286,7 +288,7 @@ export const useTasksStore = create<TasksState>((set, get) => ({
 And now you can do something like this
 
 ```ts
-logOffTasks: () => {
+logOddTasks: () => {
   const oddTasks = get().tasks.filter((_, index) => index % 2 === 0);
   console.log({ oddTasks: oddTasks });
 },
