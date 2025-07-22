@@ -62,6 +62,14 @@ x++;
 x++;
 ```
 
+no line numbers
+
+```ts
+function add(x: number, y: number): number {
+  return x + y;
+}
+```
+
 big code
 
 ```javascript {lineNumbers}
