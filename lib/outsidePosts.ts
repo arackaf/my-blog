@@ -1,5 +1,17 @@
 export const externalPosts = [
   {
+    title: "Introducing Zustand",
+    date: "2025-07-21T10:00:00.000Z",
+    description: "A quick introduction to Zustand, a simple, fun and effective state management library for React",
+    url: "https://frontendmasters.com/blog/introducing-zustand/",
+  },
+  {
+    title: "Satisfies in TypeScript",
+    date: "2025-07-03T10:00:00.000Z",
+    description: "Some quick coverage of one of TypeScript's less commonly used features: satisfies",
+    url: "https://frontendmasters.com/blog/satisfies-in-typescript/",
+  },
+  {
     title: "Introducing TanStack Start",
     date: "2024-12-18T10:00:00.000Z",
     description: "A high-level introduction to TanStack Start, featuring integration with react-query",
