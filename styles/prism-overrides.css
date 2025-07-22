@@ -7,9 +7,11 @@
   margin-top: -1px;
 }
 
+/*
 .line-numbers span.line-numbers-rows > span {
   position: relative;
 }
+*/
 
 .line-numbers span.line-numbers-rows > span::after {
   content: " ";
@@ -41,8 +43,14 @@
   border-width: 0;
   color: rgb(0, 0, 0);
   cursor: pointer;
+  border-radius: 5px;
 }
 
 .prism-copy-button[disabled] {
   cursor: default;
+}
+
+pre.shiki {
+  padding: 10px;
+  overflow: auto;
 }

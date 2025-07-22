@@ -21,3 +21,24 @@ function foo(a: number, b: number): number {
 ```
 
 Check out that code
+
+or this
+
+```ts
+async function getPuppeteerPage(browser: Browser) {
+  const page = await browser.newPage();
+  if (true) {
+    await page.setRequestInterception(true);
+    page.on("request", req => {
+      const blockedResourceTypes = ["image", "stylesheet", "media", "font"];
+      if (blockedResourceTypes.includes(req.resourceType())) {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+  }
+
+  return page;
+}
+```
