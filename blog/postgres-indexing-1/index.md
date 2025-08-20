@@ -89,8 +89,6 @@ So the full story to find a single row in our database by an id value, via an in
 
 We'll talk later about these heap reads, or lack thereof when we get into covering indexes and the Index Only Scan operation.
 
-**Callout - a quick math detour**
-
 ### B Trees run in O(LogN) time
 
 You may have been taught a fun little math fact in school, that if you were to be given a penny on January 1st, then have your penny doubled on January 2nd, then have that new amount (2 cents) doubled on January 3rd, etc, you'd have about $10 million dollars before Febuary. That's the power of exponential operations. Anytime you're repeatedly multiplying a value by some constant (which is all doubling is, for constant 2), it will become enormous, fast.
@@ -113,3 +111,86 @@ and also
 Log<sub>2</sub>(~4 billion) = 32.
 
 They're literally inverse operations of each other.
+
+### How deep are real indexes?
+
+Before we move on, let's briefly look at how deep a real Postgres index is on a somewhat large amount of data. The books table with 90 million entries already has an index defined on the primary key id field, which is a 32 bit integerer. Without going into gross detail about what all is stored on a B Tree node (N keys, N+1 offsets to other nodes, some metadata and headers, etc), ChatGPT estimates that Postgres can store between 400-500 key fields on an index on a 32 bit integer.
+
+Let's check that.
+
+There's a Postgres extension for just this purpose
+
+```
+CREATE EXTENSION IF NOT EXISTS pageinspect;
+```
+
+and then
+
+```sql
+SELECT * FROM bt_metap('books_pkey');
+```
+
+which produces
+
+```
+ magic  | version |  root  | level | fastroot | fastlevel | last_cleanup_num_delpages | last_cleanup_num_tuples | allequalimage
+--------+---------+--------+-------+----------+-----------+---------------------------+-------------------------+---------------
+ 340322 |       4 | 116816 |     3 |   116816 |         3 |                         0 |                      -1 | t
+```
+
+Note the level 3, which is what our index's depth is. That means it would take just 3 index reads to arrive at the correct B Tree leaf for any value.
+
+Checking the math, the Log<sub>450</sub>(90,000,000) comes out to ... 2.998
+
+## Taking an index for a spin
+
+Let's run a quick query by id, with the primary key index that already exists, and then look at how we can create on one title, so we can re-run our query to find the first 10 books in order.
+
+```sql
+book_management=# explain analyze select * from books where id = 10000;
+```
+
+which produces the following
+
+![Index Seek and Read](/postgres-indexing-1/img5-index-1.png)
+
+We're running an index scan. No surprises there. The Index Cond
+
+```
+  Index Cond: (id = 10000)
+```
+
+is the condition Postgres uses to nagivate the internal nodes; those were the gold nodes from the visualization before. In this case, it predictably looks for id = 10000
+
+## Re-visiting our titles sort
+
+Let's take a fresh look at this query
+
+```sql
+select *
+from books
+order by title
+limit 10;
+```
+
+but this time let's define an index, like so
+
+```sql
+CREATE INDEX idx_title ON books(title);
+```
+
+And now our query runs in less than a ms.
+
+![Index Seek and Read](/postgres-indexing-1/img5-index-1.png)
+
+Notice what's _missing_ from this execution plan, that was present on the previous query, when we looked for a single index value.
+
+Did you spot it?
+
+It's the Index Cond. We're not actually ... _looking for_ anything. We just want the first ten rows, sorted by title. The index stores all books, sorted by title. So the engine just hops right down to the start of the index, and simply reads the first ten rows.
+
+## More fun with indexes
+
+Let's go deeper.
+
+Let's define an index with minimal real-world usefulness, which will allow us to explore all the concepts we've talked about so far.
