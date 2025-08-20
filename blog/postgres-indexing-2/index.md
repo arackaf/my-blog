@@ -1,5 +1,5 @@
 ---
-title: Introduction to Postgres indexes
+title: Getting weird with Postgres indexes
 date: "2025-08-19T10:00:00.000Z"
-description: A developer's guide to truly understanding database indexes, and how to weild them
+description: Pushing our index knowledge to the next level, to get the most out of our database
 ---
