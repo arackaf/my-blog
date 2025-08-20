@@ -6,13 +6,13 @@ description: A developer's guide to truly understanding database indexes, and ho
 
 ## Introduction
 
-This post is part 1 of a 2-part series on database indexes. Part 1 is a practical, hands-on, applicable approach to indexes. We'll cover what B+ trees are, of course, but with a focus on deeply understanding, and internalizing how they store data on disk, and how your database uses them to speed up queries.
+This post is part 1 of a 2-part series on database indexes. Part 1 is a practical, hands-on, applicable approach to indexes. We'll cover what B Trees are, of course, but with a focus on deeply understanding, and internalizing how they store data on disk, and how your database uses them to speed up queries.
 
 This will set us up nicely for part 2, where we'll explore some interesting, counterintuitive ways to press indexes into service to achieve great querying performance over large amounts of data.
 
 Everything in these posts will use Postgres, but absolutely everything is directly applicable to other relational databases. All the queries I'll be running are against a simple books database which I scaffolded, and had Cursor populate with about 90 million records. DDL for the database, as well as the code to fill it are in [this repo](https://github.com/arackaf/postgres-indexing-post) if you'd like to follow along on your own: `sql/db_create.sql` has the DDL, and `npx tsx insert-data/fill-database.ts` will run the code to fill it.
 
-We'll be looking at some B+ Tree visualizations as we go. Those were put together with a web app I had Cursor help me build. The repo for that is [here](https://github.com/arackaf/btree-visualizer).
+We'll be looking at some B Tree visualizations as we go. Those were put together with a web app I had Cursor help me build. The repo for that is [here](https://github.com/arackaf/btree-visualizer).
 
 ## Setting some baselines
 
@@ -56,3 +56,60 @@ These 3 groups of 7 are then _gathered_ and _merged_ together in the Gather Merg
 Rather than just slapping an index in, and magically watching the time drop down, let's take a quick detour and make sure we really understand _how_ indexes work. Failing to do this can result in frustration when your database winds up not picking the index you want it to, for reasons that a good understanding could make clear.
 
 ## Indexes
+
+The best way to think about a database index is in terms of an index in a book. These list all the major terms in the book, as well as all the pages that term appears on. Imagine you have a 1,000 page book on the American Civil War, and wanted to know what pages Philip Sheridan is mentioned on. It would be excrutiatingly slow to just look through all 1,000 pages, searching for those words. But if there's a 30 or so page index, your task is considerably simpler.
+
+Before we go further, let's look at a very basic index over a numeric `id` column
+
+![Index](/postgres-indexing-1/img4-index.png)
+
+Start at the very, very bottom. Those blue "leaf" nodes contain the actual data in your index. These are the actual id values. This is a direct analogue to a book's index. So what are the gold boxes above them? These help you find _where_ the leaf node is, with the value you're looking for.
+
+Let's go to the very top, to the root node of our B Tree. Each of these internal nodes will have N key values, and N+1 pointers. If the value you're looking for is strictly less than the first value, go down that first, left-most arrow and continue your search. If the value you're looking for is greater than or equal to that first key, but strictly less than the next key, take the second arrow. And so on. In real life the number of keys in each of these nodes will be determined by how many of them can fit into a single page on disk.
+
+So with this B Tree, if we want to find id = 33, we start at the root. 33 is not < 19, so we don't take the first arrow. But 33 _is_ >=19 and <37, so we take the middle arrow.
+
+Now we repeat. 33 is not < 25, so we don't take the left most path. 33 is not >= 25 **AND** < 31, so we don't take the middle path. But 33 **is** greater than 31 (it better be, this is the last path remaining), so we take the right most path. And that takes us to the leaf node with our key value.
+
+![Index Seek](/postgres-indexing-1/btree-seek.gif)
+
+Notice also that these leaf nodes have points forward, and backward. This allows us to not only find a _specific_ key value, but also a _range_ of values. If we wanted all ids > 33, we could do as we did, and just keep reading.
+
+![Index Seek and Read](/postgres-indexing-1/btree-seek-read.gif)
+
+But, now what? What if we ran a query of `SELECT * FROM books WHERE id = 33` - we've arrived at a leaf node in our index with ... our key. How do we get all the _data_ associated with that key? In other words the actual _row_ in the database for that value?
+
+The thing I've left off so far is that leaf nodes also contain pointers to the actual table where that value in question is.
+
+![Index](/postgres-indexing-1/btree-with-heap.png)
+
+So the full story to find a single row in our database by an id value, via an index, would actually look more like this
+
+![Index Seek and Read](/postgres-indexing-1/index-seek-with-heap-read.gif)
+
+We'll talk later about these heap reads, or lack thereof when we get into covering indexes and the Index Only Scan operation.
+
+**Callout - a quick math detour**
+
+### B Trees run in O(LogN) time
+
+You may have been taught a fun little math fact in school, that if you were to be given a penny on January 1st, then have your penny doubled on January 2nd, then have that new amount (2 cents) doubled on January 3rd, etc, you'd have about $10 million dollars before Febuary. That's the power of exponential operations. Anytime you're repeatedly multiplying a value by some constant (which is all doubling is, for constant 2), it will become enormous, fast.
+
+Now think of a more depressing, reverse scenrario. If someone gave you $10 million on January 1st, but with the condition that your remaining money would be halved each day, you'd have a lowly cent remaining on Feb 1st. This is a logarithm; it's the inverse of exponentiation. Rather than _multiplying_ a value by some constant, we _divide_ it by some constant. No matter how enormous, it will become small, fast.
+
+This is exactly how B Trees work. In our example B Tree above, there were 9 leaf pages. Our internal nodes had up 3 pointers. Notice that we were able to find out the exact leaf node we wanted by reading only 2 of those gold nodes (which is also the _depth_ of the tree).
+
+9 divided by 3 is 3
+3 divided by 3 is 1
+
+Or, more succinctly, Log<sub>3</sub>9 = 2 (the `Logarithm base 3 of 9 is 2`)
+
+But these small values don't really do this concept justice. Imagine if you had an index with whose leaves spanned 4 bilion pages, and your index nodes had only 2 pointers, each (both of these assumptions are unrealistic). You'd _still_ need only 32 page reads to find any specific value.
+
+2<sup>32</sup> = ~4 billion,
+
+and also
+
+Log<sub>2</sub>(~4 billion) = 32.
+
+They're literally inverse operations of each other.

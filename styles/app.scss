@@ -1,11 +1,11 @@
 body {
-  font-family: 'Georgia', serif;
+  font-family: "Georgia", serif;
   color: rgba(0, 0, 0, 0.8);
 }
 
 .root-container {
   margin-top: 42px;
-  
+
   @media (max-width: 700px) {
     margin-top: 15px;
   }
@@ -18,15 +18,15 @@ main {
   grid-template-rows: auto auto;
   grid-template-columns: 1fr minmax(0, var(--main-content-width)) 1fr;
 
-  grid-template-areas: 
-    'gutter1 header gutter2'
-    'gutter1 main   gutter2';
+  grid-template-areas:
+    "gutter1 header gutter2"
+    "gutter1 main   gutter2";
 
   & > header {
     grid-area: header;
   }
 
-  article { 
+  article {
     grid-area: main;
   }
 
@@ -54,8 +54,13 @@ p {
   line-height: 1.2;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'Segoe UI','Avenir Next','Helvetica Neue','Helvetica','Arial',sans-serif;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: "Segoe UI", "Avenir Next", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
   font-weight: bold;
   line-height: 1.1;
   margin-bottom: var(--heading-margin-bottom);
@@ -78,4 +83,14 @@ h5 {
 }
 h6 {
   font-size: var(--h6-font-size);
+}
+
+sub {
+  vertical-align: sub; /* This is the default browser styling for sub */
+  font-size: smaller; /* Makes the subscript text slightly smaller */
+}
+
+sup {
+  vertical-align: super; /* This is the default browser styling for sub */
+  font-size: smaller; /* Makes the subscript text slightly smaller */
 }
