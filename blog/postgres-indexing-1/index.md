@@ -239,3 +239,49 @@ Tells us how many rows were removed by the filter: it seems there are 151,697 bo
 Now is a good time to mention that the pages value was filled with random values from 100-700. So with 600 possible values, the odds of any particular one is 1 in 600, or 0.00166667. For fun, let's note that 151697 / 90885413 rows in the table were found with that value, which and 151697 / 90885413 is 0.0016691. So that makes sense.
 
 There's a point to all this, I promise.
+
+Let's write a query to get the titles of the books which have the maximum 3 possible pages values (698, 699, 700)
+
+```sql
+explain analyze
+select pages, title
+from books
+where pages > 697;
+```
+
+![Pages not equals plan](/postgres-indexing-1/img9-index-pages-bitmap-scan.png)
+
+Lots going on. Our index is being used, but not like before
+
+```
+   ->  Bitmap Index Scan on idx_pages  (cost=0.00..5883.22 rows=540087 width=0) (actual time=44.011..44.011 rows=453891 loops=1)
+```
+
+Bitmap scan means that the database is scanning our database, and _noting_ the heap locations with records matching our filter. Remember, we need to access the heap to retrieve our title column, to satisfy our query.
+
+Then the engine visits those addresses, and scoopes up the records therein. This is the Bitmap Heap Scan on line 4
+
+```
+   ->  Bitmap Index Scan on idx_pages  (cost=0.00..5883.22 rows=540087 width=0) (actual time=44.011..44.011 rows=453891 loops=1)
+```
+
+But remember, this is the heap, and it's not ordered on pages, so those random locations may have _other_ records _not_ matching our filter. This is done in the Index Recheck on line 6
+
+```
+   Rows Removed by Index Recheck: 6660138
+```
+
+which removed a whopping _6 million_ results. There was no limit on this query, to the database had to find ALL matching records, and there are a lot of them.
+
+## When an index stops being useful
+
+Let's query all the books with an above average number of pages
+
+```sql
+explain analyze
+select pages, title
+from books
+where pages > 400;
+```
+
+![Pages does not use index](/postgres-indexing-1/img10-pages-back-to-heap-scan.png)
