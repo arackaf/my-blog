@@ -43,7 +43,9 @@ Let's grab the first 10 books, but this time sorted alphabetically.
 
 ![Sorted](/postgres-indexing-1/img3-ex-plan-sorted.png)
 
-Catastrophically, this took 20 _seconds_. With 90 million rows in this table, Postgres now has to (kind of) sort the entire table, in order to know what the first 10 books are. I say kind of since it doesn't _really_ have to sort the _entire_ table; it just has to scan the entire table and keep track of the 10 rows with the lowest titles. That's why we see two child workers getting spawned (in addition to the main worker running out query) to each scan about a third of the table, and each take the top 7; this is reflected in lines 3-9 of the execution plan.
+Catastrophically, this took 20 _seconds_. With 90 million rows in this table, Postgres now has to (kind of) sort the entire table, in order to know what the first 10 books are.
+
+I say kind of since it doesn't _really_ have to sort the _entire_ table; it just has to scan the entire table and keep track of the 10 rows with the lowest titles. That's why we see two child workers getting spawned (in addition to the main worker running out query) to each scan about a third of the table. Then the Gather Merge pulls from each worker until it has the top 10. In this case it only needed to pull the top 7 rows from each worker to get its 10; this is reflected in lines 3-9 of the execution plan.
 
 Line 5 makes this especially clear
 
@@ -290,7 +292,7 @@ Why is Postgres doing this, rather than just walking our index, and following th
 
 Postgres keeps track of statistics on which values are contained in its various columns. In this case, it knew that _relatively_ few values would match on this filter, so it chose to use this index.
 
-But that still doesn't answer why it didn't use a regular old index scan, following the various pointers to the heap. Here, Postgres decided that, even though the filter would exclude a large percentage of the table, it would need to read a _lot_ of pages from the heap, and following all those _random_ pointers from the index to the heap would be bad. Those pointers point in all manner of random directions, and **Random I/O** is bad. In fact, Postgres also stores just how closely, or badly those pointers correspond to the underlying order on the heap via something called correlation. This is another one of the statistics Postgres relies on for these decisions.
+But that still doesn't answer why it didn't use a regular old index scan, following the various pointers to the heap. Here, Postgres decided that, even though the filter would exclude a large percentage of the table, it would need to read a _lot_ of pages from the heap, and following all those _random_ pointers from the index to the heap would be bad. Those pointers point in all manner of random directions, and **Random I/O** is bad. In fact, Postgres also stores just how closely, or badly those pointers correspond to the underlying order on the heap for that column via something called correlation. So if, somehow, the book entries in the heap just happened to be stored (more or less) in increasing values of pages, there would be a high correlation on the pages column, and this index would be more likely to be used for this query.
 
 For these reasons Postgres thought it would be better to use the index to _only_ keep track of which heap locations had relevant records, and then fetch them in order, after the Bitmap scan sorted them. This results in neighboring chunks of memory in the heap being pulled together, rather than frequently following those random pointers from the index.
 
@@ -383,6 +385,8 @@ More or less. Line 4
 ```
 
 is not as redundant as it might seem. Postgres _does_ have to consult something called a visibility table to _make sure_ the values in your index are up to date given how Postgres handles updates through it's MVCC system. If those values are _not_ up to date, it _will_ have to hit the heap. But unless your data are changing extremely frequently this should not be a large burden.
+
+In this case, it turns out Postgres had to go to the heap zero times.
 
 ## A variation on the theme
 
