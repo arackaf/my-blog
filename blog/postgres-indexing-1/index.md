@@ -355,3 +355,9 @@ And re-running that same query, we see that it does run a bit faster. From 32ms 
 ![Pages with included title index](/postgres-indexing-1/img13-query-with-included-col.png)
 
 To be clear, it's quite fast either way, but a nice 31% speedup isn't something to turn down if you're using a database that supports this feature (MySQL does not).
+
+## Wrapping up
+
+To say that this post is only scratching the surface would be an understatement. The top of indexing, and query optimization could fill entire books, and of course it has.
+
+Hopefully this post at least has you thinking about indexes the right way. Thinking about how indexes are stored on disk, and how they're read. And never, ever forgetting about the fact that, when scanning an index, you will may need to visit the heap for every matched entry you find, which can get expensive.
