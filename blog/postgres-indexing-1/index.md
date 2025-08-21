@@ -193,4 +193,49 @@ It's the Index Cond. We're not actually ... _looking for_ anything. We just want
 
 Let's go deeper.
 
-Let's define an index with minimal real-world usefulness, which will allow us to explore all the concepts we've talked about so far.
+Let's define an index with minimal real-world usefulness, which should allow us to explore all the concepts we've talked about so far.
+
+We'll define an index on the `pages` column.
+
+```sql
+CREATE INDEX idx_pages ON books(pages);
+```
+
+You might wonder about the fact that the pages column is by no means unique; but that doesn't effect anything: the leaf pages can easily contain duplicate entries.
+
+![Pages index](/postgres-indexing-1/img7-pages-index.png)
+
+Everything else works the same as it always has: the database can quickly jump down to a specific value. This allows us to query a particular value, or even grab a range of values sorted on the column we just looked up. For example, if we want all books with pages > 500, we just seek to that value, and start reading.
+
+But to really make sure we're internalizing how indexes work, let's start by thinking about queries that indexes _can't_ help with. The best example of that is a "not equals" query.
+
+```sql
+explain analyze
+select *
+from books
+where pages <> 548;
+```
+
+An index allows us to seek to a specific value; it won't really let us seek to a ... "non-value." What would that even mean? Let's look at the execution plan.
+
+![Pages not equals plan](/postgres-indexing-1/img8-pages-not-query-execution-plan.png)
+
+We're just scanning the entire table, and applying a filter, represented in line two
+
+```
+  Filter: (pages <> 548)
+```
+
+In a sequential table scan, the Filter predicate, if present, runs a test against each entry found in the heap.
+
+The next line
+
+```
+  Rows Removed by Filter: 151697
+```
+
+Tells us how many rows were removed by the filter: it seems there are 151,697 books in the table with 548 pages.
+
+Now is a good time to mention that the pages value was filled with random values from 100-700. So with 600 possible values, the odds of any particular one is 1 in 600, or 0.00166667. For fun, let's note that 151697 / 90885413 rows in the table were found with that value, which and 151697 / 90885413 is 0.0016691. So that makes sense.
+
+There's a point to all this, I promise.
