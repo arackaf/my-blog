@@ -318,7 +318,7 @@ Let's try it.
 
 ![Pages and title index](/postgres-indexing-1/img12-top-3-page-values-fast.png)
 
-Our query now runs in just 102ms! And we have a new operation in our execution plan.
+Our query now runs in just 32ms! And we have a new operation in our execution plan.
 
 ```bash
    ->  Index Only Scan using idx_pages_title on books  (cost=0.69..30393.42 rows=451013 width=73) (actual time=0.243..83.911 rows=453891 loops=1)
@@ -350,8 +350,8 @@ This tell Postgres to create our index on the pages column, as before, but also 
 
 ![Pages with included title index](/postgres-indexing-1/img12-index-with-included.png)
 
-And re-running that same query, we see that it does indeed run a little bit faster. From a little over 100ms, down to just 80ms.
+And re-running that same query, we see that it does run a bit faster. From 32ms down to just 21ms.
 
 ![Pages with included title index](/postgres-indexing-1/img13-query-with-included-col.png)
 
-It's not the kind of enormous improvement we've seen elsewhere, but I nice 20% speedup isn't something to turn down if you're using a database that supports this (MySQL does not).
+To be clear, it's quite fast either way, but a nice 31% speedup isn't something to turn down if you're using a database that supports this feature (MySQL does not).
