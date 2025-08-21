@@ -10,7 +10,13 @@ This post is part 1 of a 2-part series on database indexes. Part 1 is a practica
 
 This will set us up nicely for part 2, where we'll explore some interesting, counterintuitive ways to press indexes into service to achieve great querying performance over large amounts of data.
 
-Everything in these posts will use Postgres, but absolutely everything is directly applicable to other relational databases. All the queries I'll be running are against a simple books database which I scaffolded, and had Cursor populate with about 90 million records. DDL for the database, as well as the code to fill it are in [this repo](https://github.com/arackaf/postgres-indexing-post) if you'd like to follow along on your own: `sql/db_create.sql` has the DDL, and `npx tsx insert-data/fill-database.ts` will run the code to fill it.
+CALLOUT
+
+There are other types of database indexes beside B Tree, but B Tree indexes are the most common, which is why they'll be the exclusive focus of this post.
+
+/CALLOUT
+
+Everything in these posts will use Postgres, but everything is directly applicable to other relational databases. All the queries I'll be running are against a simple books database which I scaffolded, and had Cursor populate with about 90 million records. The shema for the database, as well as the code to fill it are in [this repo](https://github.com/arackaf/postgres-indexing-post). If you'd like to follow along on your own: `sql/db_create.sql` has the DDL, and `npx tsx insert-data/fill-database.ts` will run the code to fill it.
 
 We'll be looking at some B Tree visualizations as we go. Those were put together with a web app I had Cursor help me build. The repo for that is [here](https://github.com/arackaf/btree-visualizer).
 
@@ -20,9 +26,9 @@ Just for fun, let's take a look at the first 10 rows in the books table. Don't l
 
 ![Our data](/postgres-indexing-1/img1-data.png)
 
-That's the last time we'll be looking at actual data. From here forward, we'll look at queries, the execution plans they generate, then we'll talk about how indexes might, or might not be able to help. Rather than the psql terminal utility I'll be running everything through DataGrip, which is an IDE for databases. The output is identical, except with nicely numbered lines, which will make things easier to talk about as we go.
+That's the last time we'll be looking at actual data. From here forward we'll look at queries, the execution plans they generate, and we'll talk about how indexes might, or might not be able to help. Rather than the psql terminal utility I'll be running everything through DataGrip, which is an IDE for databases. The output is identical, except with nicely numbered lines which will make things easier to talk about as we go.
 
-Let's get started. Let's see what the prior query looks like by putting `explain analyze` before it. This tells Postgres to execute the query, and return to use the execution plan it used, as well as its performance.
+Let's get started. Let's see what the prior query looks like by putting `explain analyze` before it. This tells Postgres to execute the query, and return to us the execution plan it used, as well as its performance.
 
 ```sql
 explain analyze
@@ -31,13 +37,13 @@ select * from books limit 10;
 
 ![Execution plan](/postgres-indexing-1/img2-ex-plan.png)
 
-We asked for 10 rows. The database did a Sequential scan on our books table, but with a limit of 10 applied. Couldn't be simpler, and returned in less than half of one millisecond. This is hardly surprising (or interesting). Postgres essentially just reached in and grabbed the first ten rows it found.
+We asked for 10 rows. The database did a Sequential scan on our books table, but with a limit of 10. Couldn't be simpler, and returned in less than half of one millisecond. This is hardly surprising (or interesting). Postgres essentially just reached in and grabbed the first ten rows.
 
 Let's grab the first 10 books, but this time sorted alphabetically.
 
 ![Sorted](/postgres-indexing-1/img3-ex-plan-sorted.png)
 
-Catastrophically, this took 20 _seconds_. With 90 million rows in this table, Postgres now has to (kind of) sort the entire table, in order to know what the first 10 books are. I say kind of, since it doesn't _really_ have to sort the _entire_ table, just scan the entire table and grab the 10 rows with the lowest title values. That's why we see two child workers getting spawned (in addition to the main worker running out query) to each scan about a third of the table, and each take the top 7; this is reflected in lines 3-9 of the execution plan.
+Catastrophically, this took 20 _seconds_. With 90 million rows in this table, Postgres now has to (kind of) sort the entire table, in order to know what the first 10 books are. I say kind of since it doesn't _really_ have to sort the _entire_ table; it just has to scan the entire table and keep track of the 10 rows with the lowest titles. That's why we see two child workers getting spawned (in addition to the main worker running out query) to each scan about a third of the table, and each take the top 7; this is reflected in lines 3-9 of the execution plan.
 
 Line 5 makes this especially clear
 
@@ -57,15 +63,19 @@ Rather than just slapping an index in, and magically watching the time drop down
 
 ## Indexes
 
-The best way to think about a database index is in terms of an index in a book. These list all the major terms in the book, as well as all the pages that term appears on. Imagine you have a 1,000 page book on the American Civil War, and wanted to know what pages Philip Sheridan is mentioned on. It would be excrutiatingly slow to just look through all 1,000 pages, searching for those words. But if there's a 30 or so page index, your task is considerably simpler.
+The best way to think about a database index is in terms of an index in a book. These list all the major terms in the book, as well as all the pages that the term appears on. Imagine you have a 1,000 page book on the American Civil War, and wanted to know what pages Philip Sheridan is mentioned on. It would be excrutiatingly slow to just look through all 1,000 pages, searching for those words. But if there's a 30 or so page index, your task is considerably simpler.
 
 Before we go further, let's look at a very basic index over a numeric `id` column
 
 ![Index](/postgres-indexing-1/img4-index.png)
 
-Start at the very, very bottom. Those blue "leaf" nodes contain the actual data in your index. These are the actual id values. This is a direct analogue to a book's index. So what are the gold boxes above them? These help you find _where_ the leaf node is, with the value you're looking for.
+This is a B Tree, which is how (most) indexes in a database are stored.
 
-Let's go to the very top, to the root node of our B Tree. Each of these internal nodes will have N key values, and N+1 pointers. If the value you're looking for is strictly less than the first value, go down that first, left-most arrow and continue your search. If the value you're looking for is greater than or equal to that first key, but strictly less than the next key, take the second arrow. And so on. In real life the number of keys in each of these nodes will be determined by how many of them can fit into a single page on disk.
+Start at the very, very bottom. Those blue "leaf" nodes contain the actual data in your index. These are the actual id values. This is a direct analogue to a book's index.
+
+So what are the gold boxes above them? These help you find _where_ the leaf node is, with the value you're looking for.
+
+Let's go to the very top, to the root node of our B Tree. Each of these internal nodes will have N key values, and N+1 pointers. If the value you're looking for is strictly less than the first value, go down that first, left-most arrow and continue your search. If the value you're looking for is greater than or equal to that first key, but strictly less than the next key, take the second arrow. And so on. In real life the number of keys in each of these nodes will be determined by how many of them can fit into a single page on disk (and will usually be much more than 3).
 
 So with this B Tree, if we want to find id = 33, we start at the root. 33 is not < 19, so we don't take the first arrow. But 33 _is_ >=19 and <37, so we take the middle arrow.
 
@@ -83,24 +93,34 @@ The thing I've left off so far is that leaf nodes also contain pointers to the a
 
 ![Index](/postgres-indexing-1/btree-with-heap.png)
 
+Returning briefly to our analogy with a book's index, those heap pointers correspond to the page number beside each index entry, telling you where to go in the book to see the actual content.
+
 So the full story to find a single row in our database by an id value, via an index, would actually look more like this
 
 ![Index Seek and Read](/postgres-indexing-1/index-seek-with-heap-read.gif)
 
 We'll talk later about these heap reads, or lack thereof when we get into covering indexes and the Index Only Scan operation.
 
+Bear with me a little longer. Before we look at what an index on title would look like, and create one in our database to run our query against, let's take a slightly deeper look at B Trees. Internalizing how they work can be incredibly valuable.
+
 ### B Trees run in O(LogN) time
 
-You may have been taught a fun little math fact in school, that if you were to be given a penny on January 1st, then have your penny doubled on January 2nd, then have that new amount (2 cents) doubled on January 3rd, etc, you'd have about $10 million dollars before Febuary. That's the power of exponential operations. Anytime you're repeatedly multiplying a value by some constant (which is all doubling is, for constant 2), it will become enormous, fast.
+You may have been taught a fun little math fact in school, that if you were to be given a penny on January 1st, then have your penny doubled on January 2nd, then have that new amount (2 cents) doubled on January 3rd, etc, you'd have about $10 million dollars before Febuary. That's the power of exponential operations. Anytime you're repeatedly multiplying a value by some constant (which is all doubling is, for constant 2), it will become enormous, _fast_.
 
 Now think of a more depressing, reverse scenrario. If someone gave you $10 million on January 1st, but with the condition that your remaining money would be halved each day, you'd have a lowly cent remaining on Feb 1st. This is a logarithm; it's the inverse of exponentiation. Rather than _multiplying_ a value by some constant, we _divide_ it by some constant. No matter how enormous, it will become small, fast.
 
-This is exactly how B Trees work. In our example B Tree above, there were 9 leaf pages. Our internal nodes had up 3 pointers. Notice that we were able to find out the exact leaf node we wanted by reading only 2 of those gold nodes (which is also the _depth_ of the tree).
+This is exactly how B Trees work. In our example B Tree above, there were 9 leaf pages. Our internal nodes had up 3 pointers. Notice that we were able to find out the exact leaf node we wanted by following only 2 of those gold nodes' arrows (which is also the _depth_ of the tree).
 
 9 divided by 3 is 3
 3 divided by 3 is 1
 
-Or, more succinctly, Log<sub>3</sub>9 = 2 (the `Logarithm base 3 of 9 is 2`)
+Or, more succinctly, Log<sub>3</sub>9 = 2
+
+Which reads as
+
+```
+Logarithm base 3 of 9 is 2
+```
 
 But these small values don't really do this concept justice. Imagine if you had an index with whose leaves spanned 4 bilion pages, and your index nodes had only 2 pointers, each (both of these assumptions are unrealistic). You'd _still_ need only 32 page reads to find any specific value.
 
@@ -138,7 +158,7 @@ which produces
  340322 |       4 | 116816 |     3 |   116816 |         3 |                         0 |                      -1 | t
 ```
 
-Note the level 3, which is what our index's depth is. That means it would take just 3 index reads to arrive at the correct B Tree leaf for any value.
+Note the level 3, which is what our index's depth is. That means it would take just 3 page reads to arrive at the correct B Tree leaf for any value (this excludes reading the root node itself, which is usually just stored in memory).
 
 Checking the math, the Log<sub>450</sub>(90,000,000) comes out to ... 2.998
 
@@ -182,6 +202,10 @@ but this time let's define an index, like so
 CREATE INDEX idx_title ON books(title);
 ```
 
+This index would look something like this (conceptually at least).
+
+![Index Seek and Read](/postgres-indexing-1/img6-index-3.png)
+
 And now our query runs in less than a ms.
 
 ![Index Seek and Read](/postgres-indexing-1/img6-index-2.png)
@@ -190,11 +214,11 @@ Notice what's _missing_ from this execution plan, that was present on the previo
 
 Did you spot it?
 
-It's the Index Cond. We're not actually ... _looking for_ anything. We just want the first ten rows, sorted by title. The index stores all books, sorted by title. So the engine just hops right down to the start of the index, and simply reads the first ten rows.
+It's the Index Cond. We're not actually ... _looking for_ anything. We just want the first ten rows, sorted by title. The index stores all books, sorted by title. So the engine just hops right down to the start of the index, and simply reads the first ten rows from the leaf nodes (the blue nodes from the diagrams).
 
 ## More fun with indexes
 
-Let's go deeper. Before we start, I'll point out that values for `pages` was filled with random values from 100-700. So there are 600 possible values for pages, each randomly assigned.
+Let's go deeper. Before we start, I'll point out that values for the `pages` column was filled with random values from 100-700. So there are 600 possible values for pages, each randomly assigned.
 
 Let's look at a query to read the titles of books with the 3 maximum values for pages. And let's pull a lot more results this time; we'll limit it to one hundred thousand entries
 
@@ -210,9 +234,11 @@ limit 100000;
 
 As before, we see a parallel sequential scan. We read through the table, looking for the first 100,000 rows. Our condition matches very few results, so the database has to discard through over 6 million records before it finds the first 100,000 matching our condition
 
-```
+```bash
    Rows Removed by Filter: 6627303
 ```
+
+The whole operation took 833ms.
 
 Let's define an index on `pages`
 
@@ -244,9 +270,9 @@ There's a lot going on. Our index is being used, but not like before
    ->  Bitmap Index Scan on idx_pages  (cost=0.00..4911.16 rows=451013 width=0) (actual time=38.057..38.057 rows=453891 loops=1)
 ```
 
-Bitmap scan means that the database is scanning our database, and _noting_ the heap locations with records matching our filter. Remember, we need to access the heap to retrieve our title column, to satisfy our query.
+Bitmap scan means that the database is scanning our database, and _noting_ the heap locations with records matching our filter. It literally builds a bitmap of matching locations, hence the name. It then sorts those locations in order of disk access.
 
-Then the db scans the whole heap, and pulls out _those_ addresses. This is the Bitmap Heap Scan on line 5
+Then the pulls those locations from the heap. This is the Bitmap Heap Scan on line 5
 
 ```bash
    ->  Parallel Bitmap Heap Scan on books  (cost=5023.92..1441887.67 rows=187922 width=73) (actual time=41.383..1339.997 rows=33382 loops=3)
@@ -264,15 +290,15 @@ Why is Postgres doing this, rather than just walking our index, and following th
 
 Postgres keeps track of statistics on which values are contained in its various columns. In this case, it knew that _relatively_ few values would match on this filter, so it chose to use this index.
 
-But that still doesn't answer why it didn't use a regular old index scan, following the various pointers to the heap. Here, Postgres decided that, even though the filter would exclude a large percentage of the table, it would need to read a _lot_ of pages from the heap, and following all those random pointers from the index to the heap would be bad. Those pointers point in all manner of random directions, and **Random I/O** is bad.
+But that still doesn't answer why it didn't use a regular old index scan, following the various pointers to the heap. Here, Postgres decided that, even though the filter would exclude a large percentage of the table, it would need to read a _lot_ of pages from the heap, and following all those _random_ pointers from the index to the heap would be bad. Those pointers point in all manner of random directions, and **Random I/O** is bad. In fact, Postgres also stores just how closely, or badly those pointers correspond to the underlying order on the heap via something called correltation. This is another one of the statistics Postgres relies on for these decisions.
 
-Instead, Postgres thought it would be better to use the index to just keep track of which heap locations had relevant records (it literally built a bitmap of matching locations, hence the name). It then sorted those locations in order of disk access. Then it went through, and accessed those locations, in order. This resulted in neighboring chunks of memory in the heap being pulled together, rather than frequently following those random pointers from the index.
+For these reasons Postgres thought it would be better to use the index to _only_ keep track of which heap locations had relevant records, and then fetch them in order, after the Bitmap scan sorted them. This results in neighboring chunks of memory in the heap being pulled together, rather than frequently following those random pointers from the index.
 
 Again, Random I/O tends to be **expensive** and can hurt query performance. This was not faulty reasoning at all.
 
-Unfortunately in this case, Postgres wagered wrong. Our query now runs in that this was _slower_ than the regular table scan from before, on the same query. It now takes 1.38 seconds, instead of 833ms. Adding an index made this query run _slower_.
+Nonetheless, in this case Postgres wagered wrong. Our query now runs _slower_ than the regular table scan from before, on the same query. It now takes 1.38 seconds, instead of 833ms. Adding an index made this query run _slower_.
 
-Was I forcing the issue with the larger limit of 100,000? Of course. My goal is to clearly how indexes work, how they can help, and occasionally, how they can lead the query optimizer to make the wrong choice, and hurt performance. Please don't think an index causing a worse, slower execution plan is an unhinged, unheard of eventuality which I contrived for this post; I've seen it happen on very normal queries on production databases.
+Was I forcing the issue with the larger limit of 100,000? Of course. My goal is to clearly how indexes work, how they can help, and occasionally, how they can lead the query optimizer to make the wrong choice, and hurt performance. But please don't think an index causing a worse, slower execution plan is an unhinged, unheard of eventuality which I contrived for this post; I've seen it happen on very normal queries on production databases.
 
 ### The road not traveled
 
@@ -336,7 +362,7 @@ Which would look like this
 
 ![Pages and title index](/postgres-indexing-1/img11-pages-title.png)
 
-This would work fine. We're not _needing_ to filter based on title, only pages. But having those titles in those gold non-leaf nodes wouldn't hurt one bit. Postgres would just ignore it, and find the starting point for all books with > 400 pages, and start reading. There's be no need for heap access at all, since the titles are right there.
+This would work fine. We're not _needing_ to filter based on title, only pages. But having those titles in those gold non-leaf nodes wouldn't hurt one bit. Postgres would just ignore it, find the starting point for all books with > 400 pages, and start reading. There's be no need for heap access at all, since the titles are right there.
 
 Let's try it.
 
@@ -356,7 +382,7 @@ More or less. Line 4
    Heap Fetches: 0
 ```
 
-is not as redundant as it might seem. Postgres _does_ have to consult something called a visibility table to make sure the values in your index are up to date given how Postgres handles updates through it's MVCC system. But unless your data are changing extremely frequently this should not be a large burden.
+is not as redundant as it might seem. Postgres _does_ have to consult something called a visibility table to _make sure_ the values in your index are up to date given how Postgres handles updates through it's MVCC system. If those values are _not_ up to date, it _will_ have to hit the heap. But unless your data are changing extremely frequently this should not be a large burden.
 
 ## A variation on the theme
 
@@ -364,7 +390,7 @@ If you're using Postgres or Microsoft SQL Server you can create an even nicer ve
 
 Wouldn't it be nice it we could _only_ put those titles in the leaf nodes? This would keep our internal nodes smaller, with less content, which, in a real index, would let us cram more key values together, resulting in a smaller, shallower B Tree that would potentially be faster to query.
 
-We do this with the INCLUDE clause when creating our index.
+We do this with the INCLUDE clause when creating our index (in databases that support this feature).
 
 ```sql
 CREATE INDEX idx_pages_include_title ON books(pages) INCLUDE(title);
@@ -380,8 +406,14 @@ And re-running that same query, we see that it does run a bit faster. From 32ms 
 
 To be clear, it's quite fast either way, but a nice 31% speedup isn't something to turn down if you're using a database that supports this feature (MySQL does not).
 
+## Pay attention to your SELECT clauses
+
+There's one corralary to the above: don't request things you don't need in your queries; don't default to SELECT \*
+
+Requesting only what you need will not only reduce the amount of data that has to travel over the wire, but in extreme cases can mean the difference between an index scan, and an index-only scan. In the above query, if we'd done SELECT \* instead of SELECT title, pages, none of the indexes we added would have been able to help; those heap accesses would have continued to hurt us.
+
 ## Wrapping up
 
-To say that this post is only scratching the surface would be an understatement. The top of indexing, and query optimization could fill entire books, and of course it has.
+To say that this post is only scratching the surface would be an understatement. The topic of indexing, and query optimization could fill entire books, and of course it has.
 
-Hopefully this post at least has you thinking about indexes the right way. Thinking about how indexes are stored on disk, and how they're read. And never, ever forgetting about the fact that, when scanning an index, you will may need to visit the heap for every matched entry you find, which can get expensive.
+Hopefully this post has you thinking about indexes the right way. Thinking about how indexes are stored on disk, and how they're read. And never, ever forgetting about the fact that, when scanning an index, you will may need to visit the heap for every matched entry you find, which can get expensive.
