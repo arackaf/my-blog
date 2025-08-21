@@ -264,13 +264,37 @@ Why is Postgres doing this, rather than just walking our index, and following th
 
 Postgres keeps track of statistics on which values are contained in its various columns. In this case, it knew that _relatively_ few values would match on this filter, so it chose to use this index.
 
-But that still doesn't answer why it didn't use a regular old index scan, following the various pointers to the heap. Here, Postgres decided that, even though the filter would exclude a large percentage of the table, it would need to read a _lot_ of pages from the heap, and following all those random pointers from the index to the heap would be bad. Those pointers point in all manner of random directions, and **Random I/O** is bad. Instead, Postgres thought it would be better to scan the whole heap, and only reading those pages the index determined would be useful. This would potentially enable it to fetch neighboring chunks of memory from the heap, rather than frequently following those random pointers from the index.
+But that still doesn't answer why it didn't use a regular old index scan, following the various pointers to the heap. Here, Postgres decided that, even though the filter would exclude a large percentage of the table, it would need to read a _lot_ of pages from the heap, and following all those random pointers from the index to the heap would be bad. Those pointers point in all manner of random directions, and **Random I/O** is bad.
+
+Instead, Postgres thought it would be better to use the index to just keep track of which heap locations had relevant records (it literally built a bitmap of matching locations, hence the name). It then sorted those locations in order of disk access. Then it went through, and accessed those locations, in order. This resulted in neighboring chunks of memory in the heap being pulled together, rather than frequently following those random pointers from the index.
 
 Again, Random I/O tends to be **expensive** and can hurt query performance. This was not faulty reasoning at all.
 
 Unfortunately in this case, Postgres wagered wrong. Our query now runs in that this was _slower_ than the regular table scan from before, on the same query. It now takes 1.38 seconds, instead of 833ms. Adding an index made this query run _slower_.
 
 Was I forcing the issue with the larger limit of 100,000? Of course. My goal is to clearly how indexes work, how they can help, and occasionally, how they can lead the query optimizer to make the wrong choice, and hurt performance. Please don't think an index causing a worse, slower execution plan is an unhinged, unheard of eventuality which I contrived for this post; I've seen it happen on very normal queries on production databases.
+
+### The road not traveled
+
+Can we force Postgres to do a regaulr index scan, to see what might have been? It turns out we can; we can (temporarily) turn off bitmap scans, and run the same query.
+
+```sql
+SET enable_bitmapscan = off;
+
+explain analyze
+select title, pages
+from books
+where pages > 697
+limit 100000;
+```
+
+and now our query runs in just 309ms
+
+![Pages does not use index](/postgres-indexing-1/img10a-forcing-scan.png)
+
+Clearly Postgres's statistics led it astray this time. They're based on heuristics and probabilities, along with estimated costs for things like disk access. It won't always work perfectly.
+
+### When stats get things right
 
 Before we move on, let's query all the books with an above-average number of pages
 
@@ -282,9 +306,9 @@ where pages > 400
 limit 100000;
 ```
 
-![Pages does not use index](/postgres-indexing-1/img10-pages-back-to-heap-scan.png)
-
 In this case Postgres was smart enough to not even bother with the index.
+
+![Pages does not use index](/postgres-indexing-1/img10-pages-back-to-heap-scan.png)
 
 Postgres's statistics told it that this query would match an enormous number of reasons, and just walking across the heap would get it the right results more quickly than bothering with the index. And in this case it assumed correctly. The query ran in just 37ms.
 
