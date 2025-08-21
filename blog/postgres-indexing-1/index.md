@@ -41,7 +41,7 @@ Catastrophically, this took 20 _seconds_. With 90 million rows in this table, Po
 
 Line 5 makes this especially clear
 
-```
+```bash
 ->  Sort  (cost=2839564.34..2934237.14 rows=37869122 width=112) (actual time=20080.358..20080.359 rows=7 loops=3)
 ```
 
@@ -49,7 +49,7 @@ Notice the loops=3, the the rows = 37 million. Each worker is scanning its share
 
 These 3 groups of 7 are then _gathered_ and _merged_ together in the Gather Merge on line 2
 
-```
+```bash
 ->  Gather Merge  (cost=2840564.36..11677309.78 rows=75738244 width=112) (actual time=20093.790..20096.619 rows=10 loops=1)
 ```
 
@@ -147,7 +147,10 @@ Checking the math, the Log<sub>450</sub>(90,000,000) comes out to ... 2.998
 Let's run a quick query by id, with the primary key index that already exists, and then look at how we can create on one title, so we can re-run our query to find the first 10 books in order.
 
 ```sql
-book_management=# explain analyze select * from books where id = 10000;
+explain analyze
+select *
+from books
+where id = 10000;
 ```
 
 which produces the following
@@ -181,7 +184,7 @@ CREATE INDEX idx_title ON books(title);
 
 And now our query runs in less than a ms.
 
-![Index Seek and Read](/postgres-indexing-1/img5-index-1.png)
+![Index Seek and Read](/postgres-indexing-1/img6-index-2.png)
 
 Notice what's _missing_ from this execution plan, that was present on the previous query, when we looked for a single index value.
 
@@ -191,11 +194,27 @@ It's the Index Cond. We're not actually ... _looking for_ anything. We just want
 
 ## More fun with indexes
 
-Let's go deeper.
+Let's go deeper. Before we start, I'll point out that values for `pages` was filled with random values from 100-700. So there are 600 possible values for pages, each randomly assigned.
 
-Let's define an index with minimal real-world usefulness, which should allow us to explore all the concepts we've talked about so far.
+Let's look at a query to read the titles of books with the 3 maximum values for pages, and limit our results to a million records
 
-We'll define an index on the `pages` column.
+```sql
+explain analyze
+select title, pages
+from books
+where pages > 697
+limit 1000000;
+```
+
+![Index Seek and Read](/postgres-indexing-1/img6a-top-3-page-values.png)
+
+As before, we see a parallel sequential scan. We read through the table, looking for the first million rows, and since our query matches so few records, the database has to read through over 30 million rows before it finds the first million matching our condition
+
+```
+   Rows Removed by Filter: 30194406
+```
+
+Ok, let's define an index on `pages`.
 
 ```sql
 CREATE INDEX idx_pages ON books(pages);
@@ -207,81 +226,119 @@ You might wonder about the fact that the pages column is by no means unique; but
 
 Everything else works the same as it always has: the database can quickly jump down to a specific value. This allows us to query a particular value, or even grab a range of values sorted on the column we just looked up. For example, if we want all books with pages > 500, we just seek to that value, and start reading.
 
-But to really make sure we're internalizing how indexes work, let's start by thinking about queries that indexes _can't_ help with. The best example of that is a "not equals" query.
+Let's re-run that query from before
 
 ```sql
 explain analyze
-select *
+select title, pages
 from books
-where pages <> 548;
+where pages > 697
+limit 1000000;
 ```
 
-An index allows us to seek to a specific value; it won't really let us seek to a ... "non-value." What would that even mean? Let's look at the execution plan.
+![Pages > 697](/postgres-indexing-1/img9-index-pages-bitmap-scan.png)
 
-![Pages not equals plan](/postgres-indexing-1/img8-pages-not-query-execution-plan.png)
-
-We're just scanning the entire table, and applying a filter, represented in line two
+There's a lot going on. Our index is being used, but not like before
 
 ```
-  Filter: (pages <> 548)
-```
-
-In a sequential table scan, the Filter predicate, if present, runs a test against each entry found in the heap.
-
-The next line
-
-```
-  Rows Removed by Filter: 151697
-```
-
-Tells us how many rows were removed by the filter: it seems there are 151,697 books in the table with 548 pages.
-
-Now is a good time to mention that the pages value was filled with random values from 100-700. So with 600 possible values, the odds of any particular one is 1 in 600, or 0.00166667. For fun, let's note that 151697 / 90885413 rows in the table were found with that value, which and 151697 / 90885413 is 0.0016691. So that makes sense.
-
-There's a point to all this, I promise.
-
-Let's write a query to get the titles of the books which have the maximum 3 possible pages values (698, 699, 700)
-
-```sql
-explain analyze
-select pages, title
-from books
-where pages > 697;
-```
-
-![Pages not equals plan](/postgres-indexing-1/img9-index-pages-bitmap-scan.png)
-
-Lots going on. Our index is being used, but not like before
-
-```
-   ->  Bitmap Index Scan on idx_pages  (cost=0.00..5883.22 rows=540087 width=0) (actual time=44.011..44.011 rows=453891 loops=1)
+   ->  Bitmap Index Scan on idx_pages  (cost=0.00..4910.05 rows=450864 width=0) (actual time=31.521..31.521 rows=453891 loops=1)
 ```
 
 Bitmap scan means that the database is scanning our database, and _noting_ the heap locations with records matching our filter. Remember, we need to access the heap to retrieve our title column, to satisfy our query.
 
-Then the engine visits those addresses, and scoopes up the records therein. This is the Bitmap Heap Scan on line 4
+Then the db visits those addresses, and scoopes up the records therein. This is the Bitmap Heap Scan on line 5
 
 ```
-   ->  Bitmap Index Scan on idx_pages  (cost=0.00..5883.22 rows=540087 width=0) (actual time=44.011..44.011 rows=453891 loops=1)
+   ->  Parallel Bitmap Heap Scan on books  (cost=5022.76..1441525.29 rows=187860 width=73) (actual time=103.781..6691.040 rows=151297 loops=3)
 ```
 
 But remember, this is the heap, and it's not ordered on pages, so those random locations may have _other_ records _not_ matching our filter. This is done in the Index Recheck on line 6
 
 ```
-   Rows Removed by Index Recheck: 6660138
+   Recheck Cond: (pages > 697)
 ```
 
-which removed a whopping _6 million_ results. There was no limit on this query, to the database had to find ALL matching records, and there are a lot of them.
+which removed a whopping _6 million_ results.
 
-## When an index stops being useful
+What's especially egrigious here is that this was _slower_ than a regular table scan from before. Adding an index made this query run _slow_.
 
-Let's query all the books with an above average number of pages
+Was I forcing the issue with the enormous limit of 1 million? Of course. The point isn't to write realistic or even useful queries, here; my goal is to clearly how indexes work, how they can help, and occasionally, how they can lead the query optimizer to make the wrong choice, and hurt performance (I've seen that happen with non-contrived queries).
+
+Before we move on, let's query all the books with an above-average number of pages
 
 ```sql
 explain analyze
-select pages, title
+select title, pages
 from books
-where pages > 400;
+where pages > 400
+limit 1000000;
 ```
 
 ![Pages does not use index](/postgres-indexing-1/img10-pages-back-to-heap-scan.png)
+
+In this case Postgres was smart enough to not even bother with the index.
+
+Databases keep track of statistics of its various column values. In this case, Postgres realized this query would match against an _incredibly large_ number of results. Those results would have to all jump down into **random** locations in the heap, if read from the index. And again, **Random I/O** is **bad** for performance.
+
+So it decided to just read the main table match our condition of pages > 400. Since this matches so many results, it only took Postgres 200ms to finish.
+
+## Covering Indexes
+
+Let's go back to this query
+
+````sql
+```sql
+explain analyze
+select title, pages
+from books
+where pages > 697
+limit 1000000;
+````
+
+It took a little over 3 seconds with no index, and over 6 seconds with an index on just pages.
+
+Your first instinct might be to just add title to the index
+
+```sql
+CREATE INDEX idx_pages_title ON books(pages, title);
+```
+
+Which would look like this
+
+![Pages and title index](/postgres-indexing-1/img10-pages-back-to-heap-scan.png)
+
+This would work fine. We're not _needing_ to filter based on title, only pages. But having those titles there wouldn't hurt one bit. Postgres would just ignore it, and find the starting point for all books with > 400 pages.
+
+Let's try it.
+
+```sql
+explain analyze
+select title, pages
+from books
+where pages > 697
+limit 1000000;
+```
+
+![Pages and title index](/postgres-indexing-1/img12-top-3-page-values-fast.png)
+
+Our query, which was originally 3 seconds, which jumped to 6 seconds with an index poorly suited to the query, now runs in 102ms. And notice we have a new operator in our execution plan
+
+```bash
+   ->  Index Only Scan using idx_pages_title on books  (cost=0.69..30393.42 rows=451013 width=73) (actual time=0.243..83.911 rows=453891 loops=1)
+```
+
+Index Only Scan means ... that _only_ the index is being scanned. There's no need to look anything up in the heap.
+
+For the most part. Line 4
+
+```bash
+   Heap Fetches: 0
+```
+
+is not as redundant as it might seem. Postgres does have to consult something called a visibility table to make sure the values in your index are up to date given how Postgres handles updates through it's MVCC system. But unless your data are changing extremely frequently this should not be a large burden.
+
+## A variation on the theme
+
+![Pages with included title index](/postgres-indexing-1/img12-index-with-included.png)
+
+![Pages with included title index](/postgres-indexing-1/img13-query-with-included-col.png)
