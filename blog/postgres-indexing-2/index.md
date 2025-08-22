@@ -27,7 +27,7 @@ This publisher is actually tiny, and only has 65 books in it. Nonetheless, the q
 
 ![Basic query execution plan](/postgres-indexing-2/img1-basic-publisher-query.png)
 
-This is hardly surprising; there's a lot of rows in our table, and finding the rows for that publisher takes a while.
+This is hardly surprising; there's a lot of rows in our table, and finding the rows for that publisher takes a while, since Postgres has to scan the entire heap.
 
 So we add an index on, for now, just publisher
 
@@ -58,7 +58,7 @@ limit 10;
 
 ![Large publisher plan](/postgres-indexing-2/img4-large-publisher-plan.png)
 
-Actually, our index wasn't used at all. Postgres just scanned the whole table, grabbing our publisher along the way, and then sorted to get the top 10. We've seen this before.
+Actually, our index wasn't used at all. Postgres just scanned the whole table, grabbing our publisher along the way, and then sorted the results to get the top 10. We'll discuss why a little later, as we did in the prior post, but the short of it is that the **random** heap accesses from reading so many entries off of an index would be expensive; Postgres decided the scan would be cheaper. These decisions are all about tradeoffs, and governed by statistics and cost estimates.
 
 Previously though, we threw the "other" field into the INCLUDE() list, so the engine wouldn't have to leave the index to get the other field it needed. In this case, we're selecting _everything_. I said previously to be dilligent in avoiding unnecessary columns in the SELECT clause for just this reason, but here assume we actually do need all these columns.
 
@@ -169,7 +169,7 @@ The books under each publisher is ordered, but the overall list of matches is no
 
 Before we make this query fast, let's briefly consider why our query's plan changed so radically between searching for two small publishers, vs an enormous publisher, and a small one.
 
-As we discussed in part 1, Postgres tracks and uses the statistics about your data in order to craft the best execution plan it can. Here, when you searched for the large publisher, it realized that query would yield an enormous number of rows. That led it to decide that simply reading through the heap directly would be faster than the large number of random heap reads from the index that would otherwise be required.
+As we discussed in part 1, Postgres tracks and uses the statistics about your data in order to craft the best execution plan it can. Here, when you searched for the large publisher, it realized that query would yield an enormous number of rows. That led it to decide that simply scanning through the heap directly would be faster than the large number of random i/o that would be incurred from following an enormous number matches in the index's leaf nodes, over to the corresponding locations on the heap. Random i/o is bad, and Postgres will usually try to avoid it.
 
 ## Crafting a better query
 
@@ -187,7 +187,7 @@ with pub1 as (
     order by title limit 10
 )
 select * from pub1
-union
+union all
 select * from pub2
 order by title
 limit 10;
@@ -207,11 +207,11 @@ is called a common table expression, or a CTE. It's basically a query that we de
 
 Let's run it!
 
-The execution plan is long
+The execution plan is beautiful
 
 ![Multiple Publishers Query with cte](/postgres-indexing-2/img11-cte-append.png)
 
-but it's fast. As you can see, it runs in less than half of a millisecond.
+and it's fast. As you can see, it runs in less than a fifth of a millisecond; it runs in 0.186ms, but who's counting.
 
 Always read these from the bottom
 
@@ -221,23 +221,17 @@ It's the same exact index scan from before, but on a single publisher, with a li
 
 Then it puts those lists together
 
-```bash
-   ->  Append  (cost=0.69..74.17 rows=20 width=1108) (actual time=0.063..0.126 rows=20 loops=1)
-```
-
-and then it sorts them
-
-```bash
-   ->  Sort  (cost=74.60..74.65 rows=20 width=1108) (actual time=0.151..0.153 rows=20 loops=1)
-```
-
-To be crystal clear, it's not literally doing the imagined
+Remember the silly, contrived Postgres operation I made up before?
 
 > and then start reading forward on both, and sort of merge them together, taking the smaller title from either, until you have 10 books total.
 
-I made up before. It's just taking the top 10 from each, combining them, and then sorting the (up to) 20 records, and taking the top 10.
+You're not going to believe this, but that's exactly what the Merge Append on line 2 does
 
-But sorting 20 records in memory is a light lunch for Postgres; as you can see, it took 0.3ms.
+```bash
+   ->  Merge Append  (cost=1.40..74.28 rows=20 width=111) (actual time=0.086..0.115 rows=10 loops=1)
+```
+
+You can achieve amazing things with modern databases if you know just how to structure your queries _just_ right.
 
 ## How does this scale?
 
@@ -339,13 +333,13 @@ Let's see what this version of our query looks like
 
 ![Multiple Publishers Query with cte](/postgres-indexing-2/img12-cross-join.png)
 
-Still a small fraction of a millisecond, and also a much smaller, simpler plan. And we have a new operation in here.
+Still a small fraction of a millisecond, but ever so slightly slower; this now runs in 0.207ms. And the execution plan is a bit longer and more complex.
 
 ```bash
    ->  Nested Loop  (cost=0.69..81.19 rows=20 width=111) (actual time=0.042..0.087 rows=20 loops=1)
 ```
 
-A nested loop join is a pretty simple (and usually pretty slow) join algorithm. It just takes each value in the one list, and then applies it to each value in the second list.
+A nested loop join is a pretty simple (and _usually_ pretty slow) join algorithm. It just takes each value in the one list, and then applies it to each value in the second list. In this case though, it's taking values from a static list, and applying them against an incredibly fast query.
 
 The left side of the join is each id from that static table we built
 
@@ -361,7 +355,9 @@ The right side is our normal (_fast_) query that we've seen a few times now
          Index Cond: (publisher = "*VALUES*".column1)
 ```
 
-and above that we do our normal sort.
+But gone is our nice Merge Append, replaced with a normal sort. The reason is, we replaced discrete CTEs which each produced separate, identically sorted outputs, which the planner could identify, and apply a Merge Append to. Merge Append works on multiple, independently sorted streams of data. Instead, this is just regular join, which produces one stream of data, and therefore needs to be sorted.
+
+But this is no tragedy. The query runs in a tiny fraction of a **milli**second, and will not suffer planning time degradation like the previous CTE version would, as we add more and more publisher id's. Plus, the sort is over just N\*10 records, where N is the number of publishers. It would take a catastrophically large N to wind up with enough rows where Postgres would struggle to sort them quickly, especially since the limit of 10 would allow it to do an efficient top-N heapsort, like we saw in part 1.
 
 ## Stepping back
 
