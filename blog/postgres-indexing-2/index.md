@@ -6,7 +6,7 @@ description: Pushing our index knowledge to the next level, to get the most out 
 
 Welcome to part 2 our exploration of Postgres indexes. Be sure to check out part 1 if you haven't already. We'll be picking up exactly where we left off.
 
-We have the same books table as we did before, with about 90 million records in it.
+We have the same books table as before, with about 90 million records in it.
 
 ## Filtering and sorting
 
@@ -45,7 +45,7 @@ And now our same query is incredibly fast.
 
 Nothing surprising or interesting.
 
-But now you need to run the same query, but on a different publisher, number 210537. This is the biggest publisher in the entire database, with over 2 million books published. Let's see how our index fares now
+But now you need to run the same query, but on a different publisher, number 210537. This is the biggest publisher in the entire database, with over 2 million books. Let's see how our index fares.
 
 ```sql
 explain analyze
@@ -76,7 +76,7 @@ That would look like this
 
 ![Publisher and title index](/postgres-indexing-2/img5-publisher-title-index.png)
 
-If Postgres were to search for a specific publisher value, it could just read however many books it wanted to, right off the leaf nodes, couldn't it? There could be 2 million book entries in the leaf nodes, but Postgres could just read the first 10, and be guarenteed that they're the first 10, since that's how the index is ordered.
+If Postgres were to search for a specific publisher, it could just seek down to the start of that publisher's books, and then read however many needed, right off the leaf nodes, couldn't it? There could be 2 million book entries in the leaf nodes, but Postgres could just read the first 10, and be guarenteed that they're the first 10, since that's how the index is ordered.
 
 Let's try it.
 
@@ -86,9 +86,9 @@ We got the top 10 books, sorted, from a list of over 2 million in less than a si
 
 ## More publishers!
 
-Now your boss comes to you and tells you you need the top 10 books, sorted alphabetically, as before, but over **either** publisher, combined. To be clear, the requirement is, take all books both publishers have published, combine them, then get the first ten, alphabetically.
+Now your boss comes to you and tells you you need the top 10 books, sorted alphabetically, as before, but over **either** publisher, combined. To be clear, the requirement is to take all books both publishers have published, combine them, then get the first ten, alphabetically.
 
-Easy you say, assuredly, fresh off the high of seeing Postgres grab you that same data for your enormous publisher in under a ms.
+Easy you say, assuredly, fresh off the high of seeing Postgres grab you that same data for your enormous publisher in under a millisecond.
 
 You can put both publisher id's into an IN clause. Then, Postgres can search for each, one at a time, save the starting points of both, and then start reading forward on both, and sort of merge them together, taking the smaller title from either, until you have 10 books total.
 
@@ -109,7 +109,7 @@ Which produces this
 
 _Sad Trombone_
 
-Let's re-read my assumed chain of events Postgres would take, from above
+Let's re-read my completely made-up, assumed chain of events Postgres would take, from above
 
 > Postgres can search for each, one at a time, save the starting points of both, and then start reading forward on both, and sort of merge them together, taking the smaller title from either, until you have 10 books total.
 
@@ -119,7 +119,7 @@ It kind of reads like the Charlie meme from Always Sunny
 
 If your description of what the database will do sounds like something that would fit with this meme, you're probably overthinking things.
 
-Postgres, at least as of this writing, operates on very simple operations that it chains together. Index Scan, Gather Merge, Sort, Sequential Scan, etc.
+Postgres operates on very simple operations that it chains together. Index Scan, Gather Merge, Sort, Sequential Scan, etc.
 
 ## Searching multiple publishers
 
@@ -127,7 +127,7 @@ To be crystal clear, Postgres can absolutely search multiple keys from an index.
 
 ![Multiple Publishers Query](/postgres-indexing-2/img8-multiple-small-publishers.png)
 
-It did indeed do an index scan, on that same index. It just matches two values at once.
+It did indeed do an index scan, on that same index. It just matched two values at once.
 
 Rather than taking one path down the B Tree, it takes multiple paths down the B Tree, based on the multiple key value matches.
 
@@ -139,14 +139,16 @@ That gives us **all** rows for _either_ publisher. Then it needs to sort them, w
 
 Why does it need to sort them? When we have a _single_ publisher, we _know_ all values under that publisher are ordered.
 
-_Look_ at the index. Imagine we just search for publisher 8. Postgres can go directly to that publisher, and _just read_:
+_Look_ at the index.
+
+![Multiple Publishers Query](/postgres-indexing-2/img9-single-publisher-read.png)
+
+Imagine we searched for publisher 8. Postgres can go directly to the beginning of that publisher, and _just read_:
 
 ```bash
 "Animal Farm"
 "Of Mice and Men"
 ```
-
-![Multiple Publishers Query](/postgres-indexing-2/img9-single-publisher-read.png)
 
 Look what happens when we search for _two_ publishers, 8 and also, now, 21
 
@@ -167,7 +169,7 @@ The books under each publisher is ordered, but the overall list of matches is no
 
 Before we make this query fast, let's briefly consider why our query's plan changed so radically between searching for two small publishers, vs an enormous publisher, and a small one.
 
-As we discussed in part 1, Postgres tracks and uses the statistics about your data in order to craft the best execution plan it can. Here, when you searched for the large publisher, it realized that query would yield an enormous number of rows. That led it to decide that just reading through the heap directly would be faster than the large number of random heap reads from the index that would otherwise be required.
+As we discussed in part 1, Postgres tracks and uses the statistics about your data in order to craft the best execution plan it can. Here, when you searched for the large publisher, it realized that query would yield an enormous number of rows. That led it to decide that simply reading through the heap directly would be faster than the large number of random heap reads from the index that would otherwise be required.
 
 ## Crafting a better query
 
@@ -241,7 +243,7 @@ But sorting 20 records in memory is a light lunch for Postgres; as you can see, 
 
 Obviously you won't want to be writing queries like this manually, by hand. Presumably you'd have application code taking a list of publisher ids, and constructing something like this. How will it perform as you add more and more publishers?
 
-I've explored this very idea on larger production sets of data (much larger than what we're using here). I found that, somewhere around a _thousand_ ids, the performance does break down. But not because there's too much data to work with. The _execution_ of those queries, with even a thousand id's, took only a few hundred ms. But the _Planning Time_ started to take many, many seconds. It turns out having Postgres parse through a thousand CTEs, and put a plan together, takes time.
+I've explored this very idea on larger production sets of data (much larger than what we're using here). I found that, somewhere around a _thousand_ ids, the performance does break down. But not because there's too much data to work with. The _execution_ of those queries, with even a thousand id's, took only a few hundred ms. But the _Planning Time_ started to take many, many seconds. It turns out having Postgres parse through a thousand CTEs, and put a plan together takes time.
 
 ## Version 2
 
@@ -314,9 +316,11 @@ results as (
 )
 ```
 
-We query against our ids table, and then that ugly cross join later expression is just a trick to run our normal books query, but with access to the publisherId. `lateral` is the key term in there. Think of (American) football, where a lateral is a sideways pass. Here, we're allowed to "laterally" reference the `ids.id` value from the expression right beside it.
+We query against our ids table, and then use the ugly `cross join lateral` expression as a neat trick to run our normal books query, but with access to the publisher value in the ids CTE. The value in the ids CTE is, of course, the publisher id. So we've achieved what we want: we're essentially, conceptually looping through those id's, and then running our fast query on each.
 
-That coaxes Postgres to run it's normal index scan, followed by a read of the next 10 rows. That happens once for each id. That whole meta-list will then contain (up to) 10 rows for each publisher id, and then this
+`lateral` is the key term in there. Think of (American) football, where a lateral is a sideways pass. Here, the lateral keyword allows us to "laterally" reference the `ids.id` value from the expression right beside it.
+
+That coaxes Postgres to run it's normal index scan, followed by a read of the next 10 rows. That happens once for each id. That whole meta-list will then contain (up to) 10 rows for each publisher, and then this
 
 ```sql
 select *
@@ -327,7 +331,7 @@ limit 10;
 
 re-sorts, and takes the first 10.
 
-In my own experience this scales fabulously. With with a few thousand ids I couldn't get this basic setup to take longer than half a second, even on a much larger table than we've been looking at here.
+In my own experience this scales fabulously. Even with a few thousand ids I couldn't get this basic setup to take longer than half a second, even on a much larger table than we've been looking at here.
 
 ### Let's run it!
 
@@ -363,9 +367,9 @@ and above that we do our normal sort.
 
 The hardest part of writing this post is knowing when to stop. I could easiy write as much content again: we haven't even gotten into joins, and how indexes can help there, or even materialized views. This is an endless topic, and one that I enjoy. But this post is probably already too long, and I don't want to make it more so.
 
-The one theme through this post and the prior one can probably best be summed up as so: understand _how_ your data are stored, and craft your queries to make the best use possible of this knowledge. If you're not sure exactly how to craft your queries to do this, then use your knowledge of how indexes work, and what you want your queries to accomplish to ask an _extremely_ specific question to your favorite AI model. It's very likely to _at least_ get you closer to your answer.
+The one theme throughout can probably be summed up as so: understand _how_ your data are stored, and _craft_ your queries to make the best use possible of this knowledge. If you're not sure exactly how to craft your queries to do this, then use your knowledge of how indexes work, and what you want your queries to accomplish to ask an _extremely_ specific question to your favorite AI model. It's very likely to _at least_ get you closer to your answer. Often times knowing _what_ to ask is half the battle.
 
-And of course if your data are not stored how you need it to be, then change how your data are stored. Indexes are the most common way, which we've discussed here. Materialized views would be the next power tool to consider, when needed. But that's a topic for another day.
+And of course if your data are not stored how you need it, then change how your data are stored. Indexes are the most common way, which we've discussed here. Materialized views would be the next power tool to consider, when needed. But that's a topic for another day.
 
 ## Parting thoughts
 
