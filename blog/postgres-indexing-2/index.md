@@ -109,7 +109,7 @@ Which produces this
 
 _Sad Trombone_
 
-Let's re-read the assumed chain of events Postgres would take, from above
+Let's re-read my assumed chain of events Postgres would take, from above
 
 > Postgres can search for each, one at a time, save the starting points of both, and then start reading forward on both, and sort of merge them together, taking the smaller title from either, until you have 10 books total.
 
@@ -129,7 +129,7 @@ To be crystal clear, Postgres can absolutely search multiple keys from an index.
 
 It did indeed do an index scan, on that same index. It just matches two values at once.
 
-Rather than taking one path down the B Tree, it accepts multiple passes, based on the multiple key value matches.
+Rather than taking one path down the B Tree, it takes multiple paths down the B Tree, based on the multiple key value matches.
 
 ```bash
    Index Cond: (publisher = ANY ('{157595,141129}'::integer[]))
@@ -139,7 +139,12 @@ That gives us **all** rows for _either_ publisher. Then it needs to sort them, w
 
 Why does it need to sort them? When we have a _single_ publisher, we _know_ all values under that publisher are ordered.
 
-_Look_ at the index. Imagine we just search for publisher 8. Postgres can go directly to that publisher, and _just read_: "Animal Farm" "Of Mice and Men" etc
+_Look_ at the index. Imagine we just search for publisher 8. Postgres can go directly to that publisher, and _just read_:
+
+```bash
+"Animal Farm"
+"Of Mice and Men"
+```
 
 ![Multiple Publishers Query](/postgres-indexing-2/img9-single-publisher-read.png)
 
@@ -150,7 +155,10 @@ Look what happens when we search for _two_ publishers, 8 and also, now, 21
 We can't just start reading for those matched records. That would give us
 
 ```bash
-"Animal Farm" "Of Mice and Men" "Lord of The Flies" The Catcher in The Rye"
+"Animal Farm"
+"Of Mice and Men"
+"Lord of The Flies"
+"The Catcher in The Rye"
 ```
 
 The books under each publisher is ordered, but the overall list of matches is not. And again, Postgres operates on _simple_ operations. Elaborate meta descriptions like "well it'll just merge the matches from each publisher taking the less of the next entry from either until the limit is satisfied" won't show up in your execution plan, at least not directly.
@@ -207,7 +215,7 @@ Always read these from the bottom
 
 ![Multiple Publishers Query with cte](/postgres-indexing-2/img11a-cte-append.png)
 
-It's the same exact index scan from before, but on a single publisher, with a limit of 10. Postgres can seek to the right publisher, and just read 10.
+It's the same exact index scan from before, but on a single publisher, with a limit of 10, run twice. Postgres can seek to the right publisher, and just read 10 for the first publisher, and then repeat for the second publisher.
 
 Then it puts those lists together
 
@@ -233,7 +241,7 @@ But sorting 20 records in memory is a light lunch for Postgres; as you can see, 
 
 Obviously you won't want to be writing queries like this manually, by hand. Presumably you'd have application code taking a list of publisher ids, and constructing something like this. How will it perform as you add more and more publishers?
 
-I've explored this very idea on larger production sets of data? I found that, somewhere around a _thousand_ ids, the performance does break down. But not because there's too much data to work with. The execution of those queries, with even a thousand id's, took only a few hundred ms. But the _Planning Time_ started to take many, many seconds. It turns out having Postgres parse through a thousand CTEs takes time.
+I've explored this very idea on larger production sets of data (much larger than what we're using here). I found that, somewhere around a _thousand_ ids, the performance does break down. But not because there's too much data to work with. The _execution_ of those queries, with even a thousand id's, took only a few hundred ms. But the _Planning Time_ started to take many, many seconds. It turns out having Postgres parse through a thousand CTEs, and put a plan together, takes time.
 
 ## Version 2
 
@@ -327,7 +335,7 @@ Let's see what this version of our query looks like
 
 ![Multiple Publishers Query with cte](/postgres-indexing-2/img12-cross-join.png)
 
-Still a small fraction of a second, and also a much smaller, simpler plan. And we have a new operation in here.
+Still a small fraction of a millisecond, and also a much smaller, simpler plan. And we have a new operation in here.
 
 ```bash
    ->  Nested Loop  (cost=0.69..81.19 rows=20 width=111) (actual time=0.042..0.087 rows=20 loops=1)
@@ -351,4 +359,16 @@ The right side is our normal (_fast_) query that we've seen a few times now
 
 and above that we do our normal sort.
 
-##
+## Stepping back
+
+The hardest part of writing this post is knowing when to stop. I could easiy write as much content again: we haven't even gotten into joins, and how indexes can help there, or even materialized views. This is an endless topic, and one that I enjoy. But this post is probably already too long, and I don't want to make it more so.
+
+The one theme through this post and the prior one can probably best be summed up as so: understand _how_ your data are stored, and craft your queries to make the best use possible of this knowledge. If you're not sure exactly how to craft your queries to do this, then use your knowledge of how indexes work, and what you want your queries to accomplish to ask an _extremely_ specific question to your favorite AI model. It's very likely to _at least_ get you closer to your answer.
+
+And of course if your data are not stored how you need it to be, then change how your data are stored. Indexes are the most common way, which we've discussed here. Materialized views would be the next power tool to consider, when needed. But that's a topic for another day.
+
+## Parting thoughts
+
+Hopefully these posts have taught you a few things about querying, query tuning, and crafting the right index for the right situation. These are skills that can have a huge payoff in achieving palpable performance gains that your users will notice.
+
+Happy querying!
