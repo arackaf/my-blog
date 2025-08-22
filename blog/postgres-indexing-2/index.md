@@ -1,6 +1,6 @@
 ---
 title: More Fun with Postgres indexes
-date: "2025-08-19T10:00:00.000Z"
+date: "2025-08-20T10:00:00.000Z"
 description: Pushing our index knowledge to the next level, to get the most out of our database
 ---
 
@@ -86,7 +86,7 @@ We got the top 10 books, sorted, from a list of over 2 million in less than a si
 
 ## More publishers!
 
-Now your boss comes to you and tells you you need the top 10 books, sorted alphabetically, as before, but over **either** publisher, combined. To be clear, the requirement is to take all books both publishers have published, combine them, then get the first ten, alphabetically.
+Now your boss comes and tells you to query the top 10 books, sorted alphabetically, as before, but over **either** publisher, combined. To be clear, the requirement is to take all books both publishers have published, combine them, then get the first ten, alphabetically.
 
 Easy you say, assuredly, fresh off the high of seeing Postgres grab you that same data for your enormous publisher in under a millisecond.
 
@@ -169,7 +169,7 @@ The books under each publisher is ordered, but the overall list of matches is no
 
 Before we make this query fast, let's briefly consider why our query's plan changed so radically between searching for two small publishers, vs an enormous publisher, and a small one.
 
-As we discussed in part 1, Postgres tracks and uses the statistics about your data in order to craft the best execution plan it can. Here, when you searched for the large publisher, it realized that query would yield an enormous number of rows. That led it to decide that simply scanning through the heap directly would be faster than the large number of random i/o that would be incurred from following an enormous number matches in the index's leaf nodes, over to the corresponding locations on the heap. Random i/o is bad, and Postgres will usually try to avoid it.
+As we discussed in part 1, Postgres tracks and uses the statistics about your data in order to craft the best execution plan it can. Here, when you searched for the large publisher, it realized that query would yield an enormous number of rows. That led it to decide that simply scanning through the heap directly would be faster than the large number of random i/o that would be incurred from following so many matches in the index's leaf nodes, over to the corresponding locations on the heap. Random i/o is bad, and Postgres will usually try to avoid it.
 
 ## Crafting a better query
 
@@ -231,7 +231,7 @@ You're not going to believe this, but that's exactly what the Merge Append on li
    ->  Merge Append  (cost=1.40..74.28 rows=20 width=111) (actual time=0.086..0.115 rows=10 loops=1)
 ```
 
-You can achieve amazing things with modern databases if you know just how to structure your queries _just_ right.
+You can achieve amazing things with modern databases if you know how to structure your queries _just_ right.
 
 ## How does this scale?
 
@@ -312,7 +312,7 @@ results as (
 
 We query against our ids table, and then use the ugly `cross join lateral` expression as a neat trick to run our normal books query, but with access to the publisher value in the ids CTE. The value in the ids CTE is, of course, the publisher id. So we've achieved what we want: we're essentially, conceptually looping through those id's, and then running our fast query on each.
 
-`lateral` is the key term in there. Think of (American) football, where a lateral is a sideways pass. Here, the lateral keyword allows us to "laterally" reference the `ids.id` value from the expression right beside it.
+`lateral` is the key term in there. Think of (American) football, where a lateral is a sideways pass. Here, the lateral keyword allows us to "laterally" reference the `ids.id` value from the expression right beside it; the `ids` CTE _laterals_ each id over to the results CTE.
 
 That coaxes Postgres to run it's normal index scan, followed by a read of the next 10 rows. That happens once for each id. That whole meta-list will then contain (up to) 10 rows for each publisher, and then this
 
@@ -355,7 +355,7 @@ The right side is our normal (_fast_) query that we've seen a few times now
          Index Cond: (publisher = "*VALUES*".column1)
 ```
 
-But gone is our nice Merge Append, replaced with a normal sort. The reason is, we replaced discrete CTEs which each produced separate, identically sorted outputs, which the planner could identify, and apply a Merge Append to. Merge Append works on multiple, independently sorted streams of data. Instead, this is just regular join, which produces one stream of data, and therefore needs to be sorted.
+But gone is our nice Merge Append, replaced with a normal sort. The reason is, we replaced discrete CTEs which each produced separate, identically sorted outputs, which the planner could identify, and apply a Merge Append to. Merge Append works on multiple, independently sorted streams of data. Instead, this is just a regular join, which produces one stream of data, and therefore needs to be sorted.
 
 But this is no tragedy. The query runs in a tiny fraction of a **milli**second, and will not suffer planning time degradation like the previous CTE version would, as we add more and more publisher id's. Plus, the sort is over just N\*10 records, where N is the number of publishers. It would take a catastrophically large N to wind up with enough rows where Postgres would struggle to sort them quickly, especially since the limit of 10 would allow it to do an efficient top-N heapsort, like we saw in part 1.
 
@@ -365,7 +365,7 @@ The hardest part of writing this post is knowing when to stop. I could easiy wri
 
 The one theme throughout can probably be summed up as so: understand _how_ your data are stored, and _craft_ your queries to make the best use possible of this knowledge. If you're not sure exactly how to craft your queries to do this, then use your knowledge of how indexes work, and what you want your queries to accomplish to ask an _extremely_ specific question to your favorite AI model. It's very likely to _at least_ get you closer to your answer. Often times knowing _what_ to ask is half the battle.
 
-And of course if your data are not stored how you need it, then change how your data are stored. Indexes are the most common way, which we've discussed here. Materialized views would be the next power tool to consider, when needed. But that's a topic for another day.
+And of course if your data are not stored how you need, then change how your data are stored. Indexes are the most common way, which we've discussed here. Materialized views would be the next power tool to consider, when needed. But that's a topic for another day.
 
 ## Parting thoughts
 
