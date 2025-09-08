@@ -35,15 +35,21 @@ Naturally you can specify the http verb to connect your server function with, va
 
 ## Getting Started
 
-All of my prior posts on TanStack Start, and Route have used the same contrived Jira clone, and this will be no different. The repo is [here](https://github.com/arackaf/tanstack-start-middleware-blog-post), but the underlying code is the same. If you want to follow along, you can `npm i` and then `npm run dev` and then run the relevant portion of the app at [http://localhost:3000/app/epics?page=1](http://localhost:3000/app/epics?page=1).
+All of my prior posts on TanStack Start, and Router have used the same contrived Jira clone, and this one will be no different. The repo is [here](https://github.com/arackaf/tanstack-start-middleware-blog-post), but the underlying code is the same. If you want to follow along, you can `npm i` and then `npm run dev` and then run the relevant portion of the app at [http://localhost:3000/app/epics?page=1](http://localhost:3000/app/epics?page=1).
 
 The epics section of this app uses server functions for all data, and all updates. We have an overview showing the each epic, along with the count of tasks in it (for those with tasks), a display of how many epics there are in total, and then a pagable list of individual epics the user can view, and edit.
 
 Again, it's contrived, with the intent of providing us a few different data sources, along with mutations that require them to update.
 
-## Our setup
+## Our Middleware Use Case
 
-The epics portion of our app has server functions defined for every piece of data that's read, and for
+We'll explore middleware by building an extremely rudimentary observability for our little Jira app.
+
+What is observability? It's a hard thing to define in a clear and meaningful way, but if you think of basic logging a caterpillar, then observability would be the beautiful butterfly it matures into. Observability is all about setting up systems that allow you to holistically observe how your engineering system is behaving. High-level actions are assigned a globally unique trace id, with all the various pieces of work that action performs are logged against that same trace id. Then, your observability software will allow you to intelligently introspect that data and discover where your problems are.
+
+I'm no observability expert, so if you'd like to learn more, Charity Majors [co-authored a superb book on this very topic](https://www.honeycomb.io/). She's the co-founder of [Honeycomb IO](https://www.honeycomb.io/), which is a mature observability platform.
+
+We won't be building a mature observability platform here; we'll be putting together some rudimentary logging with trace id's. What we'll be building is not suitable for use in a production software system, but it _will_ be a great way to explore TanStack Start's middleware feature, which is our goal here.
 
 ## Parting thoughts
 
