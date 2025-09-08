@@ -37,15 +37,15 @@ Naturally you can specify the http verb to connect your server function with, va
 
 All of my prior posts on TanStack Start, and Router have used the same contrived Jira clone, and this one will be no different. The repo is [here](https://github.com/arackaf/tanstack-start-middleware-blog-post), but the underlying code is the same. If you want to follow along, you can `npm i` and then `npm run dev` and then run the relevant portion of the app at [http://localhost:3000/app/epics?page=1](http://localhost:3000/app/epics?page=1).
 
-The epics section of this app uses server functions for all data, and all updates. We have an overview showing the each epic, along with the count of tasks in it (for those with tasks), a display of how many epics there are in total, and then a pagable list of individual epics the user can view, and edit.
+The epics section of this app uses server functions for all data, and all updates. We have an overview showing the each epic, along with the count of tasks in it (for those with tasks), a display of how many epics there are in total, and then a pageable list of individual epics the user can view, and edit.
 
 Again, it's contrived, with the intent of providing us a few different data sources, along with mutations that require them to update.
 
 ## Our Middleware Use Case
 
-We'll explore middleware by building an extremely rudimentary observability for our little Jira app.
+We'll explore middleware by building a rudimentary observability system for our Jira app.
 
-What is observability? It's a hard thing to define in a clear and meaningful way, but if you think of basic logging a caterpillar, then observability would be the beautiful butterfly it matures into. Observability is all about setting up systems that allow you to holistically observe how your engineering system is behaving. High-level actions are assigned a globally unique trace id, with all the various pieces of work that action performs are logged against that same trace id. Then, your observability software will allow you to intelligently introspect that data and discover where your problems are.
+What is observability? It's a hard thing to define in a clear and meaningful way, but if you think of basic logging as a caterpillar, then observability would be the beautiful butterfly it matures into. Observability is about setting up systems that allow you to holistically observe how your application is behaving. High-level actions are assigned a globally unique trace id, and the pieces of work that action performs are logged against that same trace id. Then your observability system will allow you to intelligently introspect that data and discover where your problems or weaknesses are.
 
 I'm no observability expert, so if you'd like to learn more, Charity Majors [co-authored a superb book on this very topic](https://www.honeycomb.io/). She's the co-founder of [Honeycomb IO](https://www.honeycomb.io/), which is a mature observability platform.
 
