@@ -1,7 +1,7 @@
 ---
-title: Introducing TanStack Start: Middleware
+title: Introducing TanStack Start Middleware
 date: "2025-08-20T10:00:00.000Z"
-description: An introduction to Middleware in TanStack Start 
+description: An introduction to Middleware in TanStack Start
 ---
 
 TanStack Start is one of the most exciting full-stack web development frameworks out there. I've written about it before [here](https://frontendmasters.com/blog/introducing-tanstack-start/).
