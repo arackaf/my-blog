@@ -6,13 +6,13 @@ description: An introduction to Middleware in TanStack Start
 
 TanStack Start is one of the most exciting full-stack web development frameworks out there. I've written about it before [here](https://frontendmasters.com/blog/introducing-tanstack-start/).
 
-In essense, TanStack Start takes TanStack Router, which is a superb, strongly-typed client-side JavaScript framework, and adds server-side support. This serves two purposes: it gives you a place to execute server-side code, like database access, rather than having to provide your own server layer. The other main benefit is server-side rendering, or SSR.
+In essence, TanStack Start takes TanStack Router, which is a superb, strongly-typed client-side JavaScript framework, and adds server-side support. This serves two purposes: it gives you a place to execute server-side code, like database access, rather than having to provide your own server layer. The other main benefit is server-side rendering, or SSR.
 
 This post is all about one particular, especially powerful feature of TanStack Start: Middleware. This post will be a gentle introduction to the feature. We'll build some _very_ rudimentary observability for a toy app. Then, in the second part of this post, we'll really see what Middleware can do when we put it to work to achieve single-flight mutations.
 
 ### Why do we need SSR
 
-I covered this in the post above, but SSR will usually improve LCP render performmance over a client-rendered SPA. With SPAs, the server will usually send down an empty shell of a page. The browser will then parse the script files, and fetch all your application components. Those components will then render and, usually, then _request some data_. Only _then_ can you render actual content.
+I covered this in the post above, but SSR will usually improve LCP render performance over a client-rendered SPA. With SPAs, the server will usually send down an empty shell of a page. The browser will then parse the script files, and fetch all your application components. Those components will then render and, usually, then _request some data_. Only _then_ can you render actual content.
 
 These round trips are neither free nor cheap; SSR allows you to send the initial content down directly, via the _initial_ request. See the post above for some deeper details. This post is all about a particular, especially cool, powerful feature of TanStack Start: Middleware.
 
