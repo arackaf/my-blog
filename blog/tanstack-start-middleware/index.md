@@ -51,8 +51,146 @@ I'm no observability expert, so if you'd like to learn more, Charity Majors [co-
 
 We won't be building a mature observability platform here; we'll be putting together some rudimentary logging with trace id's. What we'll be building is not suitable for use in a production software system, but it _will_ be a great way to explore TanStack Start's middleware feature, which is our goal here.
 
+## Our first server function
+
+This is a post about middleware, which is applied to server functions. Let's take a very quick look at a server function
+
+```ts
+export const getEpicsList = createServerFn({ method: "GET" })
+  .validator((page: number) => page)
+  .handler(async ({ data }) => {
+    const epics = await db
+      .select()
+      .from(epicsTable)
+      .offset((data - 1) * 4)
+      .limit(4);
+    return epics;
+  });
+```
+
+This is a simple server function to query our epics. We configure it to use the GET http verb. We specify and potentially validate our input, and then the handler function runs our actual code, which is just a basic query against our SQLite database. This particular code uses Drizzle for the data access, but you can of course use whatever you want.
+
+Server functions by definition will always run on the server, so you can do things like connect to a database, access secrets, etc.
+
+## Our first middleware
+
+Let's add some empty middleware so we can see what it looks like.
+
+```ts
+import { createMiddleware } from "@tanstack/react-start";
+
+export const middlewareDemo = createMiddleware({ type: "function" })
+  .client(async ({ next, context }) => {
+    console.log("client before");
+
+    const result = await next({
+      sendContext: {
+        hello: "world",
+      },
+    });
+
+    console.log("client after", context);
+
+    return result;
+  })
+  .server(async ({ next, context }) => {
+    console.log("server before", context);
+
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    const result = await next({
+      sendContext: {
+        value: 12,
+      },
+    });
+
+    console.log("server after", context);
+
+    return result;
+  });
+```
+
+```ts
+export const middlewareDemo = createMiddleware({ type: "function" });
+```
+
+declares the middleware. `type: "function"` means that this middleware is intended to run against server "functions" - there's also "request" middleware, which can run against either server functions, or server routes (what other frameworks sometimes call "api" routes). But "function" middleware has some additional powers, which is why we're using it here.
+
+```ts
+.client(async ({ next, context }) => {
+```
+
+This allows us to run code on the client. Note the arguments: `next` is how we tell TanStack to proceed with the rest of the middlewares in our chain, as well as the underlying server function this middleware is attached to. And `context` holds the mutable "context" of the middleware chain, which we'll look at shortly.
+
+```ts
+console.log("client before");
+
+const result = await next({
+  sendContext: {
+    hello: "world",
+  },
+});
+
+console.log("client after", context);
+```
+
+We next do some logging, then tell TanStack to run the underlying server function (as well as any other middlewares also added to the underlying server function, and then, after everything has run, we log again).
+
+And of course don't forget to return the actual result
+
+```
+return result;
+```
+
+You can naturally just `return next()` but this allows you to do additional work after the call chain is finished: either modify context, perform logging, etc.
+
+Note the `sendContext` we pass into the call to `next`
+
+```ts
+sendContext: {
+  hello: "world",
+},
+```
+
+This allows us to pass data from the client, up to the server. Now this `hello` property will be in the context object on the server.
+
+And now we essentially restart the same process on the server
+
+```ts
+.server(async ({ next, context }) => {
+    console.log("server before", context);
+
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    const result = await next({
+      sendContext: {
+        value: 12
+      }
+    });
+
+    console.log("server after", context);
+
+    return result;
+```
+
+We do some logging, and inject an artificial delay of one second, to simulate work. Then, as before, we call `next()` which triggers the underlying server function (as well as any other middlewares configured for that server function), and of course return the result.
+
+As before, we're free to just `return next()` directly, but this prevents us from doing _anything_ after the rest of the processing is performed.
+
+Note again the `sendContext`
+
+```ts
+sendContext: {
+  value: 12;
+}
+```
+
+This allows us to send data from the server, back down to the client.
+
+### Let's run it
+
 ## Parting thoughts
 
-We've barely scratched the surface .
+We've barely scratched the surface of Middleware. Stay tuned for part of 2 of this post, where we'll push middleware to its limit to achieve single-flight mutations.
 
 Happy querying!
