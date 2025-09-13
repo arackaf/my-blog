@@ -7,9 +7,11 @@
   margin-top: -1px;
 }
 
+/*
 .line-numbers span.line-numbers-rows > span {
   position: relative;
 }
+*/
 
 .line-numbers span.line-numbers-rows > span::after {
   content: " ";
@@ -41,8 +43,34 @@
   border-width: 0;
   color: rgb(0, 0, 0);
   cursor: pointer;
+  border-radius: 5px;
 }
 
 .prism-copy-button[disabled] {
   cursor: default;
+}
+
+pre.shiki {
+  padding: 10px;
+  display: flex;
+  line-height: 1.5;
+}
+
+pre.shiki code {
+  overflow: auto;
+}
+
+pre[data-linenumbers] code {
+  counter-reset: step;
+  counter-increment: step 0;
+}
+
+pre[data-linenumbers] code .line::before {
+  content: counter(step);
+  counter-increment: step;
+  width: 1rem;
+  margin-right: 1rem;
+  display: inline-block;
+  text-align: right;
+  color: rgba(115, 138, 148, 0.4);
 }
