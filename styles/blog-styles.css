@@ -7,6 +7,16 @@
   --h6-font-size: 0.81225rem;
 }
 
+.back-link {
+  font-size: 18px;
+}
+
+.post-date {
+  margin-top: -30px;
+  font-size: 0.87055rem;
+  line-height: 1.666rem;
+}
+
 .post h1,
 .post h2,
 .post h3,

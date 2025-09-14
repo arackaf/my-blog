@@ -10,7 +10,7 @@ import { GithubIcon } from "../components/svg/githubIcon";
 import { TwitterIcon } from "../components/svg/twitterIcon";
 
 import styles from "../styles/root-styles.module.scss";
-const { list: listStyles, avatar: avatarStyles } = styles;
+const { list: listStyles } = styles;
 
 import { NextWrapper } from "next-blurhash-previews";
 import { FC, PropsWithChildren } from "react";

@@ -43,12 +43,6 @@
     background: linear-gradient(0deg, rgba(251, 251, 251, 1) 0%, rgba(231, 231, 231, 1) 50%, rgba(243, 243, 243, 1) 100%);
   }
 
-  :global(.post-date) {
-    margin-top: calc(-1 * 10px);
-    font-size: 0.87055rem;
-    line-height: 1.666rem;
-  }
-
   blockquote {
     padding: 15px;
     overflow: auto;
