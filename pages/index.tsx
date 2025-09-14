@@ -40,7 +40,7 @@ export default function Index({ allPosts }) {
                   <Image alt="" src={AvatarImg} height={125} width={125} loading="eager" />
                 </NextWrapper>
               </span>
-              <div className="titles">
+              <div className="titles flex flex-col ml-2.5 py-2.5">
                 <h1>Strangely Typed</h1>
                 <h3>Software engineering blog by Adam Rackis</h3>
                 <div className="personal-links">

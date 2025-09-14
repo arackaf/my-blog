@@ -67,7 +67,7 @@ export default function Post({ post, morePosts, preview }) {
             </Head>
 
             <h1>{title}</h1>
-            <div className="post-date">
+            <div className="post-date mb-4">
               <DateFormatter dateString={date} />
             </div>
 

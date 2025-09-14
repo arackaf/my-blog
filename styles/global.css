@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
 :root {
-  --heading-margin-bottom: 1.666rem;
   --animation-duration: 300ms;
 
   --default-border-width: 1px;
@@ -127,7 +126,6 @@ h6 {
   font-family: "Segoe UI", "Avenir Next", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
   font-weight: bold;
   line-height: 1.1;
-  margin-bottom: var(--heading-margin-bottom);
 }
 
 h1 {
