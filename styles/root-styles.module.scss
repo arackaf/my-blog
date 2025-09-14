@@ -29,12 +29,20 @@
       display: flex;
       flex-direction: column;
       margin-left: 10px;
+      padding-top: 10px;
+      padding-bottom: 10px;
 
       @media (max-width: 700px) {
         --h1-font-size: 1.51572rem;
         --h3-font-size: 1rem;
       }
+      @media (max-width: 550px) {
+        padding-top: 5px;
+        padding-bottom: 5px;
+      }
       @media (max-width: 500px) {
+        padding-top: 7px;
+        padding-bottom: 7px;
         --h1-font-size: 1.31951rem;
         --h3-font-size: 0.87055rem;
         --h4-font-size: 0.87055rem;
@@ -46,10 +54,6 @@
 
       & > * {
         margin-bottom: 0;
-      }
-
-      & > :first-child {
-        margin-bottom: 5px;
       }
 
       & > :last-child {

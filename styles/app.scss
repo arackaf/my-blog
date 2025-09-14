@@ -1,41 +1,3 @@
-body {
-  font-family: 'Georgia', serif;
-  color: rgba(0, 0, 0, 0.8);
-}
-
-.root-container {
-  margin-top: 42px;
-  
-  @media (max-width: 700px) {
-    margin-top: 15px;
-  }
-}
-
-main {
-  --main-content-width: 676px;
-
-  display: grid;
-  grid-template-rows: auto auto;
-  grid-template-columns: 1fr minmax(0, var(--main-content-width)) 1fr;
-
-  grid-template-areas: 
-    'gutter1 header gutter2'
-    'gutter1 main   gutter2';
-
-  & > header {
-    grid-area: header;
-  }
-
-  article { 
-    grid-area: main;
-  }
-
-  @media (max-width: 700px) {
-    padding-left: 15px;
-    padding-right: 15px;
-  }
-}
-
 a {
   color: var(--link-color);
   cursor: pointer;
@@ -54,8 +16,13 @@ p {
   line-height: 1.2;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'Segoe UI','Avenir Next','Helvetica Neue','Helvetica','Arial',sans-serif;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: "Segoe UI", "Avenir Next", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
   font-weight: bold;
   line-height: 1.1;
   margin-bottom: var(--heading-margin-bottom);
