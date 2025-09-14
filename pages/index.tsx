@@ -15,6 +15,15 @@ const { title: titleStyles, list: listStyles, avatar: avatarStyles } = styles;
 import AvatarImg from "../public/assets/home/avatar.jpg";
 
 import { NextWrapper } from "next-blurhash-previews";
+import { FC, PropsWithChildren } from "react";
+
+const PersonalLink: FC<PropsWithChildren<{ href: string }>> = ({ href, children }) => {
+  return (
+    <a href={href} className="flex items-start [&>:first-child]:w-4.5 [&>:first-child]:mr-0.5 [&_svg]:fill-(--link-color) [&_svg]:h-4">
+      {children}
+    </a>
+  );
+};
 
 export default function Index({ allPosts }) {
   return (
@@ -25,7 +34,7 @@ export default function Index({ allPosts }) {
         </Head>
         <Container>
           <section className={titleStyles}>
-            <div className="blog-header">
+            <div className="blog-header flex mb-8">
               <span>
                 <NextWrapper sync={true} blurhash="L9Fhx14T144o5Q01~p-5lVD%x[tl" width="125" height="125">
                   <Image alt="" src={AvatarImg} height={125} width={125} loading="eager" />
@@ -36,25 +45,25 @@ export default function Index({ allPosts }) {
                 <h3>Software engineering blog by Adam Rackis</h3>
                 <div className="personal-links">
                   <h4>
-                    <a href="https://twitter.com/AdamRackis">
+                    <PersonalLink href="https://twitter.com/AdamRackis">
                       <span>
                         <TwitterIcon />
                       </span>
                       <span>adamrackis</span>
-                    </a>
+                    </PersonalLink>
                   </h4>
                   <h4>
-                    <a href="https://github.com/arackaf">
+                    <PersonalLink href="https://github.com/arackaf">
                       <span>
                         <GithubIcon />
                       </span>
                       <span>arackaf</span>
-                    </a>
+                    </PersonalLink>
                   </h4>
                 </div>
               </div>
             </div>
-            <div className="blog-intro">
+            <div className="mb-8 flex flex-col gap-2">
               <p>Hi, I'm Adam 👋</p>
               <p>
                 Welcome to my blog. I usually write about web development—the React or Svelte stacks in particular—or occasionally GraphQL, databases,
