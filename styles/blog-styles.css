@@ -1,0 +1,38 @@
+.post {
+  --h1-font-size: 36px;
+  --h2-font-size: 1.51572rem;
+  --h3-font-size: 1.31951rem;
+  --h4-font-size: 1rem;
+  --h5-font-size: 0.87055rem;
+  --h6-font-size: 0.81225rem;
+}
+
+.post h1,
+.post h2,
+.post h3,
+.post h4,
+.post h5,
+.post h6 {
+  font-weight: bold;
+  line-height: 1.1;
+  margin-bottom: 25px;
+}
+
+.post h1 {
+  font-size: var(--h1-font-size);
+}
+.post h2 {
+  font-size: var(--h2-font-size);
+}
+.post h3 {
+  font-size: var(--h3-font-size);
+}
+.post h4 {
+  font-size: var(--h4-font-size);
+}
+.post h5 {
+  font-size: var(--h5-font-size);
+}
+.post h6 {
+  font-size: var(--h6-font-size);
+}

@@ -48,7 +48,7 @@ export default function Post({ post, morePosts, preview }) {
   const { title, date } = post;
 
   return (
-    <Layout preview={preview} className={postCssClass}>
+    <Layout preview={preview} className={postCssClass + " post "}>
       <Container>
         <h4>
           <Link href="/" className="back-link">
