@@ -10,16 +10,14 @@ import { GithubIcon } from "../components/svg/githubIcon";
 import { TwitterIcon } from "../components/svg/twitterIcon";
 
 import styles from "../styles/root-styles.module.scss";
-const { title: titleStyles, list: listStyles, avatar: avatarStyles } = styles;
-
-import AvatarImg from "../public/assets/home/avatar.jpg";
+const { list: listStyles, avatar: avatarStyles } = styles;
 
 import { NextWrapper } from "next-blurhash-previews";
 import { FC, PropsWithChildren } from "react";
 
 const PersonalLink: FC<PropsWithChildren<{ href: string }>> = ({ href, children }) => {
   return (
-    <a href={href} className="flex items-start [&>:first-child]:w-4.5 [&>:first-child]:mr-0.5 [&_svg]:fill-(--link-color) [&_svg]:h-4">
+    <a href={href} className="flex items-center sm:gap-0.5 [&>:first-child]:w-4.5 [&_svg]:fill-(--link-color) sm:[&_svg]:h-4 [&_svg]:h-3.5">
       {children}
     </a>
   );
@@ -33,31 +31,33 @@ export default function Index({ allPosts }) {
           <title>Adam Rackis's personal site and blog</title>
         </Head>
         <Container>
-          <section className={titleStyles}>
+          <section>
             <div className="blog-header flex mb-8">
-              <span>
+              <div className="rounded-full overflow-hidden sm:w-[125px] sm:h-[125px] w-24 h-24">
                 <NextWrapper sync={true} blurhash="L9Fhx14T144o5Q01~p-5lVD%x[tl" width="125" height="125">
-                  <Image alt="Profile pic" className="rounded-full" src={AvatarImg} height={125} width={125} loading="eager" />
+                  <img alt="Profile pic" className="rounded-full sm:w-[125px] sm:h-[125px] w-24 h-24" src="/assets/home/avatar.jpg" />
                 </NextWrapper>
-              </span>
-              <div className="titles flex flex-col ml-2.5 py-2.5">
-                <h1>Strangely Typed</h1>
-                <h3>Software engineering blog by Adam Rackis</h3>
-                <div className="personal-links">
-                  <h4>
+              </div>
+              <div className="titles flex flex-col ml-2.5 justify-evenly">
+                <div className="flex flex-col gap-1">
+                  <h1 className="leading-none text-xl sm:text-2xl md:text-3xl font-bold">Strangely Typed</h1>
+                  <h3 className="leading-none text-sm sm:text-lg md:text-xl font-bold">Software engineering blog by Adam Rackis</h3>
+                </div>
+                <div className="personal-links flex flex-col gap-1">
+                  <h4 className="leading-none sm:text-base text-sm">
                     <PersonalLink href="https://twitter.com/AdamRackis">
                       <span>
                         <TwitterIcon />
                       </span>
-                      <span>adamrackis</span>
+                      <span className="font-bold sm:text-base text-sm leading-none!">adamrackis</span>
                     </PersonalLink>
                   </h4>
-                  <h4>
+                  <h4 className="leading-none">
                     <PersonalLink href="https://github.com/arackaf">
                       <span>
                         <GithubIcon />
                       </span>
-                      <span>arackaf</span>
+                      <span className="font-bold sm:text-base text-sm leading-none!">arackaf</span>
                     </PersonalLink>
                   </h4>
                 </div>
