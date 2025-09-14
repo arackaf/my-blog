@@ -1,6 +1,5 @@
 import "../styles/global.css";
 import "../styles/code-highlighting-overrides.css";
-import "../styles/reset.css";
 import "../styles/index.css";
 import "../styles/app.scss";
 import "../styles/header.scss";
