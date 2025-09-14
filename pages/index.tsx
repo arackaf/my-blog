@@ -37,7 +37,7 @@ export default function Index({ allPosts }) {
             <div className="blog-header flex mb-8">
               <span>
                 <NextWrapper sync={true} blurhash="L9Fhx14T144o5Q01~p-5lVD%x[tl" width="125" height="125">
-                  <Image alt="" src={AvatarImg} height={125} width={125} loading="eager" />
+                  <Image alt="Profile pic" className="rounded-full" src={AvatarImg} height={125} width={125} loading="eager" />
                 </NextWrapper>
               </span>
               <div className="titles flex flex-col ml-2.5 py-2.5">
