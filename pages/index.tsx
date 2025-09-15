@@ -4,13 +4,9 @@ import Layout from "../components/layout";
 import { getAllPosts } from "../lib/api";
 import Head from "next/head";
 import Link from "next/link";
-import Image from "next/image";
 
 import { GithubIcon } from "../components/svg/githubIcon";
 import { TwitterIcon } from "../components/svg/twitterIcon";
-
-import styles from "../styles/root-styles.module.scss";
-const { list: listStyles } = styles;
 
 import { NextWrapper } from "next-blurhash-previews";
 import { FC, PropsWithChildren } from "react";
@@ -72,10 +68,10 @@ export default function Index({ allPosts }) {
             </div>
           </section>
 
-          <div className={listStyles}>
+          <div>
             {allPosts.map(post => (
-              <div key={post.title} className="blog-list-item">
-                <h3>
+              <div key={post.title} className="blog-list-item mb-8">
+                <h1 className="leading-none text-2xl font-bold">
                   {post.url ? (
                     <a href={post.url}>
                       {post.title} &nbsp;<i className="fad fa-external-link-alt"></i>
@@ -83,12 +79,12 @@ export default function Index({ allPosts }) {
                   ) : (
                     <Link href={`blog/${post.slug}`}>{post.title}</Link>
                   )}
-                </h3>
-                <small>
+                </h1>
+                <small className="text-sm italic">
                   <DateFormatter dateString={post.date}></DateFormatter>
                   {post.url ? <span> on {post.url.indexOf("css-tricks.com") >= 0 ? "css-tricks.com" : "Frontend Masters"}</span> : ""}
                 </small>
-                <p>{post.description}</p>
+                <p className="mt-1.5">{post.description}</p>
               </div>
             ))}
           </div>

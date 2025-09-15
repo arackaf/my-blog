@@ -5,8 +5,6 @@ import Link from "next/link";
 import Head from "next/head";
 import ErrorPage from "next/error";
 
-import { post as postCssClass } from "../../styles/blog-styles.module.scss";
-
 import markdownToHtml from "../../lib/markdownToHtml";
 import { getPostBySlug, getAllPosts } from "../../lib/api";
 
@@ -48,7 +46,7 @@ export default function Post({ post, morePosts, preview }) {
   const { title, date } = post;
 
   return (
-    <Layout preview={preview} className={postCssClass + " post "}>
+    <Layout preview={preview} className={"post"}>
       <Container>
         <h4>
           <Link href="/" className="back-link">

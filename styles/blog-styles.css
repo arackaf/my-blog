@@ -7,8 +7,57 @@
   --h6-font-size: 0.81225rem;
 }
 
-.back-link {
+.post img,
+.post canvas {
+  display: block;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+.post img {
+  height: auto;
+}
+.post canvas {
+  background: linear-gradient(0deg, rgba(251, 251, 251, 1) 0%, rgba(231, 231, 231, 1) 50%, rgba(243, 243, 243, 1) 100%);
+}
+
+.post blockquote > pre {
+  line-height: 1.5;
+}
+.post blockquote br {
+  display: none;
+}
+.post blockquote > p {
+  margin: 0;
+}
+.post blockquote {
+  padding: 15px;
+  overflow: auto;
+  background-color: hsl(43, 13%, 90%);
+  margin-bottom: 1.6rem;
+  font-family: monospace;
+  overflow: auto;
+  white-space: nowrap;
+}
+
+.post p {
+  margin-bottom: 1.6rem;
+  line-height: 1.666;
+  word-break: break-word;
+}
+
+.post .back-link {
   font-size: 18px;
+
+  color: inherit;
+
+  display: flex;
+  gap: 5px;
+}
+.post .back-link svg {
+  fill: rgba(0, 0, 0, 0.8);
 }
 
 .post-date {
