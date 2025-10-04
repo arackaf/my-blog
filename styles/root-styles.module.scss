@@ -65,6 +65,19 @@
     }
 
     & > :first-child {
+      width: 125px !important;
+      height: 125px !important;
+      min-width: 125px !important;
+      min-height: 125px !important;
+
+      @media (max-width: 550px) {
+        width: 100px !important;
+        height: 100px !important;
+
+        min-width: 100px !important;
+        min-height: 100px !important;
+      }
+
       & img,
       canvas {
         border-radius: 50%;
