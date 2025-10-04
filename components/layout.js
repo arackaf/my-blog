@@ -1,16 +1,12 @@
 import Meta from "../components/meta";
-import { Nav } from "./nav";
 
 export default function Layout({ children, className = "" }) {
   return (
     <>
       <Meta />
-      <main>
-        <Nav />
+      <main className="flex flex-col max-w-[708px] mx-auto px-4">
         <article className={className}>
-          {/* <div style={{ backgroundColor: "blue" }}></div> */}
           <section>{children}</section>
-          {/* <div style={{ backgroundColor: "red" }}></div> */}
         </article>
       </main>
     </>
