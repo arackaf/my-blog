@@ -7,11 +7,10 @@
   margin-top: -1px;
 }
 
-/*
-.line-numbers span.line-numbers-rows > span {
+/* <pre> elements to be position: relative for the copy button */
+pre.shiki {
   position: relative;
 }
-*/
 
 .line-numbers span.line-numbers-rows > span::after {
   content: " ";
@@ -38,19 +37,23 @@
   position: absolute;
   top: 5px;
   right: 5px;
-  width: 10ch;
   background-color: rgba(100, 100, 100, 0.5);
   border-width: 0;
   color: rgb(0, 0, 0);
   cursor: pointer;
   border-radius: 5px;
+  font-size: 13px;
+  line-height: 1.3;
+  padding: 0px;
+  min-width: 70px;
 }
 
 .prism-copy-button[disabled] {
   cursor: default;
 }
 
-pre.shiki {
+.post pre.shiki {
+  margin-bottom: 1.6rem;
   padding: 10px;
   display: flex;
   line-height: 1.5;
