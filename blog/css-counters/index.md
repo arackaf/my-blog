@@ -9,13 +9,15 @@ for (int i = 0; i < 10; i++) {
 }
 ```
 
-For most of us, some variation of this code is one of the first things we learned when we were first learning to code. For me it was C++, but just about any language has some version of it—even CSS. Yes, CSS has counter variables. Let's take a look!
+For most of us, some variation of this code is one of the first things we learned when we were first starting out. For me it was C++, but just about any language has some version of it—even CSS. Yes, CSS has counter variables.
+
+Let's take a look!
 
 ## CSS Counters in action
 
-CSS Counters work against 4 css properties: `counter-reset`, `counter-set`, `counter-increment`, and a `counter()` function.
+CSS Counters are driven by 4 css properties: `counter-reset`, `counter-set`, `counter-increment`, and a `counter()` function.
 
-Let's say we wanted a React component that renders a few lines of text, where the number of lines is received as a prop. But let's also say that we want to display line numbers next to each line, _and_ we want to use CSS to render the line numbers. That last assumption might seem silly, but bear with me for a more realistic use case.
+Let's say we wanted a React component that renders a few lines of text, where the number of lines is received as a prop. But we also want to display line numbers next to each line, _and_ we want to use CSS to do so. That last assumption might seem silly, but bear with me; we'll look at a real-world use case at the end.
 
 Here's the component
 
@@ -31,7 +33,7 @@ const NumberedSection: FC<{ count: number }> = ({ count }) => {
 };
 ```
 
-We'll use a css counter called `count-val` to manage our line numbers. So in css we can reset our counter for each and every `counter-container` div like this
+We'll use a css counter called `count-val` to manage our line numbers. In css we can reset our counter for each and every `counter-container` div like this
 
 ```css
 .counter-container {
@@ -39,7 +41,7 @@ We'll use a css counter called `count-val` to manage our line numbers. So in css
 }
 ```
 
-And then for each line inside, we can increment our counter, and render the current number in a pseudo-element like so
+And then for each line inside that container, we can increment our counter, and render the current number in a pseudo-element like this
 
 ```css
 .counter-container span::before {
@@ -58,7 +60,7 @@ And it works. Rendering two of these components like so
   <NumberedSection count={4} />
 ```
 
-and it works
+displays line numbers.
 
 ![CSS Counters working](/css-counters/img1.png)
 
@@ -68,7 +70,7 @@ If for some reason you wanted to incremenet by some other value than 1, you can 
 counter-increment: count-val 2;
 ```
 
-And if you for some reason wanted to _set_ a counter to a specific value, the counter-set property is for you. There's a few other options that are of course discussed on [MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_counter_styles/Using_CSS_counters).
+And if you wanted to just _set_ a counter to a specific value, the counter-set property is for you. There's a few other options that are of course discussed on [MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_counter_styles/Using_CSS_counters).
 
 I know this seems silly, and I know this would have been _simpler_ to do in JavaScript. The counter variable is already _right there_
 
@@ -84,7 +86,7 @@ body {
 }
 ```
 
-and then increment and display with each heading
+and then increment and display that counter for each heading that happens to be on our page.
 
 ```css
 h1.title::before {
@@ -106,17 +108,17 @@ And now when we render some content
 </div>
 ```
 
-And now, as expected, we have line numbers next to each heading
+we have line numbers next to each heading
 
 ![CSS Counters working](/css-counters/img2.png)
 
 # One last example
 
-Before going, I'd like to share the use case that led me to discover this feature. So far the examples we've seen are either contrived, or better served by just using JavaScript. But what if you don't have control over the generation of the markup in question.
+Before going, I'd like to share the use case that led me to discover this feature. So far the examples we've seen are either contrived, or better served by just using JavaScript. But what if you don't have control over the markup that's generated on our page?
 
-I recently moved my blog's code formatting utility from Prism, to Shiki. Everything went well, except for one thing: Shiki does not support line numbers. Which made for a perfect use case for css counters.
+I recently moved my blog's code formatting from Prism, to Shiki. Everything went well except for one thing: Shiki does not support line numbers. Which made for a perfect use case for css counters.
 
-I just used the Shiki configuration to inject a `data-linenumbers` attribute onto any `pre` tag containing code I wanted numbered, and then I could solve this with a little bit of css
+I used the Shiki configuration to inject a `data-linenumbers` attribute onto any `pre` tag containing code I wanted numbered, and then I could solve this with a little bit of css
 
 ```css
 pre[data-linenumbers] code {
