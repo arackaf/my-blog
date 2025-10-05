@@ -86,7 +86,7 @@ body {
 }
 ```
 
-and then increment and display that counter for each heading that happens to be on our page.
+and then increment and display that counter for each heading that happens to be on our page. And if we want custom formatting on the line numbers, we can list out strings, and css will concatenate them.
 
 ```css
 h1.title::before {
@@ -114,11 +114,11 @@ we have line numbers next to each heading
 
 # One last example
 
-Before going, I'd like to share the use case that led me to discover this feature. So far the examples we've seen are either contrived, or better served by just using JavaScript. But what if you don't have control over the markup that's generated on our page?
+Before going, I'd like to share the use case that led me to discover this feature. So far the examples we've seen are either contrived, or better served by just using JavaScript. But what if you don't have control over the markup that's generated on your page?
 
-I recently moved my blog's code formatting from Prism, to Shiki. Everything went well except for one thing: Shiki does not support line numbers. Which made for a perfect use case for css counters.
+I recently moved my blog's code formatting from Prism, to Shiki. Everything went well except for one thing: Shiki does not support line numbers. This created a perfect use case for css counters.
 
-I used the Shiki configuration to inject a `data-linenumbers` attribute onto any `pre` tag containing code I wanted numbered, and then I could solve this with a little bit of css
+I used my Shiki configuration to inject a `data-linenumbers` attribute onto any `pre` tag containing code I wanted numbered, and then I solved this with a little bit of css
 
 ```css
 pre[data-linenumbers] code {
@@ -136,7 +136,7 @@ pre[data-linenumbers] code .line::before {
 }
 ```
 
-and just like what, I had numbered lines
+and just like that, I had numbered lines
 
 ![CSS Counters working](/css-counters/img2.png)
 
