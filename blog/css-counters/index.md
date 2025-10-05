@@ -64,7 +64,7 @@ displays line numbers.
 
 ![CSS Counters working](/css-counters/img1.png)
 
-If for some reason you wanted to incremenet by some other value than 1, you can specify whatever increment you want
+If for some reason you wanted to increment by some other value than 1, you can specify whatever increment you want
 
 ```css
 counter-increment: count-val 2;
