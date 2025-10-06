@@ -89,7 +89,7 @@ export const middlewareDemo = createMiddleware({ type: "function" })
       },
     });
 
-    console.log("client after", context);
+    console.log("client after", result.context);
 
     return result;
   })
@@ -120,7 +120,7 @@ declares the middleware. `type: "function"` means that this middleware is intend
 .client(async ({ next, context }) => {
 ```
 
-This allows us to run code on the client. Note the arguments: `next` is how we tell TanStack to proceed with the rest of the middlewares in our chain, as well as the underlying server function this middleware is attached to. And `context` holds the mutable "context" of the middleware chain, which we'll look at shortly.
+This allows us to run code on the client. Note the arguments: `next` is how we tell TanStack to proceed with the rest of the middlewares in our chain, as well as the underlying server function this middleware is attached to. And `context` holds the mutable "context" of the middleware chain.
 
 ```ts
 console.log("client before");
@@ -131,10 +131,10 @@ const result = await next({
   },
 });
 
-console.log("client after", context);
+console.log("client after", result.context);
 ```
 
-We next do some logging, then tell TanStack to run the underlying server function (as well as any other middlewares also added to the underlying server function, and then, after everything has run, we log again).
+We do some logging, then tell TanStack to run the underlying server function (as well as any other middlewares we have in the chain), and then, after everything has run, we log again.
 
 And of course don't forget to return the actual result
 
@@ -173,9 +173,7 @@ And now we essentially restart the same process on the server
     return result;
 ```
 
-We do some logging, and inject an artificial delay of one second, to simulate work. Then, as before, we call `next()` which triggers the underlying server function (as well as any other middlewares configured for that server function), and of course return the result.
-
-As before, we're free to just `return next()` directly, but this prevents us from doing _anything_ after the rest of the processing is performed.
+We do some logging, and inject an artificial delay of one second, to simulate work. Then, as before, we call `next()` which triggers the underlying server function (as well as any other middlewares in the chain), and then return the result.
 
 Note again the `sendContext`
 
@@ -188,6 +186,61 @@ sendContext: {
 This allows us to send data from the server, back down to the client.
 
 ### Let's run it
+
+I have a server function with this middleware configured
+
+```ts
+export const getEpicsList = createServerFn({ method: "GET" })
+  .inputValidator((page: number) => page)
+  .middleware([middlewareDemo])
+  .handler(async ({ data }) => {
+    const epics = await db
+      .select()
+      .from(epicsTable)
+      .offset((data - 1) * 4)
+      .limit(4);
+    return epics;
+  });
+```
+
+and when we run it, this is what is in the _browser's_ console shows
+
+```
+client before
+client after {value: 12}
+```
+
+_with a one second delay before the final client log, since that was the time execution was on the server, with the delay we saw_
+
+Nothing too shocking. The client logs, then sends execution to the server, and then logs again, with whatever context came back from the server. Note we use `result.context` to get what the server sent back, rather than the `context` argument that was passed to the `client` callback. This makes sense: that context was created before the server was ever invoked with the `next()` call, and so there's no way for it to magically, mutably update based on whatever happens to get returned from the server. So we just read `result.context` to get what the server sent back.
+
+### The server
+
+Now let's look at what the server shows.
+
+server before { hello: 'world' }
+server after { hello: 'world' }
+
+Nothing too interesting here, either. As we can see, the server's `context` argument does in fact contain what was sent to it from the client.
+
+### When client middleware runs on the server
+
+Don't forget, TanStack Start will server render your initial path. So what happens when a serverFunction executes as a part of that process, with middleware? How can the client middleware possibly run, since there's no client in existence, yet—only a request, currently being executed on the server: TanStack is not yet running on any browser, since we haven't even sent script tags down to whatever browser requested this url.
+
+During SSR, client middleware will run on the server. This makes sense: whatever functionality you're building will still work, but the client portion of it will run on the server. As a result, be sure you don't use any browser-only api's like localStorage.
+
+Let's see this in action, but during the SSR run. The prior logs I showed were the result of browsing to a page via navigation. Now I'll just refresh that page, and show the _server_ logs.
+
+```
+client before
+server before { hello: 'world' }
+server after { hello: 'world' }
+client after { value: 12 }
+```
+
+As before, but now everything on the server.
+
+## Let's get started
 
 ## Parting thoughts
 
