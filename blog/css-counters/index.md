@@ -140,6 +140,77 @@ and just like that, I had numbered lines
 
 ![CSS Counters working](/css-counters/img2.png)
 
+## Odds and ends
+
+We've covered all you'll probably ever use of css counters, but for completeness let's look at some tricks it supports.
+
+### Formatting the numbers
+
+It turns out you can customize the display of the number from the css counter. The `counter()` function takes an optional second argument, detailed [here](https://developer.mozilla.org/en-US/docs/Web/CSS/counter#counter-style).
+
+For example, if you want to display these counter values as uppercase Roman numerals, you can do this
+
+```css
+counter(tile-num, upper-roman)
+```
+
+![CSS Counters working](/css-counters/img4.png)
+
+### Nested Counters
+
+Remember the titles we saw before? What if those containers with the numbered titles could nest within each other.
+
+Take a look at this markup.
+
+```jsx
+<div className="nested">
+  <h1 className="title">This is a title</h1>
+  <p>Content content content</p>
+  <h1 className="title">This is the next title</h1>
+  <p>
+    Content content content
+    <div className="nested">
+      <h1 className="title">Nested title</h1>
+      <p>Content content content</p>
+      <h1 className="title">Nested title</h1>
+      <p>
+        Content content content
+        <div className="nested">
+          <h1 className="title">Nested 2nd title</h1>
+        </div>
+      </p>
+    </div>
+  </p>
+  <h1 className="title">Last title</h1>
+  <p>Content content content</p>
+</div>
+```
+
+Do you see how those `nested` containers can ... _nest_ within each other? Each new nested container resets its counter. But wouldn't it be neat if css could take all values from the current elements' ancestors, and connect them? Like a nested table of contents?
+
+Basically this
+
+![CSS Counters working](/css-counters/img5.png)
+
+Well it can! Let's take a look at the css that produced the above.
+
+```css
+.nested {
+  counter-reset: nested-num;
+}
+.nested p {
+  margin-left: 10px;
+}
+
+.nested h1.title::before {
+  counter-increment: nested-num;
+  content: counters(nested-num, ".");
+  margin-right: 5px;
+}
+```
+
+To achieve this we just use the `counters` function, rather than `counter`. It takes a second argument that tells css how to join the numeric values for all counter instances on the current element. It also supports a _third_ argument (not shown) to allow you to alter the display of these numbers, like we did before with roman numerals.
+
 ## Concluding thoughts
 
 CSS counters are a fun feature that can occasionally come in handy. They're a useful feature to keep in the back of your mind: they might come in handy for you one day.
