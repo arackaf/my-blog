@@ -216,7 +216,7 @@ Nothing too shocking. The client logs, then sends execution to the server, and t
 
 ### The server
 
-Now let's look at what the server shows.
+Now let's look at what the server console shows.
 
 server before { hello: 'world' }
 server after { hello: 'world' }
@@ -238,7 +238,7 @@ server after { hello: 'world' }
 client after { value: 12 }
 ```
 
-As before, but now everything on the server.
+As before, but now everything on the server, and as before, there's a one second delay while the server is working.
 
 ## Let's get started
 
