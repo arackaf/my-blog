@@ -65,6 +65,7 @@ pre.shiki code {
 
 pre[data-linenumbers] code {
   counter-reset: step;
+  counter-increment: step 0;
 }
 
 pre[data-linenumbers] code .line::before {
