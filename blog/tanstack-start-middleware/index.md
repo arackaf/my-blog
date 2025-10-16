@@ -1,6 +1,6 @@
 ---
 title: Introducing TanStack Start Middleware
-date: "2025-08-20T10:00:00.000Z"
+date: "2025-10-15T10:00:00.000Z"
 description: An introduction to Middleware in TanStack Start
 ---
 
@@ -240,10 +240,336 @@ client after { value: 12 }
 
 As before, but now everything on the server, and as before, there's a one second delay while the server is working.
 
-## Let's get started
+## Building real middleware
+
+Let's build some actual logging middleware, with a observability flair. If you want to look at real observability solutions, please check out [the book](https://www.amazon.com/Observability-Engineering-Achieving-Production-Excellence/dp/1492076449) I mentioned above, or a real Observability solution like Honeycomb. But our focus will be on TanStack middleware, not a robust observability solution.
+
+### The client
+
+Let's start our middleware with our client section. It will record the local time that this middleware began. This will allow us to measure the total end-to-end time that our action took, including server latency.
+
+```ts
+export const loggingMiddleware = (name: string) =>
+  createMiddleware({ type: "function" })
+    .client(async ({ next, context }) => {
+      console.log("middleware for", name, "client", context);
+
+      const clientStart = new Date().toISOString();
+```
+
+and now let's call the rest of our middleware chain, and our server function.
+
+```ts
+const result = await next({
+  sendContext: {
+    clientStart,
+  },
+});
+```
+
+Once the `await next` completes we know that everything has finished on the server, and we're back on the client. Let's grab the date and time that everything finished, as well as a logging id that was sent back from the server. With that in hand we'll call `setClientEnd`, which is just a simple server function to update the relevant row in our log table with the clientEnd time.
+
+```ts
+const clientEnd = new Date().toISOString();
+const loggingId = result.context.loggingId;
+
+await setClientEnd({ data: { id: loggingId, clientEnd } });
+
+return result;
+```
+
+For completeness, it looks like this
+
+```ts
+export const setClientEnd = createServerFn({ method: "POST" })
+  .inputValidator((payload: { id: string; clientEnd: string }) => payload)
+  .handler(async ({ data }) => {
+    await db.update(actionLog).set({ clientEnd: data.clientEnd }).where(eq(actionLog.id, data.id));
+  });
+```
+
+I'm using Drizzle for the database boilerplate. I can't recommend Drizzle strongly enough, and I've written two post about it, an intro [here](https://frontendmasters.com/blog/introducing-drizzle/), and a piece on migrations [here](https://frontendmasters.com/blog/drizzle-database-migrations/).
+
+### The server
+
+Let's look at our server handler
+
+```ts
+    .server(async ({ next, context }) => {
+      const traceId = crypto.randomUUID();
+
+      const start = +new Date();
+
+      const result = await next({
+        sendContext: {
+          loggingId: "" as string
+        }
+      });
+```
+
+We start by creating a traceId. This is the single identifier that represents the entirety of the action the user is performing. It's not a log id. In fact, for real observability systems, there will be many, many log entries against a single traceId, representing all the sub-steps involved in that thing.
+
+For now, there'll just be a single log entry, but in a bit we'll have some fun and go a little further ...
+
+Once we have the traceId, we note the start time, and then we call `await next` to finish our work here on the server. Note that we add a `loggingId` to the context we'll be sending _back down_ to the client. It'll use this to update the log entry with the clientEnd time, so we can see the total end-to-end time.
+
+```ts
+const end = +new Date();
+
+const id = await addLog({
+  data: { actionName: name, clientStart: context.clientStart, traceId: traceId, duration: end - start },
+});
+result.sendContext.loggingId = id;
+
+return result;
+```
+
+Next we note the end time, after the work has completed. We add a log entry, and then we update the context we're sending back down to the client (the sendContext) object with the correct loggingId. Recall that the client callback used this to add the clientEnd time.
+
+And then of course we return the result, which then finishes the processing on the server, and allows control to return to the client.
+
+The addLog function is pretty boring; it just inserts a row in our log table with Drizzle.
+
+```ts
+export const addLog = createServerFn({ method: "POST" })
+  .inputValidator((payload: AddLogPayload) => payload)
+  .handler(async ({ data }) => {
+    const { actionName, clientStart, traceId, duration } = data;
+
+    const id = crypto.randomUUID();
+    await db.insert(actionLog).values({
+      id,
+      traceId,
+      clientStart,
+      clientEnd: "",
+      actionName,
+      actionDuration: duration,
+    });
+
+    return id as string;
+  });
+```
+
+And this code, as written, works.
+
+![Img 1](/tanstack-start-middleware/img1.png)
+
+## The problem
+
+The code above does work, as written. But there's one small problem: we have a TypeScript error.
+
+Here's the entire middleware, as written, with the TS error pasted as a comment above the offending line
+
+```ts
+import { createMiddleware } from "@tanstack/react-start";
+import { addLog, setClientEnd } from "./logging";
+
+export const loggingMiddleware = (name: string) =>
+  createMiddleware({ type: "function" })
+    .client(async ({ next, context }) => {
+      console.log("middleware for", name, "client", context);
+
+      const clientStart = new Date().toISOString();
+
+      const result = await next({
+        sendContext: {
+          clientStart,
+        },
+      });
+
+      const clientEnd = new Date().toISOString();
+      // ERROR: 'result.context' is possibly 'undefined'
+      const loggingId = result.context.loggingId;
+
+      await setClientEnd({ data: { id: loggingId, clientEnd } });
+
+      return result;
+    })
+    .server(async ({ next, context }) => {
+      const traceId = crypto.randomUUID();
+
+      const start = +new Date();
+
+      const result = await next({
+        sendContext: {
+          loggingId: "" as string,
+        },
+      });
+
+      const end = +new Date();
+
+      const id = await addLog({
+        data: { actionName: name, clientStart: context.clientStart, traceId: traceId, duration: end - start },
+      });
+      result.sendContext.loggingId = id;
+
+      return result;
+    });
+```
+
+Why does TS dislike this line?
+
+```ts
+const loggingId = result.context.loggingId;
+```
+
+We call it on the client, after we call `await next` and our server does in fact add a loggingId to its `sendContext` object. And it's there. The value is in fact logged.
+
+The problem is a technical one. Our server callback can see the things the client callback added to sendContext. But the client callback is not able to "look ahead" and see what the server callback added to _its_ sendContext object. The solution is simple: split the middleware up.
+
+Here's a version 2 of the same middleware. I've added it to a new loggingMiddlewareV2.ts
+
+I'll post the entirety of it below, but it's the exact same code as before, except all the stuff in the `.client` handler _after_ the call to `await next` has been removed, and moved to a second middleware. This new, second middleware that only contains the second half of the `.client` callback then takes the other middleware as its own middleware.
+
+Here's the code:
+
+```ts
+import { createMiddleware } from "@tanstack/react-start";
+import { addLog, setClientEnd } from "./logging";
+
+const loggingMiddlewarePre = (name: string) =>
+  createMiddleware({ type: "function" })
+    .client(async ({ next, context }) => {
+      console.log("middleware for", name, "client", context);
+
+      const clientStart = new Date().toISOString();
+
+      const result = await next({
+        sendContext: {
+          clientStart,
+        },
+      });
+
+      return result;
+    })
+    .server(async ({ next, context }) => {
+      const traceId = crypto.randomUUID();
+
+      const start = +new Date();
+
+      const result = await next({
+        sendContext: {
+          loggingId: "" as string,
+        },
+      });
+
+      const end = +new Date();
+
+      const id = await addLog({
+        data: { actionName: name, clientStart: context.clientStart, traceId: traceId, duration: end - start },
+      });
+      result.sendContext.loggingId = id;
+
+      return result;
+    });
+
+export const loggingMiddleware = (name: string) =>
+  createMiddleware({ type: "function" })
+    .middleware([loggingMiddlewarePre(name)])
+    .client(async ({ next }) => {
+      const result = await next();
+
+      const clientEnd = new Date().toISOString();
+      const loggingId = result.context.loggingId;
+
+      await setClientEnd({ data: { id: loggingId, clientEnd } });
+
+      return result;
+    });
+```
+
+So we export that second middleware. It takes the other one as _its own_ middleware. That runs everything, as before. But now when the `.client` callback calls `await next`, it knows what's in the resulting context object. It knows this before that other middleware is now _input_ to _this_ middleware, and the typings can readily be seen.
+
+## Going deeper
+
+We could end the post here. I don't have anything new to show with respect to TanStack Start. But let's make our observability system just a _little_ bit more realistic, and in the process get to see a cool Node feature that's not talked about enough, and also has the distinction of being the worst named api in software engineering history: asyncLocalStorage.
+
+You'd be forgiven for thinking that asyncLocalStorage was some kind of async version of your browser's localStorage. But now, it's a way to set and maintain context for the entirety of an async operation in Node.
+
+### When server functions call server functions
+
+Let's imagine our updateEpic server function also wants to _read_ the epic it just updated. It does this by calling the `getEpic` serverFn. So far so good, but if our `getEpic` serverFn also has logging middleware configured, we really would want it to use the traceId we already created, rather than create its own.
+
+If you think about React context, where you can put some arbitrary state onto an object that can be read by any component down in the tree. Well, Node's asyncLocalStorage allows this same kind of thing, except instead of being read anywhere inside of a component tree, the state we set can be read anywhere within the current async operation.
+
+Note that TanStack Start did have a getContext / setContext set of api's in an earlier beta version, but they were removed. If they wind up being re-added at some point (possibly with a different name) you can of course use them.
+
+Let's start by importing it, and creating an instance
+
+```ts
+import { AsyncLocalStorage } from "node:async_hooks";
+
+const asyncLocalStorage = new AsyncLocalStorage();****
+```
+
+And now let's create a function for _reading_ the traceId that some middleware _higher up_ in our callstack _might_ have added
+
+```ts
+function getExistingTraceId() {
+  const store = asyncLocalStorage.getStore() as any;
+  return store?.traceId;
+}
+```
+
+So all that's left now is to, in our middleware, _read_ the traceId that was set already, if any, and create one if not. And then, curcially, use asyncLocalStorage to _set_ our traceId for any other middlewares that will be called during our operation
+
+```ts
+    .server(async ({ next, context }) => {
+      const priorTraceId = getExistingTraceId();
+      const traceId = priorTraceId ?? crypto.randomUUID();
+
+      const start = +new Date();
+
+      const result = await asyncLocalStorage.run({ traceId }, async () => {
+        return await next({
+          sendContext: {
+            loggingId: "" as string
+          }
+        });
+      });
+```
+
+The rest of the middleware is the same, and I've saved it in a loggingMiddlewareV3 module. Let's take it for a spin. First, we'll add it to our getEpic serverFn.
+
+```ts
+export const getEpic = createServerFn({ method: "GET" })
+  .middleware([loggingMiddlewareV3("get epic")])
+  .inputValidator((id: string | number) => Number(id))
+  .handler(async ({ data }) => {
+    const epic = await db.select().from(epicsTable).where(eq(epicsTable.id, data));
+    return epic[0];
+  });
+```
+
+Now let's add it to our `updateEpic`
+
+```ts
+export const updateEpic = createServerFn({ method: "POST" })
+  .middleware([loggingMiddlewareV3("update epic")])
+  .inputValidator((obj: { id: number; name: string }) => obj)
+  .handler(async ({ data }) => {
+    await new Promise(resolve => setTimeout(resolve, 1000 * Math.random()));
+    await db.update(epicsTable).set({ name: data.name }).where(eq(epicsTable.id, data.id));
+
+    const updatedEpic = await getEpic({ data: data.id });
+    return updatedEpic;
+  });
+```
+
+The latter updates our epic, and then _calls_ the other serverFn to read the newly updated epic.
+
+Let's clear our logging table, and then give it a run. I'll edit, and save an individual epic. Opening the log table now shows this
+
+![Img 1](/tanstack-start-middleware/img2.png)
+
+Note there's _three_ log entries. In order to edit the epic, the UI first reads it. That's the first entry. Then the update happens, and then the second read, from the updateEpic serverFn. Crucially, notice how the last two rows, the update and the last read, both share the same traceId!
+
+Obviously our "observability" system is pretty basic right now. The clientStart and clientEnd probably doesn't make much sense for these secondary actions that are all fired off from the server, since there's not really any end-to-end latency. A real observability system would likely have separate, isolate rows just for client-to-server latency measures. But combining everything together made it easier to put something simple together, and showing off TanStack Start Middleware was the real goal, not creating a real observability system.
+
+Besides, we've now seen all the pieces you'd need if you wanted to actually build this into something more realistic: TanStack's middleware gives you everything you need to do anything you can imagine.
 
 ## Parting thoughts
 
-We've barely scratched the surface of Middleware. Stay tuned for part of 2 of this post, where we'll push middleware to its limit to achieve single-flight mutations.
+We've barely scratched the surface of Middleware. Stay tuned for a future post where we'll push middleware to its limit in order to achieve single-flight mutations.
 
 Happy querying!
