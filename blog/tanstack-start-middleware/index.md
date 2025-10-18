@@ -47,11 +47,11 @@ Again, it's contrived, with the intent of providing us a few different data sour
 
 We'll explore middleware by building a rudimentary observability system for our Jira app.
 
-What is observability? It's a hard thing to define in a clear and meaningful way, but if you think of basic logging as a caterpillar, observability would be the beautiful butterfly it matures into. Observability is about setting up systems that allow you to holistically observe how your application is behaving. High-level actions are assigned a globally unique trace id, and the pieces of work that action performs are logged against that same trace id. Then your observability system will allow you to intelligently introspect that data and discover where your problems or weaknesses are.
+What is observability? It's a hard thing to define in a clear and meaningful way, but if you think of basic logging as a caterpillar, observability would be the beautiful butterfly it matures into. Observability is about setting up systems that allow you to holistically observe how your application is behaving. High-level actions are assigned a globally unique trace id, and the pieces of work that action performs are logged against that same trace id. Then your observability system will (better!) allow you to intelligently introspect that data, and discover where your problems or weaknesses are.
 
-I'm no observability expert, so if you'd like to learn more, Charity Majors [co-authored a superb book on this very topic](https://www.honeycomb.io/). She's the co-founder of [Honeycomb IO](https://www.honeycomb.io/), which is a mature observability platform.
+I'm no observability expert, so if you'd like to learn more, Charity Majors [co-authored a superb book on this very topic](https://www.honeycomb.io/). She's the co-founder of [Honeycomb IO](https://www.honeycomb.io/), a mature observability platform.
 
-We won't be building a mature observability platform here; we'll be putting together some rudimentary logging with trace id's. What we'll be building is not suitable for use in a production software system, but it _will_ be a great way to explore TanStack Start's middleware.
+We won't be building a mature observability platform here; we'll be putting together some rudimentary logging with trace id's. What we'll be building is not suitable for use in a production software system, but it _will_ be a great way to explore TanStack Start's Middleware.
 
 ## Our first server function
 
@@ -59,7 +59,7 @@ This is a post about middleware, which is applied to server functions. Let's tak
 
 ```ts
 export const getEpicsList = createServerFn({ method: "GET" })
-  .validator((page: number) => page)
+  .inputValidator((page: number) => page)
   .handler(async ({ data }) => {
     const epics = await db
       .select()
@@ -112,11 +112,13 @@ export const middlewareDemo = createMiddleware({ type: "function" })
   });
 ```
 
+Let's step through it
+
 ```ts
 export const middlewareDemo = createMiddleware({ type: "function" });
 ```
 
-declares the middleware. `type: "function"` means that this middleware is intended to run against server "functions" - there's also "request" middleware, which can run against either server functions, or server routes (what other frameworks sometimes call "api" routes). But "function" middleware has some additional powers, which is why we're using them here.
+declares the middleware. `type: "function"` means that this middleware is intended to run against server "functions" - there's also "request" middleware, which can run against either server functions, or server routes (server routes are what other frameworks sometimes call "api" routes). But "function" middleware has some additional powers, which is why we're using them here.
 
 ```ts
 .client(async ({ next, context }) => {
@@ -138,14 +140,6 @@ console.log("client after", result.context);
 
 We do some logging, then tell TanStack to run the underlying server function (as well as any other middlewares we have in the chain), and then, after everything has run, we log again.
 
-And of course don't forget to return the actual result
-
-```ts
-return result;
-```
-
-You can naturally just `return next()` but this allows you to do additional work after the call chain is finished: either modify context, perform logging, etc.
-
 Note the `sendContext` we pass into the call to `next`
 
 ```ts
@@ -155,6 +149,14 @@ sendContext: {
 ```
 
 This allows us to pass data from the client, up to the server. Now this `hello` property will be in the context object on the server.
+
+And of course don't forget to return the actual result
+
+```ts
+return result;
+```
+
+You can naturally just `return next()` but this allows you to do additional work after the call chain is finished: either modify context, perform logging, etc.
 
 And now we essentially restart the same process on the server
 
@@ -227,7 +229,7 @@ Nothing too interesting here, either. As we can see, the server's `context` argu
 
 ### When client middleware runs on the server
 
-Don't forget, TanStack Start will server render your initial path. So what happens when a serverFunction executes as a part of that process, with middleware? How can the client middleware possibly run, when there's no client in existence, yet—only a request, currently being executed on the server.
+Don't forget, TanStack Start will server render your initial path. So what happens when a server function executes as a part of that process, with middleware? How can the client middleware possibly run, when there's no client in existence yet—only a request, currently being executed on the server.
 
 During SSR, client middleware will run on the server. This makes sense: whatever functionality you're building will still work, but the client portion of it will run on the server. As a result, be sure you don't use any browser-only api's like localStorage.
 
@@ -240,7 +242,7 @@ server after { hello: 'world' }
 client after { value: 12 }
 ```
 
-As before, but now everything on the server, and as before, there's a one second delay while the server is working.
+As before, but now everything on the server, since this code all runs during the server render phase. The server function is called from the server, while it generates the html to send down for the initial render. And as before, there's a one second delay while the server is working.
 
 ## Building real middleware
 
@@ -280,7 +282,7 @@ await setClientEnd({ data: { id: loggingId, clientEnd } });
 return result;
 ```
 
-For completeness, it looks like this
+For completeness, that server function looks like this
 
 ```ts
 export const setClientEnd = createServerFn({ method: "POST" })
@@ -324,7 +326,7 @@ result.sendContext.loggingId = id;
 return result;
 ```
 
-Next we get the end time after the work has completed. We add a log entry, and then we update the context we're sending back down to the client (the sendContext) object with the correct loggingId. Recall that the client callback used this to add the clientEnd time.
+Next we get the end time after the work has completed. We add a log entry, and then we update the context we're sending back down to the client (the `sendContext` object) with the correct loggingId. Recall that the client callback used this to add the clientEnd time.
 
 And then of course we return the result, which then finishes the processing on the server, and allows control to return to the client.
 
@@ -350,15 +352,17 @@ export const addLog = createServerFn({ method: "POST" })
   });
 ```
 
+clientEnd is empty, initially, since the client callback will fill that in.
+
 And this code, as written, works.
 
 ![Img 1](/tanstack-start-middleware/img1.png)
 
 ## The problem
 
-The code above does work, as written. But there's one small problem: we have a TypeScript error.
+The code above does work. But there's one small problem: we have a TypeScript error.
 
-Here's the entire middleware, as written, with the TS error pasted as a comment above the offending line
+Here's the entire middleware, with the TS error pasted as a comment above the offending line
 
 ```ts
 import { createMiddleware } from "@tanstack/react-start";
@@ -413,13 +417,13 @@ Why does TS dislike this line?
 const loggingId = result.context.loggingId;
 ```
 
-We call it on the client, after we call `await next` and our server does in fact add a loggingId to its `sendContext` object. And it's there. The value is in fact logged.
+We call it on the client, after we call `await next`. Our server does in fact add a loggingId to its `sendContext` object. And it's there. The value is in fact logged.
 
-The problem is a technical one. Our server callback can see the things the client callback added to sendContext. But the client callback is not able to "look ahead" and see what the server callback added to _its_ sendContext object. The solution is simple: split the middleware up.
+The problem is a technical one. Our server callback can see the things the client callback added to sendContext. But the client callback is _not_ able to "look ahead" and see what the server callback added to _its_ sendContext object. The solution is simple: split the middleware up.
 
-Here's a version 2 of the same middleware. I've added it to a new loggingMiddlewareV2.ts
+Here's a version 2 of the same middleware. I've added it to a new loggingMiddlewareV2.ts module.
 
-I'll post the entirety of it below, but it's the exact same code as before, except all the stuff in the `.client` handler _after_ the call to `await next` has been moved to a second middleware. This new, second middleware that only contains the second half of the `.client` callback then takes the other middleware as its own middleware.
+I'll post the entirety of it below, but it's the same code as before, except all the stuff in the `.client` handler _after_ the call to `await next` has been moved to a second middleware. This new, second middleware that only contains the second half of the `.client` callback then takes the other middleware as its own middleware input.
 
 Here's the code:
 
@@ -482,17 +486,17 @@ So we export that second middleware. It takes the other one as _its own_ middlew
 
 ## Going deeper
 
-We could end the post here. I don't have anything new to show with respect to TanStack Start. But let's make our observability system just a _little_ bit more realistic, and in the process get to see a cool Node feature that's not talked about enough, and also has the distinction of being the worst named api in software engineering history: asyncLocalStorage.
+We could end the post here. I don't have anything new to show with respect to TanStack Start. But let's make our observability system just a _little_ bit more realistic, and in the process see a cool Node feature that's not talked about enough, and also has the distinction of being the worst named api in software engineering history: `asyncLocalStorage`.
 
-You'd be forgiven for thinking that asyncLocalStorage was some kind of async version of your browser's localStorage. But no, it's a way to set and maintain context for the entirety of an async operation in Node.
+You'd be forgiven for thinking `asyncLocalStorage` was some kind of async version of your browser's localStorage. But no, it's a way to set and maintain context for the entirety of an async operation in Node.
 
 ### When server functions call server functions
 
 Let's imagine our `updateEpic` server function also wants to _read_ the epic it just updated. It does this by calling the `getEpic` serverFn. So far so good, but if our `getEpic` serverFn also has logging middleware configured, we really would want it to use the traceId we already created, rather than create its own.
 
-If you think about React context, where you can put some arbitrary state onto an object that can be read by any component down in the tree. Well, Node's asyncLocalStorage allows this same kind of thing, except instead of being read anywhere inside of a component tree, the state we set can be read anywhere within the current async operation.
+Think about React context: it allows you to put arbitrary state onto an object that can be read by any component in the tree. Well, Node's `asyncLocalStorage` allows this same kind of thing, except instead of being read anywhere inside of a component tree, the state we set can be read anywhere within the current async operation. This is exactly what we need.
 
-Note that TanStack Start did have a getContext / setContext set of api's in an earlier beta version, which maintained state for the current, entire _request_, but they were removed. If they wind up being re-added at some point (possibly with a different name) you can of course use them.
+Note that TanStack Start did have a getContext / setContext set of api's in an earlier beta version, which maintained state for the current, entire _request_, but they were removed. If they wind up being re-added at some point (possibly with a different name) you can of course just use them.
 
 Let's start by importing it, and creating an instance
 
@@ -502,7 +506,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 const asyncLocalStorage = new AsyncLocalStorage();****
 ```
 
-And now let's create a function for _reading_ the traceId that some middleware _higher up_ in our callstack _might_ have added
+Now let's create a function for _reading_ the traceId that some middleware _higher up_ in our callstack _might_ have added
 
 ```ts
 function getExistingTraceId() {
@@ -511,7 +515,7 @@ function getExistingTraceId() {
 }
 ```
 
-So all that's left now is to, in our middleware, _read_ the traceId that was set already, if any, and create one if not. And then, crucially, use asyncLocalStorage to _set_ our traceId for any other middlewares that will be called during our operation
+So all that's left is to _read_ the traceId that was _possibly_ set already, and if none was set, create one. And then, crucially, use asyncLocalStorage to _set_ our traceId for any other middlewares that will be called during our operation
 
 ```ts
     .server(async ({ next, context }) => {
@@ -528,6 +532,20 @@ So all that's left now is to, in our middleware, _read_ the traceId that was set
         });
       });
 ```
+
+The magic line is this
+
+```ts
+const result = await asyncLocalStorage.run({ traceId }, async () => {
+  return await next({
+    sendContext: {
+      loggingId: "" as string,
+    },
+  });
+});
+```
+
+Our call to next is wrapped in `asyncLocalStorage.run`, which means _anything_ that gets called in there can see the traceId we set.
 
 The rest of the middleware is the same, and I've saved it in a loggingMiddlewareV3 module. Let's take it for a spin. First, we'll add it to our getEpic serverFn.
 
@@ -562,14 +580,14 @@ Let's clear our logging table, and then give it a run. I'll edit, and save an in
 
 ![Img 1](/tanstack-start-middleware/img2.png)
 
-Note there's _three_ log entries. In order to edit the epic, the UI first reads it. That's the first entry. Then the update happens, and then the second read, from the updateEpic serverFn. Crucially, notice how the last two rows, the update and the last read, both share the same traceId!
+Note there's _three_ log entries. In order to edit the epic, the UI first _reads_ it. That's the first entry. Then the update happens, and then the second read, from the updateEpic serverFn. Crucially, notice how the last two rows, the update and the last read, both share the same traceId!
 
-Obviously our "observability" system is pretty basic right now. The clientStart and clientEnd probably doesn't make much sense for these secondary actions that are all fired off from the server, since there's not really any end-to-end latency. A real observability system would likely have separate, isolate rows just for client-to-server latency measures. But combining everything together made it easier to put something simple together, and showing off TanStack Start Middleware was the real goal, not creating a real observability system.
+Obviously our "observability" system is pretty basic right now. The clientStart and clientEnd probably doesn't make much sense for these secondary actions that are all fired off from the server, since there's not really any end-to-end latency. A real observability system would likely have separate, isolated rows just for client-to-server latency measures. But combining everything together made it easier to put something simple together, and showing off TanStack Start Middleware was the real goal, not creating a real observability system.
 
 Besides, we've now seen all the pieces you'd need if you wanted to actually build this into something more realistic: TanStack's middleware gives you everything you need to do anything you can imagine.
 
 ## Parting thoughts
 
-We've barely scratched the surface of Middleware. Stay tuned for a future post where we'll push middleware to its limit in order to achieve single-flight mutations.
+We've barely scratched the surface of Middleware. Stay tuned for a future post where we'll push middleware to its limit and achieve single-flight mutations.
 
 Happy querying!
