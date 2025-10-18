@@ -182,9 +182,11 @@ We do some logging, and inject an artificial delay of one second, to simulate wo
 Note again the `sendContext`
 
 ```ts
-sendContext: {
-  value: 12;
-}
+const result = await next({
+  sendContext: {
+    value: 12,
+  },
+});
 ```
 
 This allows us to send data from the server, back down to the client.
@@ -503,7 +505,7 @@ Let's start by importing it, and creating an instance
 ```ts
 import { AsyncLocalStorage } from "node:async_hooks";
 
-const asyncLocalStorage = new AsyncLocalStorage();****
+const asyncLocalStorage = new AsyncLocalStorage();
 ```
 
 Now let's create a function for _reading_ the traceId that some middleware _higher up_ in our callstack _might_ have added
