@@ -14,13 +14,13 @@ This post will be a gentle introduction to Middleware. We'll build some _very_ r
 
 ### Why do we need SSR
 
-I covered this in the post above, but SSR will usually improve LCP render performance over a client-rendered SPA. With SPAs, the server usually sends down an empty shell of a page. The browser then parses the script files, and fetches your application components. Those components then render and, usually, then _request some data_. Only _then_ can you render actual content for your user.
+I covered this in the post above, but SSR will usually improve LCP render performance compared to a client-rendered SPA. With SPAs, the server usually sends down an empty shell of a page. The browser then parses the script files, and fetches your application components. Those components then render and, usually, _request some data_. Only _then_ can you render actual content for your user.
 
 These round trips are neither free nor cheap; SSR allows you to send the initial content down directly, via the _initial_ request, which the user can see _immediately_, without needing those extra round trips. See the post above for some deeper details; this post is all about Middleware.
 
 ## Prelude: Server Functions
 
-Any full-stack web application will need a place to execute code on the server. It could be for a database query, to update data, to validate a user against your authentication solution, etc. Server functions are the main mechanism TanStack Start provides for this purpose, and are documented [here](https://tanstack.com/start/latest/docs/framework/react/server-functions). The quick introduction is that you can define code like this
+Any full-stack web application will need a place to execute code on the server. It could be for a database query, to update data, or to validate a user against your authentication solution. Server functions are the main mechanism TanStack Start provides for this purpose, and are documented [here](https://tanstack.com/start/latest/docs/framework/react/server-functions). The quick introduction is that you can write code like this
 
 ```ts
 import { createServerFn } from "@tanstack/react-start";
@@ -41,6 +41,8 @@ All of my prior posts on TanStack Start, and Router used the same contrived Jira
 
 The epics section of this app uses server functions for all data, and all updates. We have an overview showing each epic, along with the count of tasks in it (for those with tasks), a display of how many epics there are in total, and a pageable list of individual epics the user can view, and edit.
 
+![Epics screen](/tanstack-start-middleware/img3.png)
+
 Again, it's contrived, with the intent of providing us a few different data sources, along with mutations.
 
 ## Our Middleware use case
@@ -49,7 +51,7 @@ We'll explore middleware by building a rudimentary observability system for our 
 
 What is observability? It's a hard thing to define in a clear and meaningful way, but if you think of basic logging as a caterpillar, observability would be the beautiful butterfly it matures into. Observability is about setting up systems that allow you to holistically observe how your application is behaving. High-level actions are assigned a globally unique trace id, and the pieces of work that action performs are logged against that same trace id. Then your observability system will (better!) allow you to intelligently introspect that data, and discover where your problems or weaknesses are.
 
-I'm no observability expert, so if you'd like to learn more, Charity Majors [co-authored a superb book on this very topic](https://www.honeycomb.io/). She's the co-founder of [Honeycomb IO](https://www.honeycomb.io/), a mature observability platform.
+I'm no observability expert, so if you'd like to learn more, Charity Majors [co-authored a superb book on this very topic](https://www.amazon.com/Observability-Engineering-Achieving-Production-Excellence/dp/1492076449). She's the co-founder of [Honeycomb IO](https://www.honeycomb.io/), a mature observability platform.
 
 We won't be building a mature observability platform here; we'll be putting together some rudimentary logging with trace id's. What we'll be building is not suitable for use in a production software system, but it _will_ be a great way to explore TanStack Start's Middleware.
 
@@ -156,7 +158,7 @@ And of course don't forget to return the actual result
 return result;
 ```
 
-You can naturally just `return next()` but this allows you to do additional work after the call chain is finished: either modify context, perform logging, etc.
+You can of course just `return next()` but separating the call to `next` with the return statement allows you to do additional work after the call chain is finished: either modify context, perform logging, etc.
 
 And now we essentially restart the same process on the server
 
@@ -218,22 +220,24 @@ client after {value: 12}
 
 with a one second delay before the final client log, since that was the time execution was on the server, with the delay we saw.
 
-Nothing too shocking. The client logs, then sends execution to the server, and then logs again with whatever context came back from the server. Note we use `result.context` to get what the server sent back, rather than the `context` argument that was passed to the `client` callback. This makes sense: that context was created before the server was ever invoked with the `next()` call, and so there's no way for it to magically, mutably update based on whatever happens to get returned from the server. So we just read `result.context` to get what the server sent back.
+Nothing too shocking. The client logs, then sends execution to the server, and then logs again with whatever context came back from the server. Note we use `result.context` to get what the server sent back, rather than the `context` argument that was passed to the `client` callback. This makes sense: that context was created before the server was ever invoked with the `next()` call, so there's no way for it to magically, mutably update based on whatever happens to get returned from the server. So we just read `result.context` to get what the server sent back.
 
 ### The server
 
-Now let's look at what the server console shows.
+Now let's see what the server console shows.
 
+```
 server before { hello: 'world' }
 server after { hello: 'world' }
+```
 
 Nothing too interesting here, either. As we can see, the server's `context` argument does in fact contain what was sent to it from the client.
 
 ### When client middleware runs on the server
 
-Don't forget, TanStack Start will server render your initial path. So what happens when a server function executes as a part of that process, with middleware? How can the client middleware possibly run, when there's no client in existence yet—only a request, currently being executed on the server.
+Don't forget, TanStack Start will server render your initial path by default. So what happens when a server function executes as a part of that process, with middleware? How can the client middleware possibly run, when there's no client in existence yet—only a request, currently being executed on the server.
 
-During SSR, client middleware will run on the server. This makes sense: whatever functionality you're building will still work, but the client portion of it will run on the server. As a result, be sure you don't use any browser-only api's like localStorage.
+During SSR, client middleware will run on the server. This makes sense: whatever functionality you're building will still work, but the client portion of it will run on the server. So be sure you don't use any browser-only api's like localStorage.
 
 Let's see this in action, but during the SSR run. The prior logs I showed were the result of browsing to a page via navigation. Now I'll just refresh that page, and show the _server_ logs.
 
@@ -313,7 +317,7 @@ Let's look at our server handler
 
 We start by creating a traceId. This is the single identifier that represents the entirety of the action the user is performing. It's not a log id. In fact, for real observability systems, there will be many, many log entries against a single traceId, representing all the sub-steps involved in that action.
 
-For now, there'll just be a single log entry, but in a bit we'll have some fun and go a little further ...
+For now, there'll just be a single log entry, but in a bit we'll have some fun and go a little further...
 
 Once we have the traceId, we note the start time, and then we call `await next` to finish our work on the server. We add a `loggingId` to the context we'll be sending _back down_ to the client. It'll use this to update the log entry with the clientEnd time, so we can see the total end-to-end network time.
 
@@ -592,4 +596,4 @@ Besides, we've now seen all the pieces you'd need if you wanted to actually buil
 
 We've barely scratched the surface of Middleware. Stay tuned for a future post where we'll push middleware to its limit and achieve single-flight mutations.
 
-Happy querying!
+Happy coding!
