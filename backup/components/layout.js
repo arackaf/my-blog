@@ -1,4 +1,4 @@
-import Meta from "../components/meta";
+import Meta from "./meta";
 
 export default function Layout({ children, className = "" }) {
   return (

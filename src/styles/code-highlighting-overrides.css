@@ -1,0 +1,79 @@
+:root {
+  --highlight-background: rgba(0, 0, 0, 0);
+  --highlight-width: 0;
+}
+
+.line-numbers span.line-numbers-rows {
+  margin-top: -1px;
+}
+
+/* <pre> elements to be position: relative for the copy button */
+pre.shiki {
+  position: relative;
+}
+
+.line-numbers span.line-numbers-rows > span::after {
+  content: " ";
+  background: var(--highlight-background);
+  width: var(--highlight-width);
+  position: absolute;
+  top: 0;
+}
+
+.line-numbers.hide-numbers {
+  padding: 1em !important;
+}
+.hide-numbers .line-numbers-rows {
+  width: 0;
+}
+.hide-numbers .line-numbers-rows > span::before {
+  content: " ";
+}
+.hide-numbers .line-numbers-rows > span {
+  padding-left: 2.8em;
+}
+
+.prism-copy-button {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background-color: rgba(100, 100, 100, 0.5);
+  border-width: 0;
+  color: rgb(0, 0, 0);
+  cursor: pointer;
+  border-radius: 5px;
+  font-size: 13px;
+  line-height: 1.3;
+  padding: 0px;
+  min-width: 70px;
+}
+
+.prism-copy-button[disabled] {
+  cursor: default;
+}
+
+.post pre.shiki {
+  margin-bottom: 1.6rem;
+  padding: 10px;
+  display: flex;
+  line-height: 1.5;
+}
+
+pre.shiki code {
+  overflow: auto;
+}
+
+pre[data-linenumbers] code {
+  counter-reset: step;
+  counter-increment: step 0;
+}
+
+pre[data-linenumbers] code .line::before {
+  content: counter(step);
+  counter-increment: step;
+  width: 1rem;
+  margin-right: 1rem;
+  display: inline-block;
+  text-align: right;
+  color: rgba(115, 138, 148, 0.4);
+}
