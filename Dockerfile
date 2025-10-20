@@ -2,11 +2,11 @@
 
 # Adjust NODE_VERSION as desired
 ARG NODE_VERSION=22.12.0
-FROM node:${NODE_VERSION}-slim AS base
+FROM node:${NODE_VERSION}-slim as base
 
-LABEL fly_launch_runtime="Node.js"
+LABEL fly_launch_runtime="TanStack Start"
 
-# Node.js app lives here
+# app lives here
 WORKDIR /app
 
 # Set production environment
@@ -14,7 +14,7 @@ ENV NODE_ENV="production"
 
 
 # Throw-away build stage to reduce size of final image
-FROM base AS build
+FROM base as build
 
 # Install packages needed to build node modules
 RUN apt-get update -qq && \
@@ -42,4 +42,4 @@ COPY --from=build /app /app
 
 # Start the server by default, this can be overwritten at runtime
 EXPOSE 3000
-CMD [ "npm", "run", "serve" ]
+CMD [ "npm", "run", "start" ]
