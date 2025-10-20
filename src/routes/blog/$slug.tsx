@@ -6,18 +6,8 @@ import markdownToHtml from "@/util/markdownToHtml";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/blog/$slug")({
-  head: ({ params }) => {
-    return {
-      meta: [
-        {
-          title: `${params.slug} | Adam Rackis's blog`,
-        },
-      ],
-    };
-  },
-  // @ts-ignore
   loader: async ({ params }) => {
-    const post = getPostBySlug(params.slug, ["title", "date", "slug", "author", "content", "ogImage", "coverImage"]);
+    const post: any = getPostBySlug(params.slug, ["title", "date", "slug", "author", "content", "ogImage", "coverImage"]);
     const content = await markdownToHtml(post.content || "");
 
     return {
@@ -27,11 +17,20 @@ export const Route = createFileRoute("/blog/$slug")({
       },
     };
   },
+  head: ({ params }) => {
+    return {
+      meta: [
+        {
+          title: `${params.slug} | Adam Rackis's blog`,
+        },
+      ],
+    };
+  },
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  const { post } = Route.useLoaderData() as any;
+  const { post } = Route.useLoaderData();
   const { title, date } = post;
   return (
     <div className="post">
