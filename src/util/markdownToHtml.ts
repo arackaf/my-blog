@@ -1,8 +1,13 @@
 import Shiki from "@shikijs/markdown-it";
 import MarkdownIt from "markdown-it";
 
-export default async function markdownToHtml(markdown: string) {
-  const md = MarkdownIt({
+let md: MarkdownIt | null = null;
+async function getMarkdownIt() {
+  if (md) {
+    return md;
+  }
+
+  md = MarkdownIt({
     html: true,
   });
 
@@ -34,6 +39,12 @@ export default async function markdownToHtml(markdown: string) {
       ],
     })
   );
+
+  return md;
+}
+
+export default async function markdownToHtml(markdown: string) {
+  const md = await getMarkdownIt();
 
   return md.render(markdown);
 }

@@ -1,7 +1,7 @@
 import { DateFormatter } from "@/components/date-formatter";
 import { GithubIcon } from "@/components/svg/githubIcon";
 import { TwitterIcon } from "@/components/svg/twitterIcon";
-import { getAllPosts } from "@/util/blog-posts";
+import { getAllPosts, Post } from "@/util/blog-posts";
 import { createFileRoute, Link } from "@tanstack/react-router";
 // @ts-ignore
 import { NextWrapper } from "next-blurhash-previews";
@@ -16,7 +16,7 @@ export const Route = createFileRoute("/")({
     ],
   }),
   loader: async () => {
-    const allPosts = getAllPosts(["title", "slug", "date", "description"]);
+    const allPosts = await getAllPosts();
     return {
       posts: allPosts,
     };
@@ -79,19 +79,19 @@ function App() {
         {posts.map((post) => (
           <div key={post.title} className="blog-list-item mb-8">
             <h1 className="leading-none text-2xl font-bold">
-              {post.url ? (
+              {"url" in post && post.url ? (
                 <a href={post.url}>
                   {post.title} &nbsp;<i className="fad fa-external-link-alt"></i>
                 </a>
               ) : (
-                <Link to={`/blog/$slug`} params={{ slug: post.slug }}>
+                <Link to={`/blog/$slug`} params={{ slug: (post as Post).slug }}>
                   {post.title}
                 </Link>
               )}
             </h1>
             <small className="text-sm italic">
               <DateFormatter dateString={post.date}></DateFormatter>
-              {post.url ? <span> on {post.url.indexOf("css-tricks.com") >= 0 ? "css-tricks.com" : "Frontend Masters"}</span> : ""}
+              {"url" in post && post.url ? <span> on {post.url.indexOf("css-tricks.com") >= 0 ? "css-tricks.com" : "Frontend Masters"}</span> : ""}
             </small>
             <p className="mt-1.5">{post.description}</p>
           </div>

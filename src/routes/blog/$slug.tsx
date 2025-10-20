@@ -2,20 +2,21 @@ import { DateFormatter } from "@/components/date-formatter";
 import PostBody from "@/components/post-body";
 import { BackArrow } from "@/components/svg/backArrow";
 import { getPostBySlug } from "@/util/blog-posts";
-import markdownToHtml from "@/util/markdownToHtml";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
+
+export const getPostContent = createServerFn()
+  .inputValidator((data: { slug: string }) => data)
+  .handler(async ({ data }) => {
+    const post = await getPostBySlug(data.slug);
+
+    return post;
+  });
 
 export const Route = createFileRoute("/blog/$slug")({
   loader: async ({ params }) => {
-    const post: any = getPostBySlug(params.slug, ["title", "date", "slug", "author", "content", "ogImage", "coverImage"]);
-    const content = await markdownToHtml(post.content || "");
-
-    return {
-      post: {
-        ...post,
-        content,
-      },
-    };
+    const post = await getPostContent({ data: { slug: params.slug } });
+    return { post };
   },
   head: ({ params }) => {
     return {
@@ -32,6 +33,7 @@ export const Route = createFileRoute("/blog/$slug")({
 function RouteComponent() {
   const { post } = Route.useLoaderData();
   const { title, date } = post;
+
   return (
     <div className="post">
       <h4>
