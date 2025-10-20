@@ -34,7 +34,7 @@ function RouteComponent() {
   const { post } = Route.useLoaderData() as any;
   const { title, date } = post;
   return (
-    <div>
+    <div className="post">
       <h4>
         <Link to="/" className="back-link">
           <BackArrow height="18" />
