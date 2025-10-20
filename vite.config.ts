@@ -12,7 +12,12 @@ const config = defineConfig({
       projects: ["./tsconfig.json"],
     }),
     tailwindcss(),
-    tanstackStart(),
+    tanstackStart({
+      prerender: {
+        enabled: true,
+        filter: ({ path }) => path === "/",
+      },
+    }),
     nitro({ config: { preset: "node-server" } }),
     viteReact(),
   ],
