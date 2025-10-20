@@ -1,14 +1,12 @@
 import fs from "fs";
 import { join } from "path";
 import matter from "gray-matter";
-import { ExternalPost, externalPosts } from "./outsidePosts";
+
 import markdownToHtml from "./markdownToHtml";
 
-const postsDirectory = join(import.meta.dirname, "../blog");
-
-export function getPostSlugs() {
-  return fs.readdirSync(postsDirectory);
-}
+export const postsDirectory = () => {
+  return join(import.meta.dirname, "../blog");
+};
 
 export type PostMetadata = {
   title: string;
@@ -37,7 +35,7 @@ export async function getPostBySlug(slug: string): Promise<Post> {
 }
 export async function getPostMetadataBySlug(slug: string): Promise<PostMetadata> {
   const realSlug = slug.replace(/\.md$/, "");
-  const fullPath = join(postsDirectory, realSlug, `index.md`);
+  const fullPath = join(postsDirectory(), realSlug, `index.md`);
   const fileContents = fs.readFileSync(fullPath, "utf8");
   const { data, content: markdownContent } = matter(fileContents);
 
@@ -46,7 +44,7 @@ export async function getPostMetadataBySlug(slug: string): Promise<PostMetadata>
   } as Post;
 
   // Ensure only the minimal needed data is exposed
-  fields.forEach((field) => {
+  fields.forEach(field => {
     if (field === "slug") {
       items[field] = realSlug;
     }
@@ -57,15 +55,4 @@ export async function getPostMetadataBySlug(slug: string): Promise<PostMetadata>
   });
 
   return items;
-}
-
-export async function getAllPosts() {
-  const slugs = await getPostSlugs();
-  const allPosts = await Promise.all(slugs.map((slug) => getPostMetadataBySlug(slug)));
-
-  const posts: (PostMetadata | ExternalPost)[] = allPosts
-    .concat(externalPosts as any)
-    // sort posts by date in descending order
-    .sort((post1, post2) => (post1.date > post2.date ? -1 : 1));
-  return posts;
 }

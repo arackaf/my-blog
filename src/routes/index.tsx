@@ -1,11 +1,25 @@
 import { DateFormatter } from "@/components/date-formatter";
 import { GithubIcon } from "@/components/svg/githubIcon";
 import { TwitterIcon } from "@/components/svg/twitterIcon";
-import { getAllPosts, Post } from "@/util/blog-posts";
+import { getPostMetadataBySlug, Post, PostMetadata, postsDirectory } from "@/util/blog-posts";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
 // @ts-ignore
 import { NextWrapper } from "next-blurhash-previews";
 import { FC, PropsWithChildren } from "react";
+import fs from "fs";
+import { ExternalPost, externalPosts } from "@/util/outsidePosts";
+
+const getAllPosts = createServerFn().handler(async () => {
+  const slugs = fs.readdirSync(postsDirectory());
+  const allPosts = await Promise.all(slugs.map(slug => getPostMetadataBySlug(slug)));
+
+  const posts: (PostMetadata | ExternalPost)[] = allPosts
+    .concat(externalPosts as any)
+    // sort posts by date in descending order
+    .sort((post1, post2) => (post1.date > post2.date ? -1 : 1));
+  return posts;
+});
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -76,7 +90,7 @@ function App() {
       </div>
 
       <div>
-        {posts.map((post) => (
+        {posts.map(post => (
           <div key={post.title} className="blog-list-item mb-8">
             <h1 className="leading-none text-2xl font-bold">
               {"url" in post && post.url ? (
