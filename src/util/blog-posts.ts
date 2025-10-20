@@ -10,35 +10,45 @@ export function getPostSlugs() {
   return fs.readdirSync(postsDirectory);
 }
 
-export type Post = {
+export type PostMetadata = {
   title: string;
   date: string;
+  markdownContent: string;
   description: string;
   slug: string;
   author: string;
-  content: string;
   ogImage: string;
   coverImage: string;
 };
 
-const fields: (keyof Post)[] = ["title", "date", "description", "slug", "author", "content", "ogImage", "coverImage"];
+export type Post = PostMetadata & {
+  content: string;
+};
 
-export async function getPostBySlug(slug: string) {
+const fields: (keyof Post)[] = ["title", "date", "description", "slug", "author", "ogImage", "coverImage"];
+
+export async function getPostBySlug(slug: string): Promise<Post> {
+  const metadata = await getPostMetadataBySlug(slug);
+  const content = await markdownToHtml(metadata.markdownContent || "");
+  return {
+    ...metadata,
+    content,
+  };
+}
+export async function getPostMetadataBySlug(slug: string): Promise<PostMetadata> {
   const realSlug = slug.replace(/\.md$/, "");
   const fullPath = join(postsDirectory, realSlug, `index.md`);
   const fileContents = fs.readFileSync(fullPath, "utf8");
   const { data, content: markdownContent } = matter(fileContents);
 
-  const content = await markdownToHtml(markdownContent || "");
-  const items: Post = {} as Post;
+  const items: Post = {
+    markdownContent,
+  } as Post;
 
   // Ensure only the minimal needed data is exposed
   fields.forEach((field) => {
     if (field === "slug") {
       items[field] = realSlug;
-    }
-    if (field === "content") {
-      items[field] = content;
     }
 
     if (typeof data[field] !== "undefined") {
@@ -50,14 +60,10 @@ export async function getPostBySlug(slug: string) {
 }
 
 export async function getAllPosts() {
-  const start = +new Date();
   const slugs = await getPostSlugs();
-  const allPosts = await Promise.all(slugs.map((slug) => getPostBySlug(slug)));
-  const end = +new Date();
+  const allPosts = await Promise.all(slugs.map((slug) => getPostMetadataBySlug(slug)));
 
-  console.log(`getAllPosts took ${end - start}ms`);
-
-  const posts: (Post | ExternalPost)[] = allPosts
+  const posts: (PostMetadata | ExternalPost)[] = allPosts
     .concat(externalPosts as any)
     // sort posts by date in descending order
     .sort((post1, post2) => (post1.date > post2.date ? -1 : 1));
