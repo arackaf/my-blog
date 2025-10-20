@@ -6,6 +6,7 @@
     "dev": "vite dev --port 3000",
     "build": "vite build",
     "serve": "vite preview",
+    "start": "node .output/server/index.mjs",
     "test": "vitest run"
   },
   "dependencies": {
@@ -22,6 +23,7 @@
     "lucide-react": "^0.544.0",
     "markdown-it": "^14.1.0",
     "next-blurhash-previews": "^0.1.0",
+    "nitro": "^3.0.1-alpha.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwindcss": "^4.0.6",
