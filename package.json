@@ -9,13 +9,14 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@shikijs/markdown-it": "^3.13.0",
     "@tailwindcss/vite": "^4.0.6",
     "@tanstack/react-devtools": "^0.7.0",
-    "@tanstack/react-router": "^1.132.0",
+    "@tanstack/react-router": "^1.133.15",
     "@tanstack/react-router-devtools": "^1.132.0",
     "@tanstack/react-router-ssr-query": "^1.131.7",
-    "@tanstack/react-start": "^1.132.0",
-    "@tanstack/router-plugin": "^1.132.0",
+    "@tanstack/react-start": "^1.133.15",
+    "@tanstack/router-plugin": "^1.133.15",
     "date-fns": "^4.1.0",
     "gray-matter": "4.0.3",
     "lucide-react": "^0.544.0",
@@ -29,6 +30,7 @@
   "devDependencies": {
     "@testing-library/dom": "^10.4.0",
     "@testing-library/react": "^16.2.0",
+    "@types/markdown-it": "^14.1.2",
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",

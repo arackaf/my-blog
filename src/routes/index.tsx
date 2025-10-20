@@ -84,7 +84,9 @@ function App() {
                   {post.title} &nbsp;<i className="fad fa-external-link-alt"></i>
                 </a>
               ) : (
-                <Link to={`blog/${post.slug}`}>{post.title}</Link>
+                <Link to={`/blog/$slug`} params={{ slug: post.slug }}>
+                  {post.title}
+                </Link>
               )}
             </h1>
             <small className="text-sm italic">
