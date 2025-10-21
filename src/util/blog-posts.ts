@@ -1,14 +1,14 @@
 import matter from "gray-matter";
 
 export const getAllBlogPosts = () => {
-  const allPosts = import.meta.glob("../blog/**/*.md", { as: "raw", eager: true });
+  const allPosts: Record<string, any> = import.meta.glob("../blog/**/*.md", { query: "?raw", eager: true });
 
   return Object.entries(allPosts).reduce(
-    (result, [key, content]) => {
+    (result, [key, module]) => {
       const paths = key.split("/");
       const slug = paths.at(-2)!;
 
-      result[slug] = content;
+      result[slug] = module.default;
       return result;
     },
     {} as Record<string, string>,
