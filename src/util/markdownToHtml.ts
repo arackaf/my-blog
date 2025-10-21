@@ -1,50 +1,51 @@
 import Shiki from "@shikijs/markdown-it";
 import MarkdownIt from "markdown-it";
 
-let md: MarkdownIt | null = null;
-async function getMarkdownIt() {
-  if (md) {
-    return md;
-  }
+//const { promise, resolve } = Promise.withResolvers<MarkdownIt>();
 
-  md = MarkdownIt({
-    html: true,
-  });
+//let md: Promise<MarkdownIt> = promise;
 
-  md.use(
-    await Shiki({
-      themes: {
-        light: "dark-plus",
-        dark: "dark-plus",
+//async function getMarkdownIt() {
+// if (md) {
+//   return md;
+// }
+
+const md = MarkdownIt({
+  html: true,
+});
+
+md.use(
+  await Shiki({
+    themes: {
+      light: "dark-plus",
+      dark: "dark-plus",
+    },
+    transformers: [
+      {
+        name: "line-numbers-pre",
+        preprocess: (_: string, options: any) => {
+          if (options?.meta?.__raw?.includes("lineNumbers")) {
+            options.attributes = {};
+            options.attributes.lineNumbers = true;
+          }
+        },
       },
-      transformers: [
-        {
-          name: "line-numbers-pre",
-          preprocess: (_: string, options: any) => {
-            if (options?.meta?.__raw?.includes("lineNumbers")) {
-              options.attributes = {};
-              options.attributes.lineNumbers = true;
-            }
-          },
+      {
+        name: "line-numbers-post",
+        postprocess: (html, options: any) => {
+          if (options?.attributes?.lineNumbers) {
+            return html.replace(/<pre /g, "<pre data-linenumbers ");
+          }
+          return html;
         },
-        {
-          name: "line-numbers-post",
-          postprocess: (html, options: any) => {
-            if (options?.attributes?.lineNumbers) {
-              return html.replace(/<pre /g, "<pre data-linenumbers ");
-            }
-            return html;
-          },
-        },
-      ],
-    }),
-  );
+      },
+    ],
+  }),
+);
 
-  return md;
-}
+//   return md;
+// }
 
-export default async function markdownToHtml(markdown: string) {
-  const md = await getMarkdownIt();
-
+export default function markdownToHtml(markdown: string) {
   return md.render(markdown);
 }
