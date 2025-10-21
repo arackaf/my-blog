@@ -1,7 +1,7 @@
 import { DateFormatter } from "@/components/date-formatter";
 import { GithubIcon } from "@/components/svg/githubIcon";
 import { TwitterIcon } from "@/components/svg/twitterIcon";
-import { getPostMetadataBySlug, getPostMetadataFromContents, Post, PostMetadata, postsDirectory } from "@/util/blog-posts";
+import { getAllBlogPosts, getPostMetadataFromContents, Post, PostMetadata } from "@/util/blog-posts";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 // @ts-ignore
@@ -11,20 +11,17 @@ import { FC, PropsWithChildren } from "react";
 import { ExternalPost, externalPosts } from "@/util/outsidePosts";
 
 const getAllPosts = createServerFn().handler(async () => {
-  const postsPages = import.meta.glob("../blog/**/*.md", { as: "raw", eager: true });
+  const postContentLookup = getAllBlogPosts();
 
-  const blogPosts = Object.entries(postsPages).map(([key, content]) => {
-    const paths = key.split("/");
-    const slug = paths.at(-2)!;
-
+  const blogPosts = Object.entries(postContentLookup).map(([slug, content]) => {
     return getPostMetadataFromContents(slug, content);
   });
 
-  const posts: (PostMetadata | ExternalPost)[] = blogPosts
+  const allPosts: (PostMetadata | ExternalPost)[] = blogPosts
     .concat(externalPosts as any)
     // sort posts by date in descending order
     .sort((post1, post2) => (post1.date > post2.date ? -1 : 1));
-  return posts;
+  return allPosts;
 });
 
 export const Route = createFileRoute("/")({

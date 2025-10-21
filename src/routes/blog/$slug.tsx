@@ -1,22 +1,29 @@
 import { DateFormatter } from "@/components/date-formatter";
 import PostBody from "@/components/post-body";
 import { BackArrow } from "@/components/svg/backArrow";
-import { getPostBySlug } from "@/util/blog-posts";
+import { getAllBlogPosts, getPostMetadataFromContents } from "@/util/blog-posts";
+import markdownToHtml from "@/util/markdownToHtml";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 
 export const getPostContent = createServerFn()
   .inputValidator((data: { slug: string }) => data)
   .handler(async ({ data }) => {
-    const post = await getPostBySlug(data.slug);
+    const postContentLookup = getAllBlogPosts();
 
-    return post;
+    if (!postContentLookup[data.slug]) {
+      throw new Error(`Post not found: ${data.slug}`);
+    }
+
+    const post = getPostMetadataFromContents(data.slug, postContentLookup[data.slug]);
+    const content = await markdownToHtml(post.markdownContent);
+
+    return { post, content };
   });
 
 export const Route = createFileRoute("/blog/$slug")({
   loader: async ({ params }) => {
-    const post = await getPostContent({ data: { slug: params.slug } });
-    return { post };
+    return getPostContent({ data: { slug: params.slug } });
   },
   head: ({ params }) => {
     return {
@@ -31,7 +38,7 @@ export const Route = createFileRoute("/blog/$slug")({
 });
 
 function RouteComponent() {
-  const { post } = Route.useLoaderData();
+  const { post, content } = Route.useLoaderData();
   const { title, date } = post;
 
   return (
@@ -48,7 +55,7 @@ function RouteComponent() {
         <DateFormatter dateString={date} />
       </div>
 
-      <PostBody content={post.content} />
+      <PostBody content={content} />
     </div>
   );
 }
