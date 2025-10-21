@@ -14,7 +14,11 @@ const getAllPosts = createServerFn().handler(async () => {
   const postContentLookup = getAllBlogPosts();
 
   const blogPosts = Object.entries(postContentLookup).map(([slug, content]) => {
-    return getPostMetadataFromContents(slug, content);
+    return {
+      ...getPostMetadataFromContents(slug, content),
+      // we don't want all the blog posts' content sent to the client
+      markdownContent: "",
+    };
   });
 
   const allPosts: (PostMetadata | ExternalPost)[] = blogPosts
