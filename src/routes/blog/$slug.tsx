@@ -5,6 +5,7 @@ import { getAllBlogPosts, getPostMetadataFromContents } from "@/util/blog-posts"
 import markdownToHtml from "@/util/markdownToHtml";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+import { useEffect } from "react";
 
 export const getPostContent = createServerFn()
   .inputValidator((data: { slug: string }) => data)
@@ -42,6 +43,29 @@ export const Route = createFileRoute("/blog/$slug")({
 function RouteComponent() {
   const { post, content } = Route.useLoaderData();
   const { title, date } = post;
+
+  useEffect(() => {
+    for (const img of document.querySelectorAll("img")) {
+      if (img.parentElement?.tagName === "A") {
+        continue;
+      }
+
+      const referenceParent = img.parentElement;
+
+      const anchor = document.createElement("a");
+      anchor.href = img.src.replace(/\-sized\./, ".");
+
+      const slotValue = img.getAttribute("slot");
+      if (slotValue) {
+        anchor.setAttribute("slot", img.getAttribute("slot")!);
+        img.removeAttribute("slot");
+      }
+      anchor.target = "_blank";
+
+      referenceParent?.insertBefore(anchor, img);
+      anchor.appendChild(img);
+    }
+  }, []);
 
   return (
     <div className="post">
