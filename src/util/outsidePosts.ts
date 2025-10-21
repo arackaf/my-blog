@@ -1,4 +1,11 @@
-export const externalPosts = [
+export type ExternalPost = {
+  title: string;
+  date: string;
+  description: string;
+  url: string;
+};
+
+export const externalPosts: ExternalPost[] = [
   {
     title: "Introducing Zustand",
     date: "2025-07-21T10:00:00.000Z",

@@ -1,12 +1,12 @@
 # syntax = docker/dockerfile:1
 
 # Adjust NODE_VERSION as desired
-ARG NODE_VERSION=20.10.0
+ARG NODE_VERSION=22.12.0
 FROM node:${NODE_VERSION}-slim as base
 
-LABEL fly_launch_runtime="Next.js"
+LABEL fly_launch_runtime="TanStack Start"
 
-# Next.js app lives here
+# app lives here
 WORKDIR /app
 
 # Set production environment
@@ -42,4 +42,4 @@ COPY --from=build /app /app
 
 # Start the server by default, this can be overwritten at runtime
 EXPOSE 3000
-CMD [ "npm", "run", "start" ]
+CMD [ "npm", "start" ]

@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
 
-export default function PostBody({ content }) {
+export default function PostBody({ content }: { content: string }) {
   const rootRef = useRef<HTMLDivElement>(null);
 
-  function highlightCode(pre, highlightRanges, lineNumberRowsContainer) {
+  function highlightCode(pre: HTMLElement, highlightRanges: string, lineNumberRowsContainer: HTMLElement) {
     const ranges = highlightRanges.split(",").filter(val => val);
     const preWidth = pre.scrollWidth;
 
@@ -15,14 +15,14 @@ export default function PostBody({ content }) {
       }
 
       for (let i = +start; i <= +end; i++) {
-        const lineNumberSpan: HTMLSpanElement = lineNumberRowsContainer.querySelector(`span:nth-child(${i})`);
+        const lineNumberSpan: HTMLSpanElement = lineNumberRowsContainer.querySelector(`span:nth-child(${i})`)!;
         lineNumberSpan.style.setProperty("--highlight-background", "rgba(100, 100, 100, 0.5)");
         lineNumberSpan.style.setProperty("--highlight-width", `${preWidth}px`);
       }
     }
   }
 
-  function createCopyButton(codeEl) {
+  function createCopyButton(codeEl: HTMLElement) {
     const button = document.createElement("button");
     button.classList.add("prism-copy-button");
     button.textContent = "Copy";
@@ -44,19 +44,19 @@ export default function PostBody({ content }) {
   }
 
   useEffect(() => {
-    const allPres = rootRef.current.querySelectorAll("pre");
+    const allPres = rootRef.current?.querySelectorAll("pre");
     const cleanup: (() => void)[] = [];
 
-    for (const pre of allPres) {
+    for (const pre of allPres ?? []) {
       const code = pre.firstElementChild;
       if (!code || !/code/i.test(code.tagName)) {
         continue;
       }
 
-      pre.appendChild(createCopyButton(code));
+      pre.appendChild(createCopyButton(code as HTMLElement));
 
       const highlightRanges = pre.dataset.line;
-      const lineNumbersContainer = pre.querySelector(".line-numbers-rows");
+      const lineNumbersContainer = pre.querySelector(".line-numbers-rows") as HTMLElement;
 
       if (!highlightRanges || !lineNumbersContainer) {
         continue;
