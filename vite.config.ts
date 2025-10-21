@@ -18,7 +18,7 @@ const config = defineConfig({
         filter: ({ path }) => {
           return path === "/" || /\/blog\/.+/.test(path);
         },
-        autoSubfolderIndex: true,
+        //autoSubfolderIndex: true,
       },
     }),
     nitro({ config: { preset: "node-server" } }),
