@@ -11,6 +11,24 @@ import fs from "fs";
 import { ExternalPost, externalPosts } from "@/util/outsidePosts";
 
 const getAllPosts = createServerFn().handler(async () => {
+  const allPosts2: ExternalPost[] = [{ date: new Date().toISOString(), title: "xxx", description: "xxx", url: "xxx" }];
+
+  console.log("DIR", import.meta.dirname);
+
+  const postsPages = import.meta.glob("../blog/**/*.md", { as: "raw", eager: true });
+
+  Object.entries(postsPages).forEach(([key, content]) => {
+    const paths = key.split("/");
+    const slug = paths.at(-2);
+    console.log("SLUG", slug);
+    console.log("content", content.slice(0, 100));
+    // console.log("VALUE", value);
+  });
+
+  // console.log("POSTS PAGES", postsPages);
+
+  return allPosts2;
+
   const slugs = fs.readdirSync(postsDirectory());
   const allPosts = await Promise.all(slugs.map(slug => getPostMetadataBySlug(slug)));
 

@@ -56,3 +56,24 @@ export async function getPostMetadataBySlug(slug: string): Promise<PostMetadata>
 
   return items;
 }
+
+export async function getPostMetadataFromContents(slug: string, fileContents: string): Promise<PostMetadata> {
+  const { data, content: markdownContent } = matter(fileContents);
+
+  const items: Post = {
+    markdownContent,
+  } as Post;
+
+  // Ensure only the minimal needed data is exposed
+  fields.forEach(field => {
+    if (field === "slug") {
+      items[field] = slug;
+    }
+
+    if (typeof data[field] !== "undefined") {
+      items[field] = data[field];
+    }
+  });
+
+  return items;
+}
