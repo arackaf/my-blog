@@ -57,7 +57,7 @@ export async function getPostMetadataBySlug(slug: string): Promise<PostMetadata>
   return items;
 }
 
-export async function getPostMetadataFromContents(slug: string, fileContents: string): Promise<PostMetadata> {
+export function getPostMetadataFromContents(slug: string, fileContents: string): PostMetadata {
   const { data, content: markdownContent } = matter(fileContents);
 
   const items: Post = {

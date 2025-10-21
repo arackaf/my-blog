@@ -1,38 +1,26 @@
 import { DateFormatter } from "@/components/date-formatter";
 import { GithubIcon } from "@/components/svg/githubIcon";
 import { TwitterIcon } from "@/components/svg/twitterIcon";
-import { getPostMetadataBySlug, Post, PostMetadata, postsDirectory } from "@/util/blog-posts";
+import { getPostMetadataBySlug, getPostMetadataFromContents, Post, PostMetadata, postsDirectory } from "@/util/blog-posts";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 // @ts-ignore
 import { NextWrapper } from "next-blurhash-previews";
 import { FC, PropsWithChildren } from "react";
-import fs from "fs";
+
 import { ExternalPost, externalPosts } from "@/util/outsidePosts";
 
 const getAllPosts = createServerFn().handler(async () => {
-  const allPosts2: ExternalPost[] = [{ date: new Date().toISOString(), title: "xxx", description: "xxx", url: "xxx" }];
-
-  console.log("DIR", import.meta.dirname);
-
   const postsPages = import.meta.glob("../blog/**/*.md", { as: "raw", eager: true });
 
-  Object.entries(postsPages).forEach(([key, content]) => {
+  const blogPosts = Object.entries(postsPages).map(([key, content]) => {
     const paths = key.split("/");
-    const slug = paths.at(-2);
-    console.log("SLUG", slug);
-    console.log("content", content.slice(0, 100));
-    // console.log("VALUE", value);
+    const slug = paths.at(-2)!;
+
+    return getPostMetadataFromContents(slug, content);
   });
 
-  // console.log("POSTS PAGES", postsPages);
-
-  return allPosts2;
-
-  const slugs = fs.readdirSync(postsDirectory());
-  const allPosts = await Promise.all(slugs.map(slug => getPostMetadataBySlug(slug)));
-
-  const posts: (PostMetadata | ExternalPost)[] = allPosts
+  const posts: (PostMetadata | ExternalPost)[] = blogPosts
     .concat(externalPosts as any)
     // sort posts by date in descending order
     .sort((post1, post2) => (post1.date > post2.date ? -1 : 1));
