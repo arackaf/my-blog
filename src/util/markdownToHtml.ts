@@ -1,7 +1,7 @@
 import Shiki from "@shikijs/markdown-it";
 import MarkdownIt from "markdown-it";
 
-export default async function markdownToHtml(markdown) {
+export default async function markdownToHtml(markdown: string) {
   const md = MarkdownIt({
     html: true,
   });
@@ -15,7 +15,7 @@ export default async function markdownToHtml(markdown) {
       transformers: [
         {
           name: "line-numbers-pre",
-          preprocess: (code, options, meta) => {
+          preprocess: (_: string, options: any) => {
             if (options?.meta?.__raw?.includes("lineNumbers")) {
               options.attributes = {};
               options.attributes.lineNumbers = true;
@@ -24,7 +24,7 @@ export default async function markdownToHtml(markdown) {
         },
         {
           name: "line-numbers-post",
-          postprocess: (html, options) => {
+          postprocess: (html, options: any) => {
             if (options?.attributes?.lineNumbers) {
               return html.replace(/<pre /g, "<pre data-linenumbers ");
             }
@@ -32,7 +32,7 @@ export default async function markdownToHtml(markdown) {
           },
         },
       ],
-    })
+    }),
   );
 
   return md.render(markdown);
