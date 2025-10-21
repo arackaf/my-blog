@@ -37,7 +37,7 @@ async function getMarkdownIt() {
           },
         },
       ],
-    })
+    }),
   );
 
   return md;

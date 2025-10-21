@@ -15,10 +15,12 @@ export const getPostContent = createServerFn()
       throw new Error(`Post not found: ${data.slug}`);
     }
 
-    const post = getPostMetadataFromContents(data.slug, postContentLookup[data.slug]);
+    const post = {
+      ...getPostMetadataFromContents(data.slug, postContentLookup[data.slug]),
+    };
     const content = await markdownToHtml(post.markdownContent);
 
-    return { post, content };
+    return { post: { ...post, markdownContent: "" }, content };
   });
 
 export const Route = createFileRoute("/blog/$slug")({

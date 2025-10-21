@@ -4,7 +4,7 @@ export default function PostBody({ content }: { content: string }) {
   const rootRef = useRef<HTMLDivElement>(null);
 
   function highlightCode(pre: HTMLElement, highlightRanges: string, lineNumberRowsContainer: HTMLElement) {
-    const ranges = highlightRanges.split(",").filter((val) => val);
+    const ranges = highlightRanges.split(",").filter(val => val);
     const preWidth = pre.scrollWidth;
 
     for (const range of ranges) {
@@ -71,7 +71,7 @@ export default function PostBody({ content }: { content: string }) {
       cleanup.push(() => ro.disconnect());
     }
 
-    return () => cleanup.forEach((f) => f());
+    return () => cleanup.forEach(f => f());
   }, []);
 
   return (
