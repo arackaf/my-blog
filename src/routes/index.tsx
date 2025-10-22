@@ -2,7 +2,7 @@ import { DateFormatter } from "@/components/date-formatter";
 import { GithubIcon } from "@/components/svg/githubIcon";
 import { TwitterIcon } from "@/components/svg/twitterIcon";
 import { getAllBlogPosts, getPostMetadataFromContents, Post, PostMetadata } from "@/util/blog-posts";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 // @ts-ignore
 import { NextWrapper } from "next-blurhash-previews";
@@ -106,9 +106,7 @@ function App() {
                   {post.title} &nbsp;<i className="fad fa-external-link-alt"></i>
                 </a>
               ) : (
-                <Link to={`/blog/$slug`} params={{ slug: (post as Post).slug }}>
-                  {post.title}
-                </Link>
+                <a href={`/blog/${(post as Post).slug}`}>{post.title}</a>
               )}
             </h1>
             <small className="text-sm italic">
