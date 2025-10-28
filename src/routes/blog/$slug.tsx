@@ -71,10 +71,10 @@ function RouteComponent() {
   return (
     <div className="post">
       <h4>
-        <a href="/" className="back-link">
+        <Link to="/" className="back-link">
           <BackArrow height="18" />
           <span>Adam's Blog</span>
-        </a>
+        </Link>
       </h4>
 
       <h1>{title}</h1>
