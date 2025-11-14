@@ -5,7 +5,6 @@ import { imagePreviewBootstrap } from "next-blurhash-previews";
 
 import css1 from "../styles/global.css?url";
 import css2 from "../styles/code-highlighting-overrides.css?url";
-import css3 from "../styles/fontawesome/css/all.min.css?url";
 import css5 from "../styles/blog-styles.css?url";
 import Meta from "@/components/Meta";
 
@@ -31,10 +30,6 @@ export const Route = createRootRoute({
       {
         rel: "stylesheet",
         href: css2,
-      },
-      {
-        rel: "stylesheet",
-        href: css3,
       },
       {
         rel: "stylesheet",
