@@ -34,12 +34,9 @@ This will cause all of our webpack assets to be precached, excluding some font f
 
 ## Start Responding To Data Queries
 
-Let’s go offline, and try opening the subjects page. Unsurprisingly, nothing loads since we’re offline, and our network requests fail.
+Let's go offline, and try opening the subjects page. Unsurprisingly, nothing loads since we're offline, and our network requests fail.
 
-<blurhash-image url="/offline-web-development/initialOffline-sized.png" preview='{"blurhash":"U3S$r*024p4o000LD+4n00xW-oMx=@~U~UxV","w":300,"h":133,"dw":600,"dh":266}'>
-  <img alt="Offline" width="600" height="266" src="/offline-web-development/initialOffline-sized.png" slot="image" />
-  <canvas width="300" height="133" style="width: 600px; height: auto;" slot="preview"></canvas>
-</blurhash-image>
+<img alt="Offline" width="600" height="266" src="/offline-web-development/initialOffline-sized.png" slot="image" />
 
 To fix this, let’s set up a Workbox route that looks at what’s being requested, and, if it fails, satisfies the request with data from IndexedDB. Since this app uses GraphQL for its data, this becomes a bit more straightforward: all requests will be under the same path, and we can just inspect the query portion of the url. Of course if you’re not using GraphQL, you’d just inspect the url in some other way to figure out what to load from IndexedDB.
 
@@ -109,10 +106,7 @@ const gqlResponse = (op, coll) => data =>
 
 And now our subjects will load while offline
 
-<blurhash-image url="/offline-web-development/subjectsLoading-sized.png" preview='{"blurhash":"U0S?AN0000000B0X5^02000xC6AX0000sE.8","w":300,"h":187,"dw":1000,"dh":624}'>
-  <img alt="Subjects Loading" width="1000" height="624" src="/offline-web-development/subjectsLoading-sized.png" slot="image" />
-  <canvas width="300" height="187" style="width: 1000px; height: auto;" slot="preview"></canvas>
-</blurhash-image>
+<img alt="Subjects Loading" width="1000" height="624" src="/offline-web-development/subjectsLoading-sized.png" slot="image" />
 
 ## Syncing Data in IndexedDB
 

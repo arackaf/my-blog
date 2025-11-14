@@ -241,10 +241,7 @@ function myReducer(state, [type, payload]): typeof initialState {
 
 Now, when we use this reducer, TypeScript will tell us what fields are on our returned state.
 
-<blurhash-image url="/redux-in-hooks/stateFromReducer-sized.png" preview='{"blurhash":"U14VBx*0WqoN.Sx]V?VtMusjaxM|R4jXtRfl","w":300,"h":70,"dw":1000,"dh":234}'>
-  <img alt="Typed reducer state" width="1000" height="234" src="/redux-in-hooks/stateFromReducer-sized.png" slot="image" />
-  <canvas width="300" height="70" style="width: 1000px; height: auto;" slot="preview"></canvas>
-</blurhash-image>
+<img alt="Typed reducer state" width="1000" height="234" src="/redux-in-hooks/stateFromReducer-sized.png" slot="image" />
 
 That was the easy part. Let's turn to our dispatch function, and see how we can get it to communicate its actions to TypeScript, and to us. Don't worry, this won't be terribly difficult, either.
 
@@ -268,24 +265,15 @@ function myReducer(state, [type, payload]: actions): typeof initialState {
 
 Now, when we start to dispatch an action, we'll get a nice autocomplete on the action names.
 
-<blurhash-image url="/redux-in-hooks/typedDispatch-sized.png" preview='{"blurhash":"U15Od2~pMwDj_NyCIVjebUOFM}s?KlWns,Vs","w":300,"h":93,"dw":1000,"dh":310}'>
-  <img alt="Typed action names" width="1000" height="310" src="/redux-in-hooks/typedDispatch-sized.png" slot="image" />
-  <canvas width="300" height="93" style="width: 1000px; height: auto;" slot="preview"></canvas>
-</blurhash-image>
+<img alt="Typed action names" width="1000" height="310" src="/redux-in-hooks/typedDispatch-sized.png" slot="image" />
 
 Unfortunately, VS Code isn't quite, yet, up to the task of providing auto-complete info on the payload.
 
-<blurhash-image url="/redux-in-hooks/typedDispatchLimitation-sized.png" preview='{"blurhash":"U25}z1-:D*nP.mOYMyv%0JtR-VRkDN-.-oOY","w":300,"h":64,"dw":600,"dh":127}'>
-  <img alt="No auto-complete on payload" width="600" height="127" src="/redux-in-hooks/typedDispatchLimitation-sized.png" slot="image" />
-  <canvas width="300" height="64" style="width: 600px; height: auto;" slot="preview"></canvas>
-</blurhash-image>
+<img alt="No auto-complete on payload" width="600" height="127" src="/redux-in-hooks/typedDispatchLimitation-sized.png" slot="image" />
 
 But you can always jump to the reducer definition and quickly peak at the types, and regardless, if you use it wrong, TypeScript will tell you.
 
-<blurhash-image url="/redux-in-hooks/typedDispatchCheckingCorrectly-sized.png" preview='{"blurhash":"U25}s-%NIUj=_3NGIUWY8^M_xtj]4oog%Me-","w":300,"h":61,"dw":1000,"dh":204}'>
-  <img alt="Typed payload" width="1000" height="204" src="/redux-in-hooks/typedDispatchCheckingCorrectly-sized.png" slot="image" />
-  <canvas width="300" height="61" style="width: 1000px; height: auto;" slot="preview"></canvas>
-</blurhash-image>
+<img alt="Typed payload" width="1000" height="204" src="/redux-in-hooks/typedDispatchCheckingCorrectly-sized.png" slot="image" />
 
 ### What about thunk dispatches?
 

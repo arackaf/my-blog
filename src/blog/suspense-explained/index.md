@@ -20,10 +20,7 @@ Our data loading will be done with my [micro-graphql-react](https://github.com/a
 
 Suspense is all about coordinating multiple async operations in a way that keeps your UI consistent. Let's explore what that means with an example. `booklist` unsurprisingly has a screen to display your books.
 
-<blurhash-image url="/suspense-explained/booklistView-sized.png" preview='{"blurhash":"U1RC_H00000000_N~V^j00%#OsIB00E3-X^,","w":300,"h":177,"dw":1000,"dh":589}'>
-  <img alt="Book list UI" width="1000" height="589" src="/suspense-explained/booklistView-sized.png" slot="image" />
-  <canvas width="300" height="177" style="width: 1000px; height: auto;" slot="preview"></canvas>
-</blurhash-image>
+<img alt="Book list UI" width="1000" height="589" src="/suspense-explained/booklistView-sized.png" slot="image" />
 
 The books are paged, but I also show the total count in the searched result set. Currently it's a single request that fetches the books, and the total, but let's pretend those two pieces of data are fetched with different queries—and for this blog post, I did split them out. As the current search changes, we fire off a new request to get our books, and a new request to get the total count for that result set. As each request is running, there's some sort of loading indicator in place. The books table has a subtle spinner overlaid, and the book count shows a small spinner next to it, while the next count total is fetching. Since they're distinct async operations, we have no control over which will finish first, or even how closely together they'll finish. That means the new books list may come in first, while the count for the previous search results continues to show, with a spinner next to it—or vice versa.
 
@@ -37,10 +34,7 @@ Before I move on, I'd just like to note that, if your particular web app doesn't
 
 Before we look at coordinating these requests, let's solve an unrelated problem: when we browse to this module (to view our books), our initial query does not fire until after the code for the books list component has loaded. This makes sense if we think about it. These queries are run from hooks called in our components, so the components' code needs to load (via rendering a component wrapped with `React.lazy`), before those queries can run. We can see this in the network tab: our queries don't run until after our code is done loading.
 
-<blurhash-image url="/suspense-explained/initialWaterfall-sized.png" preview='{"blurhash":"UGQAKn+kxISw}^KG=~NFw$%3A8=}kpjZ%2R*","w":300,"h":50,"dw":1000,"dh":168}'>
-  <img alt="Initial Waterfall" width="1000" height="168" src="/suspense-explained/initialWaterfall-sized.png" slot="image" />
-  <canvas width="300" height="50" style="width: 1000px; height: auto;" slot="preview"></canvas>
-</blurhash-image>
+<img alt="Initial Waterfall" width="1000" height="168" src="/suspense-explained/initialWaterfall-sized.png" slot="image" />
 
 The fix for this has absolutely nothing to do with Suspense, but it'll be extremely relevant later. We need to preload our query. Hopefully our data loading library has some sort of preload method that can kick off a data request ahead of time. For my GraphQL client, it's a `preload` method, so let's call that in our routing code. For this app and use case, the preloading happens to look like this
 
@@ -54,10 +48,7 @@ export default function preload() {
 
 and after importing, and calling that function in our routing code when the books module becomes active, we see the waterfall vanish.
 
-<blurhash-image url="/suspense-explained/initialWaterfallFixed-sized.png" preview='{"blurhash":"UHPjlT]Z=$1C}^O+f~-E-Xo_R%$+bqs;t7W-","w":300,"h":60,"dw":1000,"dh":201}'>
-  <img alt="Waterfall fixed" width="1000" height="201" src="/suspense-explained/initialWaterfallFixed-sized.png" slot="image" />
-  <canvas width="300" height="60" style="width: 1000px; height: auto;" slot="preview"></canvas>
-</blurhash-image>
+<img alt="Waterfall fixed" width="1000" height="201" src="/suspense-explained/initialWaterfallFixed-sized.png" slot="image" />
 
 I'll stress, this has nothing to do with Suspense, or even React; this preloading is an essential part of the "render-as-you-fetch" pattern the React team promotes, with Suspense. But no matter what JS framework you're using, you should preload data as soon as you know you'll need it, even if your UI code isn't loaded yet.
 
@@ -95,10 +86,7 @@ But there's a problem. Two in fact. When we change our search parameters, our en
 
 We'd probably prefer to just show the current data, and then update it all when ready—perhaps with a subtle, inline spinner to show that new data are being loaded. The other problem is worse: we've introduced a new waterfall. On each update, each of our queries run serially.
 
-<blurhash-image url="/suspense-explained/incrementalWaterfall-sized.png" preview='{"blurhash":"UBQmO~#H?HKH~Et%xur_s;%3N=-WEdnT-qOl","w":300,"h":42,"dw":1000,"dh":140}'>
-  <img alt="Another Waterfall" width="1000" height="140" src="/suspense-explained/incrementalWaterfall-sized.png" slot="image" />
-  <canvas width="300" height="42" style="width: 1000px; height: auto;" slot="preview"></canvas>
-</blurhash-image>
+<img alt="Another Waterfall" width="1000" height="140" src="/suspense-explained/incrementalWaterfall-sized.png" slot="image" />
 
 This is because `useSuspenseQuery` is throwing a promise when encountered. That causes React to suspend rendering (get it - that's why it's called Suspense), until the requested data are ready. In this particular case, the two reads are nested beneath one another: the first query happens in a component that's above the component containing the other query. Normally React will try to render every possible branch of your component tree, even if a component suspends. So if you have
 
@@ -127,10 +115,7 @@ useEffect(() => {
 
 And now our waterfall is gone
 
-<blurhash-image url="/suspense-explained/incrementalWaterfallFixed-sized.png" preview='{"blurhash":"UDQmL^R6^lOl~C-;SvsEN1t7ozxbSvaf%3bt","w":300,"h":42,"dw":1000,"dh":141}'>
-  <img alt="Waterfall fixed" width="1000" height="141" src="/suspense-explained/incrementalWaterfallFixed-sized.png" slot="image" />
-  <canvas width="300" height="42" style="width: 1000px; height: auto;" slot="preview"></canvas>
-</blurhash-image>
+<img alt="Waterfall fixed" width="1000" height="141" src="/suspense-explained/incrementalWaterfallFixed-sized.png" slot="image" />
 
 ## useTransition
 

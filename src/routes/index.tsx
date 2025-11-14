@@ -5,7 +5,6 @@ import { getAllBlogPosts, getPostMetadataFromContents, Post, PostMetadata } from
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 // @ts-ignore
-import { NextWrapper } from "next-blurhash-previews";
 import { FC, PropsWithChildren } from "react";
 
 import { ExternalPost, externalPosts } from "@/util/outsidePosts";
@@ -60,9 +59,7 @@ function App() {
     <div>
       <div className="blog-header flex mb-8">
         <div className="rounded-full overflow-hidden sm:w-[125px] sm:h-[125px] w-24 h-24 sm:min-w-[125px] sm:min-h-[125px] min-w-24 min-h-24">
-          <NextWrapper sync={true} blurhash="L9Fhx14T144o5Q01~p-5lVD%x[tl" width="125" height="125">
-            <img alt="Profile pic" className="rounded-full sm:w-[125px] sm:h-[125px] w-24 h-24" src="/assets/home/avatar.jpg" />
-          </NextWrapper>
+          <img alt="Profile pic" className="rounded-full sm:w-[125px] sm:h-[125px] w-24 h-24" src="/assets/home/avatar.jpg" />
         </div>
         <div className="titles flex flex-col ml-2.5 justify-evenly">
           <div className="flex flex-col gap-1">

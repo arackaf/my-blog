@@ -1,8 +1,5 @@
 import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router";
 
-// @ts-ignore
-import { imagePreviewBootstrap } from "next-blurhash-previews";
-
 import globalStyles from "../styles/global.css?url";
 import codeHighlightingStyles from "../styles/code-highlighting-overrides.css?url";
 import blogPostStyles from "../styles/blog-styles.css?url";
@@ -49,7 +46,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <Meta />
-        {imagePreviewBootstrap}
 
         <main className="flex flex-col max-w-[708px] mx-auto px-4">
           <article>
