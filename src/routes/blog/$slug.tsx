@@ -26,7 +26,6 @@ export const getPostContent = createServerFn()
 
 export const Route = createFileRoute("/blog/$slug")({
   loader: async ({ params }) => {
-    console.log("Constructing page:", params.slug);
     return getPostContent({ data: { slug: params.slug } });
   },
   head: ({ params }) => {

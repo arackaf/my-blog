@@ -37,7 +37,6 @@ export const Route = createFileRoute("/")({
     ],
   }),
   loader: async () => {
-    console.log("Constructing index page");
     const allPosts = await getAllPosts();
     return {
       posts: allPosts,
