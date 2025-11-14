@@ -2,7 +2,7 @@ import { DateFormatter } from "@/components/date-formatter";
 import { GithubIcon } from "@/components/svg/githubIcon";
 import { TwitterIcon } from "@/components/svg/twitterIcon";
 import { getAllBlogPosts, getPostMetadataFromContents, Post, PostMetadata } from "@/util/blog-posts";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 // @ts-ignore
 import { FC, PropsWithChildren } from "react";
@@ -104,9 +104,7 @@ function App() {
                   <ExternalLinkIcon className="ml-2 mb-0.5 inline w-4 h-4" />
                 </a>
               ) : (
-                <Link to={`/blog/$slug`} params={{ slug: (post as Post).slug }}>
-                  {post.title}
-                </Link>
+                <a href={`/blog/${(post as Post).slug}`}>{post.title}</a>
               )}
             </h1>
             <small className="text-sm italic">
