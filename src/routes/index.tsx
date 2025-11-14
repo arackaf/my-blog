@@ -102,9 +102,9 @@ function App() {
           <div key={post.title} className="blog-list-item mb-8">
             <h1 className="leading-none text-2xl font-bold">
               {"url" in post && post.url ? (
-                <a href={post.url} className="flex items-center gap-2">
+                <a href={post.url}>
                   <span>{post.title}</span>
-                  <ExternalLinkIcon className="w-4 h-4" />
+                  <ExternalLinkIcon className="ml-2 mb-0.5 inline w-4 h-4" />
                 </a>
               ) : (
                 <Link to={`/blog/$slug`} params={{ slug: (post as Post).slug }}>
