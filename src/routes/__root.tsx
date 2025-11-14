@@ -3,9 +3,9 @@ import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router";
 // @ts-ignore
 import { imagePreviewBootstrap } from "next-blurhash-previews";
 
-import css1 from "../styles/global.css?url";
-import css2 from "../styles/code-highlighting-overrides.css?url";
-import css5 from "../styles/blog-styles.css?url";
+import globalStyles from "../styles/global.css?url";
+import codeHighlightingStyles from "../styles/code-highlighting-overrides.css?url";
+import blogPostStyles from "../styles/blog-styles.css?url";
 import Meta from "@/components/Meta";
 
 export const Route = createRootRoute({
@@ -25,15 +25,15 @@ export const Route = createRootRoute({
     links: [
       {
         rel: "stylesheet",
-        href: css1,
+        href: globalStyles,
       },
       {
         rel: "stylesheet",
-        href: css2,
+        href: codeHighlightingStyles,
       },
       {
         rel: "stylesheet",
-        href: css5,
+        href: blogPostStyles,
       },
     ],
   }),
