@@ -9,6 +9,7 @@ import { NextWrapper } from "next-blurhash-previews";
 import { FC, PropsWithChildren } from "react";
 
 import { ExternalPost, externalPosts } from "@/util/outsidePosts";
+import { ExternalLinkIcon } from "@/components/svg/external";
 
 const getAllPosts = createServerFn().handler(async () => {
   const postContentLookup = getAllBlogPosts();
@@ -101,8 +102,9 @@ function App() {
           <div key={post.title} className="blog-list-item mb-8">
             <h1 className="leading-none text-2xl font-bold">
               {"url" in post && post.url ? (
-                <a href={post.url}>
-                  {post.title} &nbsp;<i className="fad fa-external-link-alt"></i>
+                <a href={post.url} className="flex items-center gap-2">
+                  <span>{post.title}</span>
+                  <ExternalLinkIcon className="w-4 h-4" />
                 </a>
               ) : (
                 <Link to={`/blog/$slug`} params={{ slug: (post as Post).slug }}>
