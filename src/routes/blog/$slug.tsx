@@ -3,7 +3,7 @@ import PostBody from "@/components/post-body";
 import { BackArrow } from "@/components/svg/backArrow";
 import { getAllBlogPosts, getPostMetadataFromContents } from "@/util/blog-posts";
 import markdownToHtml from "@/util/markdownToHtml";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useEffect } from "react";
 
@@ -54,12 +54,6 @@ function RouteComponent() {
 
       const anchor = document.createElement("a");
       anchor.href = img.src.replace(/\-sized\./, ".");
-
-      const slotValue = img.getAttribute("slot");
-      if (slotValue) {
-        anchor.setAttribute("slot", img.getAttribute("slot")!);
-        img.removeAttribute("slot");
-      }
       anchor.target = "_blank";
 
       referenceParent?.insertBefore(anchor, img);
