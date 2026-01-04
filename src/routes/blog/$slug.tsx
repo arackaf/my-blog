@@ -50,13 +50,11 @@ function RouteComponent() {
         continue;
       }
 
-      const referenceParent = img.parentElement;
-
       const anchor = document.createElement("a");
       anchor.href = img.src.replace(/\-sized\./, ".");
       anchor.target = "_blank";
 
-      referenceParent?.insertBefore(anchor, img);
+      img.parentElement?.insertBefore(anchor, img);
       anchor.appendChild(img);
     }
   }, []);
