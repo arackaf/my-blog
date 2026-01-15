@@ -4,13 +4,13 @@ date: "2026-01-09T10:00:00.000Z"
 description: Implementing single-flight mutations using TanStack Start, and Query.
 ---
 
-This is a post about single flight mutations. We'll get into the details of what that means, but the short version is that it's mutating data, and then updating the UI with just ONE round trip to the network.
+This is a post about single flight mutations. We'll get into the details of what that means, but the short version is, it's mutating data, and then updating the UI with just ONE round trip to the network.
 
-The beautiful thing about implementing this with TanStack is that we can leverage many of the tools we already know, and love: TanStack Query (formerly react-query), TanStack Router, and Start.
+The beautiful thing about implementing this with TanStack is that we can leverage the tools we already know, and love: TanStack Query (formerly react-query), TanStack Router, and Start.
 
-If you're not familiar with these tools, TanStack Router is a client-only SPA framework, which I wrote a three-part introduction for [here](https://frontendmasters.com/blog/introducing-tanstack-router/). TanStack Start is a server layer for Router that enables things like SSR, api routes and server functions; I wrote an introduction for it [here](https://frontendmasters.com/blog/introducing-tanstack-start/), as well as a post on the middleware feature [here](https://frontendmasters.com/blog/introducing-tanstack-start-middleware/).
+If you're not familiar with these tools, TanStack Router is a client-only SPA framework, about which I wrote a three-part introduction [here](https://frontendmasters.com/blog/introducing-tanstack-router/). TanStack Start is a server layer for Router that enables things like SSR, api routes and server functions; I wrote an introduction for it [here](https://frontendmasters.com/blog/introducing-tanstack-start/), as well as a post on the middleware feature [here](https://frontendmasters.com/blog/introducing-tanstack-start-middleware/).
 
-I've never written about TanStack Query, but it's one of the most widely used React libraries, and there are tons of resources on it everywhere.
+I've never written about TanStack Query, but it's one of the most widely used React libraries, and there are tons of resources about it.
 
 ## Laying the Groundwork
 
