@@ -30,9 +30,9 @@ Those scripts and styles still have to load for your page to be interactive, but
 
 ## Why Single Flight Mutations
 
-Let's think about how you'd normally update a piece of data in a web application. You probably make a network request to some sort of `/update` endpoint, along with some sort of post packet for whatever you're trying to change. The endpoint will probably return some sort of success flag, possibly returning the actual piece of data you just updated. Then your UI will usually need to request updated data. You might think that returning the updated piece of data you just changed would obviate this need, but frequently it will not.
+Let's think about how you'd normally update a piece of data in a web application. You probably make a network request to some sort of `/update` endpoint, along with some sort of post packet for whatever you're trying to change. The endpoint will probably return a success flag, possibly with the actual piece of data you just updated. Your UI will usually then request updated data. You might think that returning the updated piece of data you just changed would obviate this need, but frequently it will not.
 
-Imagine you're looking at a list of todo tasks, and you just edited one of them. Just updating the item on the screen isn't good enough; maybe the edit causes this TODO to not longer even be in this list, depending on your filters. Or perhaps your edit causes this TODO to be in a different location, based on your sort order. Or maybe you just _created_ a _brand new_ todo. In that case, who knows where, or even if this todo will show up in your list, again based on your filters or sorts.
+Imagine you're looking at a list of todo tasks, and you just edited one of them. Just updating the item on the screen isn't good enough; maybe the edit causes this TODO to not longer even be in this list, depending on your filters. Or perhaps your edit causes this TODO to be in a different location, based on your sort order. Or maybe you just _created_ a _brand new_ todo. In that case, who knows where, or even _if_ this todo will show up in your list, again based on your filters or sorts.
 
 So we re-fetch whatever query produces our list. It usually looks like this
 
@@ -43,6 +43,76 @@ This works, and if we're honest with ourselves, it's usually good enough. But ca
 ![SPA](/single-flight-mutations/img4.png)
 
 The rest of this post will walk through how we can accomplish this in a scalable, flexible way. We'll be using TanStack Start, Middleware, and TanStack Query (formerly react-query).
+
+## Our app
+
+As with prior posts about TanStack Start and Router, this post will use our cheap, simply, and frankly ugly Jira clone. The repo for it is [here](https://github.com/arackaf/tanstack-start-single-flight-mutations-blog-post). It's a trivial app that runs on an SQLite database. The epics page looks like this
+
+![SPA](/single-flight-mutations/img5.png)
+
+As you can see, zero effort was put into the design. But there's a few sources of data on the screen, which will help us implement single flight mutations: the main list of epics, above that is the count of epics (12), and above that we have a summary list of epics, with the numbers of tasks therein.
+
+This is the page we'll be focusing on for this post. If you're following along at home, you can run the app with `npm run dev` and then visit [http://localhost:3000/app/epics](http://localhost:3000/app/epics).
+
+Our queries, for things like our list of epics and our summary data are driven by react-query. I've put the query options into a helper utilities, like so
+
+```ts
+export const epicsQueryOptions = (page: number) => {
+  return queryOptions({
+    queryKey: ["epics", "list", page],
+    queryFn: async () => {
+      const result = await getEpicsList({ data: page });
+      return result;
+    },
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 5,
+  });
+};
+```
+
+This allows me to query data using the normal useQuery or useSuspenseQuery hook
+
+```ts
+const { data: epicsData } = useSuspenseQuery(epicsQueryOptions(deferredPage));
+```
+
+and also prefetch these queries in TanStack loaders
+
+```ts
+  async loader({ context, deps }) {
+    const queryClient = context.queryClient;
+
+    queryClient.ensureQueryData(epicsQueryOptions(deps.page));
+    queryClient.ensureQueryData(epicsCountQueryOptions());
+  },
+```
+
+without duplicating code.
+
+As you can see, this query (and all our other queries) are just straight calls to a single server function, with the result passed through. This is a key detail that will come in handy later.
+
+## Simplest possible single flight mutation
+
+Let's implement the simplest possible single flight mutation, and then iterate on it, to make it more and more scalable. Our main epics page has an edit button, which allows for inline editing.
+
+![SPA](/single-flight-mutations/img6.png)
+
+When we hit save, let's just refetch the list of epics, as well as the epics summary data inside the edit epic server function, and send those new data down. Then the client can update the UI. Let's do it!
+
+Here's the entire server function
+
+```ts
+export const updateWithSimpleRefetch = createServerFn({ method: "POST" })
+  .inputValidator((obj: { id: number; name: string }) => obj)
+  .handler(async ({ data }) => {
+    await new Promise(resolve => setTimeout(resolve, 1000 * Math.random()));
+    await db.update(epicsTable).set({ name: data.name }).where(eq(epicsTable.id, data.id));
+
+    const [epicsList, epicsSummaryData] = await Promise.all([getEpicsList({ data: 1 }), getEpicsSummary()]);
+
+    return { epicsList, epicsSummaryData };
+  });
+```
 
 ## Concluding thoughts
 
