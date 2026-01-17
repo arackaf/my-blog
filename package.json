@@ -24,14 +24,13 @@
     "lucide-react": "^0.544.0",
     "markdown-it": "^14.1.0",
     "next-blurhash-previews": "^0.1.0",
-    "nitro": "^3.0.1-alpha.0",
+    "nitro": "npm:nitro-nightly@latest",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwindcss": "^4.0.6",
     "vite-tsconfig-paths": "^5.1.4"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.21.0",
     "@flydotio/dockerfile": "^0.7.10",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/react": "^16.2.0",
@@ -44,8 +43,7 @@
     "typescript": "^5.7.2",
     "vite": "^7.1.7",
     "vitest": "^3.0.5",
-    "web-vitals": "^5.1.0",
-    "wrangler": "^4.59.2"
+    "web-vitals": "^5.1.0"
   },
   "packageManager": "pnpm@9.15.9+sha512.68046141893c66fad01c079231128e9afb89ef87e2691d69e4d40eee228988295fd4682181bae55b58418c3a253bde65a505ec7c5f9403ece5cc3cd37dcf2531"
 }
