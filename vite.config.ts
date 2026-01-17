@@ -19,7 +19,7 @@ const config = defineConfig({
         concurrency: 1,
       },
     }),
-    cloudflare(),
+    cloudflare({ viteEnvironment: { name: "ssr" } }),
     viteReact(),
   ],
 });
