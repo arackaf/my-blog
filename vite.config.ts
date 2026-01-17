@@ -15,9 +15,6 @@ const config = defineConfig({
     tanstackStart({
       prerender: {
         enabled: true,
-        filter: ({ path }) => {
-          return path === "/" || /\/blog\/.+/.test(path);
-        },
         autoSubfolderIndex: true,
         concurrency: 1,
       },
