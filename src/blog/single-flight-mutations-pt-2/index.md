@@ -28,7 +28,7 @@ Next, we'll import some goodies
 
 ```ts
 import { createMiddleware, getRouterInstance } from "@tanstack/react-start";
-import { QueryClient, QueryKey, partialMatchKey } from "@tanstack/react-query";
+import { QueryClient, QueryKey } from "@tanstack/react-query";
 ```
 
 Next, let's update our query options for our epics list query (the main list of epics)
@@ -378,7 +378,7 @@ await runSave({
     name: newValue,
     refetch: [
       ["epics", "list", 1],
-      ["epics", "summary"],
+      ["epics", "list", "summary"],
     ],
   },
 });
@@ -397,6 +397,266 @@ queryClient.invalidateQueries({ queryKey: ["epics", "list"] });
 to refetch _any_ queries whose key _starts with_ `["epics", "list"]`. Can we do something similar in our middleware? Ie, just pass in that key prefix, and have it just find, and refetch whatever's there?
 
 Let's do it!
+
+We'll start by adding `partialMatchKey` to our imports
+
+```ts
+import { QueryClient, QueryKey, partialMatchKey } from "@tanstack/react-query";
+```
+
+Now getting the matching keys will be _slightly_ more complicated. Each key we pass up will potentially be a key prefix, matching multiple entries, so we'll use flatMap to find all matches
+
+```ts
+const allQueriesFound = refetch.flatMap(key => queryClient.getQueriesData({ queryKey: key, exact: false }));
+```
+
+and now we loop them, and do the same thing as before
+
+```ts
+allQueriesFound.forEach(query => {
+  const key = query[0];
+
+  const entry = cache.find({ queryKey: key, exact: true });
+  const revalidatePayload: any = entry?.options?.meta?.__revalidate ?? null;
+
+  if (refetch.some(refetchKey => partialMatchKey(key, refetchKey))) {
+    if (revalidatePayload) {
+      revalidate.refetch.push({
+        key,
+        fn: revalidatePayload.serverFn,
+        arg: revalidatePayload.arg,
+      });
+    }
+  }
+});
+```
+
+And this works!
+
+## Going deeper
+
+Our solution still isn't ideal. What if we page around in our epics page (up to page 2, up to page 3, then back down). Our solution will find page 1, and our summary query, but also pages 2 and 3, since they're now in cache. But pages 2 and 3 aren't really active, and we shouldn't refetch them, since they're not even being displayed.
+
+Let's change our code to only refetch active queries. Detecting whether a query entry is actually active is as simple as
+
+```ts
+const isActive = !!entry?.observers?.length;
+```
+
+so our code now looks like this
+
+```ts
+const allQueriesFound = refetch.flatMap(key => queryClient.getQueriesData({ queryKey: key, exact: false }));
+
+allQueriesFound.forEach(query => {
+  const key = query[0];
+
+  const entry = cache.find({ queryKey: key, exact: true });
+  const isActive = !!entry?.observers?.length;
+  const revalidatePayload: any = entry?.options?.meta?.__revalidate ?? null;
+
+  if (isActive && revalidatePayload) {
+    revalidate.refetch.push({
+      key,
+      fn: revalidatePayload.serverFn,
+      arg: revalidatePayload.arg,
+    });
+  }
+});
+```
+
+## Even deeper
+
+This works. But when you think about it, those other, inactive queries should probably be invalidated. We don't want to waste resources refetching them immediately, since they're not being used, but if the user were to browse back to those pages, we probably want the data refetched. Well react-query makes that eash, with the `invalidateQueries` method.
+
+We'll declare our `invalidate` array
+
+```ts
+const invalidate: any[] = [];
+```
+
+Make this change
+
+```ts
+if (refetch.some(refetchKey => partialMatchKey(key, refetchKey))) {
+  if (isActive && revalidatePayload) {
+    revalidate.refetch.push({
+      key,
+      fn: revalidatePayload.serverFn,
+      arg: revalidatePayload.arg,
+    });
+  } else {
+    invalidate.push(key);
+  }
+}
+```
+
+and now we make this change to our call to `next`
+
+```ts
+return await next({
+  sendContext: {
+    revalidate,
+  },
+  context: {
+    invalidate,
+  },
+});
+```
+
+That `invalidate` array will be used on the _client_, not the _server_, since it'll be used with the queryClient object that's living in your browser, with access to query state for data you're currently looking at.
+
+We use `sendContext` to _send_ context from the client to the server, or vice versa. To just add data to context that the next middleware will see, in client to client, or server to server callbacks, we just use `context`.
+
+And then we add this
+
+```ts
+for (const entry of result.context?.invalidate ?? []) {
+  queryClient.invalidateQueries({ queryKey: entry, exact: true });
+}
+```
+
+Here's our entire, updated middleware
+
+```ts
+const prelimRefetchMiddleware = createMiddleware({ type: "function" })
+  .inputValidator((config?: RefetchMiddlewareConfig) => config)
+  .client(async ({ next, data }) => {
+    const { refetch = [] } = data ?? {};
+
+    const router = await getRouterInstance();
+    const queryClient: QueryClient = router.options.context.queryClient;
+    const cache = queryClient.getQueryCache();
+
+    const revalidate: RevalidationPayload = {
+      refetch: [],
+    };
+    const invalidate: any[] = [];
+
+    const allQueriesFound = refetch.flatMap(key => queryClient.getQueriesData({ queryKey: key, exact: false }));
+
+    allQueriesFound.forEach(query => {
+      const key = query[0];
+
+      const entry = cache.find({ queryKey: key, exact: true });
+      const isActive = !!entry?.observers?.length;
+      const revalidatePayload: any = entry?.options?.meta?.__revalidate ?? null;
+
+      if (isActive && revalidatePayload) {
+        revalidate.refetch.push({
+          key,
+          fn: revalidatePayload.serverFn,
+          arg: revalidatePayload.arg,
+        });
+      } else {
+        invalidate.push(key);
+      }
+    });
+
+    return await next({
+      sendContext: {
+        revalidate,
+      },
+      context: {
+        invalidate,
+      },
+    });
+  })
+  .server(async ({ next, context }) => {
+    const result = await next({
+      sendContext: {
+        payloads: [] as any[],
+      },
+    });
+
+    const allPayloads = context.revalidate.refetch.map(refetchPayload => {
+      return {
+        key: refetchPayload.key,
+        result: refetchPayload.fn({ data: refetchPayload.arg }),
+      };
+    });
+
+    for (const refetchPayload of allPayloads) {
+      result.sendContext.payloads.push({
+        key: refetchPayload.key,
+        result: await refetchPayload.result,
+      });
+    }
+
+    return result;
+  });
+
+export const refetchMiddleware = createMiddleware({ type: "function" })
+  .middleware([prelimRefetchMiddleware])
+  .client(async ({ next }) => {
+    const result = await next();
+
+    const router = await getRouterInstance();
+    const queryClient: QueryClient = router.options.context.queryClient;
+
+    for (const entry of result.context?.payloads ?? []) {
+      queryClient.setQueryData(entry.key, entry.result, { updatedAt: Date.now() });
+    }
+    for (const entry of result.context?.invalidate ?? []) {
+      queryClient.invalidateQueries({ queryKey: entry, exact: true });
+    }
+
+    return result;
+  });
+```
+
+And this works perfectly. If we browse up to pages 2 and 3, and then back to page 1, then edit a todo, we do in fact see our list, and summary list update, and then if we page back to page 2, and 3, we'll see network requests fire to get fresh data.
+
+## Icing on the cake
+
+Remember when we added the server function, and arg thereto to our query options?
+
+```ts
+export const epicsQueryOptions = (page: number) => {
+  return queryOptions({
+    queryKey: ["epics", "list", page],
+    queryFn: async () => {
+      const result = await getEpicsList({ data: page });
+      return result;
+    },
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 5,
+    meta: {
+      __revalidate: {
+        serverFn: getEpicsList,
+        arg: page,
+      },
+    },
+  });
+};
+```
+
+I briefly noted that it was a bit gross to duplicate the server function and arg in both our meta object, and our queryFn. Let's fix this.
+
+Let's start with the simplest possible helper to remove this duplication, and as before, iterate on it.
+
+```ts
+export function revalidatedQueryOptions(queryKey: QueryKey, serverFn: any, arg?: any) {
+  const queryKeyToUse = [...queryKey];
+  if (arg != null) {
+    queryKeyToUse.push(arg);
+  }
+  return queryOptions({
+    queryKey: queryKeyToUse,
+    queryFn: async () => {
+      return serverFn({ data: arg });
+    },
+    meta: {
+      __revalidate: {
+        serverFn,
+        arg,
+      },
+    },
+  });
+}
+```
+
+It's just a simple helper that takes in your query key, server function, and returns back some of our query options: our queryKey (to which we add whatever argument we need for the server function), the queryFn which calls the server function, and then our meta object.
 
 ## Concluding thoughts
 

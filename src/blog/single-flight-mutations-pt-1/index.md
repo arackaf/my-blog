@@ -143,7 +143,7 @@ const handleSaveSimple = async () => {
   });
 
   queryClient.setQueryData(["epics", "list", 1], result.epicsList, { updatedAt: Date.now() });
-  queryClient.setQueryData(["epics", "summary"], result.epicsSummaryData, { updatedAt: Date.now() });
+  queryClient.setQueryData(["epics", "list", "summary"], result.epicsSummaryData, { updatedAt: Date.now() });
 
   setIsEditing(false);
 };
