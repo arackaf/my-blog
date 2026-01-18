@@ -441,6 +441,83 @@ I covered this in my Middleware post linked above, but our server callback can s
 
 The solution is simple: just break the middleware into two pieces, and make one of them a middleware dependency on the other.
 
+```ts
+const prelimRefetchMiddleware = createMiddleware({ type: "function" })
+  .inputValidator((config?: RefetchMiddlewareConfig) => config)
+  .client(async ({ next, data }) => {
+    const { refetch = [] } = data ?? {};
+
+    const router = await getRouterInstance();
+    const queryClient: QueryClient = router.options.context.queryClient;
+    const cache = queryClient.getQueryCache();
+
+    const revalidate: RevalidationPayload = {
+      refetch: []
+    };
+
+    refetch.forEach((key: QueryKey) => {
+      const entry = cache.find({ queryKey: key, exact: true });
+      if (!entry) return;
+
+      const revalidatePayload: any = entry?.options?.meta?.__revalidate ?? null;
+
+      if (revalidatePayload) {
+        revalidate.refetch.push({
+          key,
+          fn: revalidatePayload.serverFn,
+          arg: revalidatePayload.arg
+        });
+      }
+    });
+
+    return await next({
+      sendContext: {
+        revalidate
+      }
+    });
+  })
+  .server(async ({ next, context }) => {
+    const result = await next({
+      sendContext: {
+        payloads: [] as any[]
+      }
+    });
+
+    const allPayloads = context.revalidate.refetch.map(refetchPayload => {
+      return {
+        key: refetchPayload.key,
+        result: refetchPayload.fn({ data: refetchPayload.arg })
+      };
+    });
+
+    for (const refetchPayload of allPayloads) {
+      result.sendContext.payloads.push({
+        key: refetchPayload.key,
+        result: await refetchPayload.result
+      });
+    }
+
+    return result;
+  });
+
+export const refetchMiddleware = createMiddleware({ type: "function" })
+  .middleware([prelimRefetchMiddleware])
+  .client(async ({ next }) => {
+    const result = await next();
+
+    const router = await getRouterInstance();
+    const queryClient: QueryClient = router.options.context.queryClient;
+
+    for (const entry of result.context?.payloads ?? []) {
+      queryClient.setQueryData(entry.key, entry.result, { updatedAt: Date.now() });
+    }
+
+    return result;
+  });
+```
+
+It's the same as before, except everything in the .client callback *after* the call to `next()` is now in its own middleware. The rest is in a different middleware, which is input to this one. Now when we call `next` in `refetchMiddleware`, TypeScript is able to see the data that's been sent down from the server, since that was done in `prelimRefetchMiddleware`, which is an *input* to this middleware, which allows TypeScript to fully see the flow of types.
+
 ## Concluding thoughts
 
 Single flight mutations are a great tool for speeding up
