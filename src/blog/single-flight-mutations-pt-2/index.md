@@ -341,7 +341,62 @@ export const refetchMiddleware = createMiddleware({ type: "function" })
   });
 ```
 
-It's the same as before, except everything in the .client callback _after_ the call to `next()` is now in its own middleware. The rest is in a different middleware, which is input to this one. Now when we call `next` in `refetchMiddleware`, TypeScript is able to see the data that's been sent down from the server, since that was done in `prelimRefetchMiddleware`, which is an _input_ to this middleware, which allows TypeScript to fully see the flow of types.
+It's the same as before, except everything in the `.client` callback _after_ the call to `next()` is now in its own middleware. The rest is in a different middleware, which is input to this one. Now when we call `next` in `refetchMiddleware`, TypeScript is able to see the data that's been sent down from the server, since that was done in `prelimRefetchMiddleware`, which is an _input_ to this middleware, which allows TypeScript to fully see the flow of types.
+
+## Wiring it up
+
+Now we can take our server function for updating an epic, remove the refecthes, and add our refetch middleware
+
+```ts
+export const updateEpic = createServerFn({ method: "POST" })
+  .middleware([refetchMiddleware])
+  .inputValidator((obj: { id: number; name: string }) => obj)
+  .handler(async ({ data }) => {
+    await new Promise(resolve => setTimeout(resolve, 1000 * Math.random()));
+    await db.update(epicsTable).set({ name: data.name }).where(eq(epicsTable.id, data.id));
+  });
+```
+
+now we set it up to call from our component with the `useServerFn` hook, which handles things like errors and redirects automatically
+
+```ts
+const runSave = useServerFn(updateEpic);
+```
+
+Remember when I said that inputs to middleware are automatically merged with inputs to the underlying server function? We can see that first hand when we call the server function
+
+![SPA](/single-flight-mutations/img8.png)
+
+(unknown[] is the correct type for react-query query keys)
+
+and now we can call it, and specify the queries we want refetched.
+
+```ts
+await runSave({
+  data: {
+    id: epic.id,
+    name: newValue,
+    refetch: [
+      ["epics", "list", 1],
+      ["epics", "summary"],
+    ],
+  },
+});
+```
+
+When we run it, it works. Both the list of epics, and also the summary list correctly update with our changes, _without_ any new requests in the network tab. When testing single flight mutations, we're not really looking for _something_ to indicate that it worked, but rather a _lack of_ new network requests, for updated data.
+
+## Improving things
+
+Query keys are hierarchical in react-query. You might already be familiar with this. Normally, when updating data, it would be common to do something like
+
+```ts
+queryClient.invalidateQueries({ queryKey: ["epics", "list"] });
+```
+
+to refetch _any_ queries whose key _starts with_ `["epics", "list"]`. Can we do something similar in our middleware? Ie, just pass in that key prefix, and have it just find, and refetch whatever's there?
+
+Let's do it!
 
 ## Concluding thoughts
 
