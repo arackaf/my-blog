@@ -205,7 +205,7 @@ export const epicsQueryOptions = (page: number) => {
 };
 ```
 
-Note the new meta section. We send over a reference to the getEpicsList, and the arg it takes. If this duplication makes you uneasy, stay tuned. We'll also update the summary query (for the counts) the same way, though that's not shown here.
+Note the new meta section. This allows us to add any random ... metadata that we want, to our query. Here we send over a reference to the getEpicsList, and the arg it takes. If this duplication makes you uneasy, stay tuned. We'll also update the summary query (for the counts) the same way, though that's not shown here.
 
 Let's build this middleware piece by piece
 
@@ -281,11 +281,11 @@ This check
 if (!entry) return;
 ```
 
-is protects us from refetches being requested for queries that don't exist. If that happens, just skip to the next one. We have no way to refetch it, if we don't have the serverFn.
+protects us from refetches being requested for queries that don't exist. If that happens, just skip to the next one. We have no way to refetch it, if we don't have the serverFn.
 
 Naturally you could expand the input to this middleware and send up a different payload of query keys, along with the actual refetching payload for queries you absolutely want run, even if they haven't yet been request. Perhaps you're planning on redirecting after the mutation, and you want that new page's data prefetched. We won't implement that here, but it's just a variation on this same theme. These pieces are all very composable, so build whatever you happen to need!
 
-Anyway, let's grab that meta object, grab the properties therefrom, and put them onto the payload we'll send to the server
+Anyway, let's grab that meta object, and put the properties onto the payload we'll send to the server
 
 ```ts
 const revalidatePayload: any = entry?.options?.meta?.__revalidate ?? null;
@@ -356,6 +356,90 @@ The server callback looks like this, in its entirety.
 We immediately call next, which runs the actual server function this middleware is attached to. We pass a `payloads` array in `sendContext`. This governs what gets sent _back_ to the client callback (that's how .client got the payloads array we just saw it looping through).
 
 Then we run through the revalidate payloads, call all the server functions, and add to that payloads array.
+
+Here's the entire middleware
+
+```ts
+export const refetchMiddleware = createMiddleware({ type: "function" })
+  .inputValidator((config?: RefetchMiddlewareConfig) => config)
+  .client(async ({ next, data }) => {
+    const { refetch = [] } = data ?? {};
+
+    const router = await getRouterInstance();
+    const queryClient: QueryClient = router.options.context.queryClient;
+    const cache = queryClient.getQueryCache();
+
+    const revalidate: RevalidationPayload = {
+      refetch: [],
+    };
+
+    refetch.forEach((key: QueryKey) => {
+      const entry = cache.find({ queryKey: key, exact: true });
+      if (!entry) return;
+
+      const revalidatePayload: any = entry?.options?.meta?.__revalidate ?? null;
+
+      if (revalidatePayload) {
+        revalidate.refetch.push({
+          key,
+          fn: revalidatePayload.serverFn,
+          arg: revalidatePayload.arg,
+        });
+      }
+    });
+
+    const result = await next({
+      sendContext: {
+        revalidate,
+      },
+    });
+
+    // @ts-expect-error
+    for (const entry of result.context?.payloads ?? []) {
+      queryClient.setQueryData(entry.key, entry.result, { updatedAt: Date.now() });
+    }
+
+    return result;
+  })
+  .server(async ({ next, context }) => {
+    const result = await next({
+      sendContext: {
+        payloads: [] as any[],
+      },
+    });
+
+    const allPayloads = context.revalidate.refetch.map(refetchPayload => {
+      return {
+        key: refetchPayload.key,
+        result: refetchPayload.fn({ data: refetchPayload.arg }),
+      };
+    });
+
+    for (const refetchPayload of allPayloads) {
+      result.sendContext.payloads.push({
+        key: refetchPayload.key,
+        result: await refetchPayload.result,
+      });
+    }
+
+    return result;
+  });
+```
+
+## Fixing the TypeScript error
+
+Why is this line invalid?
+
+```ts
+// @ts-expect-error
+for (const entry of result.context?.payloads ?? []) {
+```
+
+This line runs in the .client callback, _after_ we call `next()`. Essentially, we're trying to read properties sent back to the client, from the server (via the sendContext payload). This runs, and works properly. But why don't the types line up?
+
+I covered this in my Middleware post linked above, but our server callback can see what gets sent to it from the client, but the reverse is not true. This knowledge just inherently go in both directions; the type inference cannot run backwards, here.
+
+The solution is simple: just break the middleware into two pieces, and make one of them a middleware dependency on the other.
 
 ## Concluding thoughts
 
