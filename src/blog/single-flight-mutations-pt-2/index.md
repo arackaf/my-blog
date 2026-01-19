@@ -4,17 +4,17 @@ date: "2026-01-09T10:00:00.000Z"
 description: Implementing single-flight mutations using TanStack Start, and Query.
 ---
 
-In part 1 of this post we talked about how single flight mutations allow you to update some data, and also re-fetch updated payloads for the UI in just 1 roundtrip across the network. We implemented a trivial solution for this, which is to say that we threw caution and coupling to the wind, and just re-fetched some data in the server function we had for updating data. This worked fine, but it was hardly scalable or flexible.
+In part 1 of this post we talked about how single flight mutations allow you to update data, and also re-fetch updated payloads for the UI in just 1 roundtrip across the network. We implemented a trivial solution for this, which is to say that we threw caution and coupling to the wind, and just re-fetched some data in the server function we had for updating data. This worked fine, but it was hardly scalable, or flexible.
 
 In this post we'll accomplish the same thing in a much better way. We'll define some refetching middleware that we can simply attach to any server function we want. The middleware will allow us to specify, via react-query keys, which data we want re-fetched, and it'll handle everything from there.
 
-We'll start simple, and keep on adding features and flexibility. Things will get a bit complex by the end, but please don't think you need to use everything we'll talk about, here. In fact, for the vast majority of apps, single flight mutations probably won't matter at all. And don't be fooled: simply re-fetching some data in a server function might be good enough for a lot of smaller apps as well.
+We'll start simple, and keep on adding features and flexibility. Things will get a bit complex by the end, but please don't think you need to use everything we'll talk about. In fact, for the vast majority of apps, single flight mutations probably won't matter at all. And don't be fooled: simply re-fetching some data in a server function might be good enough for a lot of smaller apps as well.
 
 But in going through all of this we'll get to see some really cool TanStack, and even TypeScript features. Even if you never use what we go over for single flight mutations, there's a good chance this content will come in handy for something else.
 
 ## Our first middleware
 
-TanStack Query already has a wonderful system of hierarchical keys. Wouldn't it be great if we could just have our middleware receive the query keys of what we want to refetch, and have it just ... work? Have the middleware figure out _what_ to refetch does seem tricky, at first. Sure, our queries have all been simple calls (by design) to server functions. But we can't pass a server function up to the server; functions are not serializable. How could they be? You can send strings and numbers (and booleans) across the wire, serialized as json, but sending a function (which can have with state, close over context, etc) makes no sense.
+TanStack Query already has a wonderful system of hierarchical keys. Wouldn't it be great if we could just have our middleware receive the query keys of what we want to refetch, and have it just ... work? Have the middleware figure out _what_ to refetch does seem tricky, at first. Sure, our queries have all been simple calls (by design) to server functions. But we can't pass a server function reference up to the server; functions are not serializable. How could they be? You can send strings and numbers (and booleans) across the wire, serialized as json, but sending a function (which can have with state, close over context, etc) makes no sense.
 
 _Unless_ they're TanStack Start server functions, that is. It turns out the incredible engineers behind this project customized their serialization engine to support server functions. To be clear, you can send a server function to the server, from the client, and it will work fine (under the cover server functions have an internal id; TanStack picks this up, sends the id, and then de-serializes the id on the other end).
 
@@ -22,9 +22,7 @@ To make this even easier, why don't we just attach the server function (and argu
 
 ### Let's get started
 
-First,
-
-Next, we'll import some goodies
+First we'll import some goodies
 
 ```ts
 import { createMiddleware, getRouterInstance } from "@tanstack/react-start";
@@ -78,7 +76,7 @@ export const refetchMiddleware = createMiddleware({ type: "function" })
     const { refetch = [] } = data ?? {};
 ```
 
-We define the input to the middleware. The middleware input we define here will automatically get _merged_ with whatever input is defined on whatever server function this middleware winds up attached to.
+We define an input to the middleware. This middleware input will automatically get _merged_ with whatever input is defined on whatever server function this middleware winds up attached to.
 
 We define our input as optional (`config?`) since it's entirely possible we might want to call our server function and simply not refetch anything.
 
@@ -129,7 +127,7 @@ This check
 if (!entry) return;
 ```
 
-protects us from refetches being requested for queries that don't exist. If that happens, just skip to the next one. We have no way to refetch it, if we don't have the serverFn.
+protects us from refetches being requested for queries that don't exist. If that happens, just skip to the next one. We have no way to refetch it if we don't have the serverFn.
 
 Naturally you could expand the input to this middleware and send up a different payload of query keys, along with the actual refetching payload (including server function and arg) for queries you absolutely want run, even if they haven't yet been requested. Perhaps you're planning on redirecting after the mutation, and you want that new page's data prefetched. We won't implement that here, but it's just a variation on this same theme. These pieces are all very composable, so build whatever you happen to need!
 
@@ -398,13 +396,7 @@ to refetch _any_ queries whose key _starts with_ `["epics", "list"]`. Can we do 
 
 Let's do it!
 
-We'll start by adding `partialMatchKey` to our imports
-
-```ts
-import { QueryClient, QueryKey, partialMatchKey } from "@tanstack/react-query";
-```
-
-Now getting the matching keys will be _slightly_ more complicated. Each key we pass up will potentially be a key prefix, matching multiple entries, so we'll use flatMap to find all matches
+Getting the matching keys will be _slightly_ more complicated. Each key we pass up will potentially be a key prefix, matching multiple entries, so we'll use flatMap to find all matches
 
 ```ts
 const allQueriesFound = refetch.flatMap(key => queryClient.getQueriesData({ queryKey: key, exact: false }));
@@ -467,9 +459,9 @@ allQueriesFound.forEach(query => {
 
 ## Even deeper
 
-This works. But when you think about it, those other, inactive queries should probably be invalidated. We don't want to waste resources refetching them immediately, since they're not being used, but if the user were to browse back to those pages, we probably want the data refetched. Well react-query makes that eash, with the `invalidateQueries` method.
+This works. But when you think about it, those other, inactive queries should probably be invalidated. We don't want to waste resources refetching them immediately, since they're not being used, but if the user were to browse back to those pages, we probably want the data refetched. react-query makes that easy, with the `invalidateQueries` method.
 
-We'll declare our `invalidate` array
+We'll declare an `invalidate` array
 
 ```ts
 const invalidate: any[] = [];
@@ -508,7 +500,7 @@ That `invalidate` array will be used on the _client_, not the _server_, since it
 
 We use `sendContext` to _send_ context from the client to the server, or vice versa. To just add data to context that the next middleware will see, in client to client, or server to server callbacks, we just use `context`.
 
-And then we add this
+And then we add this to the client callback of the middleware we feed into
 
 ```ts
 for (const entry of result.context?.invalidate ?? []) {
@@ -672,7 +664,7 @@ export const epicsQueryOptions = (page: number) => {
 
 This works, but it's not great. We have `any`'s everywhere. This means that the argument we pass to our server function is never type checked. Even worse, the return value of our queryFn is not type checked, which means our queries (like this very epics list query) now return `any`.
 
-Let's add some typings. Server functions are just functions. They take a single object argument, and if the server function has defined an input, that that argument will have a data property for that argument. That's a lot of words to say what we already know. When we call a server function, we pass our argument like this
+Let's add some typings. Server functions are just functions. They take a single object argument, and if the server function has defined an input, then that argument will have a data property for that argument. That's a lot of words to say what we already know. When we call a server function, we pass our argument like this
 
 ```ts
 const result = await runSaveSimple({
@@ -723,7 +715,7 @@ Adding an `undefined` does fix this, and everything works.
 ...refetchedQueryOptions(["epics", "list", "summary"], getEpicsSummary, undefined),
 ```
 
-If you're normal, you're probably happy with that. And you should be. But if you're weird like me, you might wonder if you ca't make it perfect. Ideally it would be cool if we could pass a statically typed argument when using a server function that takes an input, and we want to pass nothing when we're using a server function that has no input.
+If you're normal, you're probably happy with that. And you should be. But if you're weird like me, you might wonder if you ca't make it perfect. Ideally it would be cool if we could pass a statically typed argument when using a server function that takes an input, and when using a server function with no input, pass nothing.
 
 TypeScript has a feature exactly for this: overloaded functions.
 
@@ -798,7 +790,7 @@ export const epicsQueryOptions = (page: number) => {
 };
 ```
 
-And the parameter is checked. It errors with the wrong argument
+And the parameter is checked. It errors with the wrong type
 
 ```ts
 ...refetchedQueryOptions(["epics", "list"], getEpicsList, "")
