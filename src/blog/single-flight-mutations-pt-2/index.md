@@ -405,20 +405,20 @@ const allQueriesFound = refetch.flatMap(key => queryClient.getQueriesData({ quer
 and now we loop them, and do the same thing as before
 
 ```ts
+const allQueriesFound = refetch.flatMap(key => queryClient.getQueriesData({ queryKey: key, exact: false }));
+
 allQueriesFound.forEach(query => {
   const key = query[0];
 
   const entry = cache.find({ queryKey: key, exact: true });
   const revalidatePayload: any = entry?.options?.meta?.__revalidate ?? null;
 
-  if (refetch.some(refetchKey => partialMatchKey(key, refetchKey))) {
-    if (revalidatePayload) {
-      revalidate.refetch.push({
-        key,
-        fn: revalidatePayload.serverFn,
-        arg: revalidatePayload.arg,
-      });
-    }
+  if (revalidatePayload) {
+    revalidate.refetch.push({
+      key,
+      fn: revalidatePayload.serverFn,
+      arg: revalidatePayload.arg,
+    });
   }
 });
 ```
@@ -470,16 +470,14 @@ const invalidate: any[] = [];
 Make this change
 
 ```ts
-if (refetch.some(refetchKey => partialMatchKey(key, refetchKey))) {
-  if (isActive && revalidatePayload) {
-    revalidate.refetch.push({
-      key,
-      fn: revalidatePayload.serverFn,
-      arg: revalidatePayload.arg,
-    });
-  } else {
-    invalidate.push(key);
-  }
+if (isActive && revalidatePayload) {
+  revalidate.refetch.push({
+    key,
+    fn: revalidatePayload.serverFn,
+    arg: revalidatePayload.arg,
+  });
+} else {
+  invalidate.push(key);
 }
 ```
 
@@ -601,7 +599,7 @@ And this works perfectly. If we browse up to pages 2 and 3, and then back to pag
 
 ## Icing on the cake
 
-Remember when we added the server function, and arg thereto to our query options?
+Remember when we added the server function, and arg it takes to our query options?
 
 ```ts
 export const epicsQueryOptions = (page: number) => {
