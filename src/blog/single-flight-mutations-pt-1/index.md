@@ -34,7 +34,7 @@ Those scripts and styles still have to load for your page to be interactive, but
 
 Let's think about how you'd normally update a piece of data in a web application. You probably make a network request to some sort of `/update` endpoint, along with a post packet for whatever you're trying to change. The endpoint will probably return a success flag, possibly with the actual piece of data you just updated. Your UI will usually then request updated data. You might think that returning the updated piece of data you just changed is all you'd need in order to update the UI, but frequently that's not the case.
 
-Imagine you're looking at a list of todo tasks, and you just edited one of them. Just updating the item on the screen isn't good enough; maybe the edit causes this TODO to no longer even be in this list, depending on your filters. Or perhaps your edit causes this TODO to be in a different location, based on your sort order. Or maybe you just _created_ a _brand new_ todo. In that case, who knows where, or even _if_ this todo will show up in your list, again based on your filters or sorts.
+Imagine you're looking at a list of todo tasks, and you just edited one of them. Just updating the item on the screen isn't good enough; maybe the edit causes this TODO to no longer even be in this list, depending on your filters. Or perhaps your edit causes this TODO to be in a different location, based on your sort order. Or maybe you just _created_ a _brand new_ todo. In that case, who knows where, or even _if_ this todo will show up in your list, again based on your filters and sorts.
 
 So we re-fetch whatever query produces our list. It usually looks like this
 
@@ -44,7 +44,7 @@ This works, and if we're honest with ourselves, it's usually good enough. But ca
 
 ![SPA](/single-flight-mutations/img4.png)
 
-The rest of this post, and then part 2 will discuss increasingly flexible ways of accomplishing this.
+We'll implement a dead simple solution to this here in part 1, and then part 2 will discuss increasingly flexible ways of accomplishing it with middleware.
 
 ## Our app
 
@@ -52,11 +52,11 @@ As with prior posts about TanStack Start and Router, this post will use our chea
 
 ![SPA](/single-flight-mutations/img5.png)
 
-As you can see, zero effort was put into the design. But there's a few sources of data on the screen, which will help us implement single flight mutations: the main list of epics; count of all epics (12) just above the list; and above that we have a summary list of epics, with the numbers of tasks therein.
+As you can see, zero effort was put into the design. But there's a few sources of data on the screen, which will help us implement single flight mutations: the main list of epics; the count of all epics (12) just above the list; and above that we have a summary list of epics, with the numbers of tasks therein.
 
 This is the page we'll be focusing on for this post. If you're following along at home, you can run the app with `npm run dev` and then visit [http://localhost:3000/app/epics](http://localhost:3000/app/epics).
 
-Our queries, for things like our list of epics and our summary data are driven by react-query. I've put the query options into a helper utilities, like so
+Our queries for e.g. our list of epics and our summary data are driven by react-query. I've put the query options into a helper utilities, like so
 
 ```ts
 export const epicsQueryOptions = (page: number) => {
@@ -91,7 +91,7 @@ and also prefetch these queries in TanStack loaders
 
 without duplicating code.
 
-As you can see, this query (and all our other queries) are just straight calls to a single server function, with the result passed through. This is a key detail that will come in handy in part 2.
+As you can see, this query (and all our other queries) are just straight calls to a single server function (`getEpicsList` in this case), with the result passed through. This is a key detail that will come in handy in part 2.
 
 ## Simplest possible single flight mutation
 
@@ -99,7 +99,7 @@ Let's implement a dirt simple single flight mutation, and then iterate on it, to
 
 ![inline editing](/single-flight-mutations/img6.png)
 
-When we hit save, let's just refetch the list of epics, as well as the epics summary data inside the edit epic server function, and send those new data down to the client, so the client can update the UI. Let's do it!
+When we hit save, let's just refetch the list of epics, as well as the epics summary data inside the edit epic server function, and send those new data down to the client, so the client can update the UI.
 
 Here's the entire server function
 
@@ -116,11 +116,11 @@ export const updateWithSimpleRefetch = createServerFn({ method: "POST" })
   });
 ```
 
-We save our epic, and then just fetch the updated data, from the `getEpicsList`, and `getEpicsSummary` server functions, which we call in parallel with `Promise.all` (a production-ready application would likely have some error handling...)
+We save our epic, and then just fetch the updated data from the `getEpicsList`, and `getEpicsSummary` server functions, which we call in parallel with `Promise.all` (a production-ready application would likely have some error handling...)
 
 Now when we call our server function, the data for those queries will be attached to the result. In fact, since we're using server functions, these things will even be statically typed!
 
-![Payloads returned](/single-flight-mutations/img6.png)
+![Payloads returned](/single-flight-mutations/img7.png)
 
 ### Updating the UI
 
@@ -160,10 +160,6 @@ queryClient.setQueryData(epicsSummaryQueryOptions().queryKey, result.epicsSummar
 
 Our solution works, but it's fragile; it's probably not ideal. Our server function just hard codes which data to fetch. What if our update function were to be called from different parts of the UI, which each needed different slices of data to be refetched? We certainly don't want to redefine our server function N times, for each place it needs to be called.
 
-Fortunately TanStack has the perfect feature to help reduce this coupling: Middleware. We can remove the refetching from the server function, and move it to a reusable middleware, that can be attached to server function
+Fortunately TanStack has the perfect feature to help reduce this coupling: Middleware. We can remove the refetching from the server function, and move it to a reusable middleware which can be attached to server functions.
 
 Tune in to part 2 where we'll dive into all of this.
-
-## Concluding thoughts
-
-Stay tuned for part 2 where we'll build middleware to handle all of this in a flexible, scalable manner.
