@@ -636,7 +636,7 @@ I briefly noted that it was a bit gross to duplicate the server function and arg
 Let's start with the simplest possible helper to remove this duplication, and as before, iterate on it.
 
 ```ts
-export function revalidatedQueryOptions(queryKey: QueryKey, serverFn: any, arg?: any) {
+export function refetchedQueryOptions(queryKey: QueryKey, serverFn: any, arg?: any) {
   const queryKeyToUse = [...queryKey];
   if (arg != null) {
     queryKeyToUse.push(arg);
@@ -658,8 +658,170 @@ export function revalidatedQueryOptions(queryKey: QueryKey, serverFn: any, arg?:
 
 It's just a simple helper that takes in your query key, server function, and returns back some of our query options: our queryKey (to which we add whatever argument we need for the server function), the queryFn which calls the server function, and then our meta object.
 
+And now our epics list query looks like this
+
+```ts
+export const epicsQueryOptions = (page: number) => {
+  return queryOptions({
+    ...refetchedQueryOptions(["epics", "list"], getEpicsList, page),
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 5,
+  });
+};
+```
+
+This works, but it's not great. We have `any`'s everywhere. This means that the argument we pass to our server function is never type checked. Even worse, the return value of our queryFn is not type checked, which means our queries (like this very epics list query) now return `any`.
+
+Let's add some typings. Server functions are just functions. They take a single object argument, and if the server function has defined an input, that that argument will have a data property for that argument. That's a lot of words to say what we already know. When we call a server function, we pass our argument like this
+
+```ts
+const result = await runSaveSimple({
+  data: {
+    id: epic.id,
+    name: newValue,
+  },
+});
+```
+
+How's this for a second draft
+
+```ts
+export function refetchedQueryOptions<T extends (arg: { data: any }) => Promise<any>>(
+  queryKey: QueryKey,
+  serverFn: T,
+  arg: Parameters<T>[0]["data"],
+) {
+  const queryKeyToUse = [...queryKey];
+  if (arg != null) {
+    queryKeyToUse.push(arg);
+  }
+  return queryOptions({
+    queryKey: queryKeyToUse,
+    queryFn: async (): Promise<Awaited<ReturnType<T>>> => {
+      return serverFn({ data: arg });
+    },
+    meta: {
+      __revalidate: {
+        serverFn,
+        arg,
+      },
+    },
+  });
+}
+```
+
+We've constrained our server function to an async function which takes a `data` prop on its object arg, and we've used that to statically type the argument. This is good, but we get an error when we use this on server functions which have no arguments
+
+```ts
+...refetchedQueryOptions(["epics", "list", "summary"], getEpicsSummary)
+// Expected 3 arguments, but got 2.
+```
+
+Adding an `undefined` does fix this, and everything works.
+
+```ts
+...refetchedQueryOptions(["epics", "list", "summary"], getEpicsSummary, undefined),
+```
+
+If you're normal, you're probably happy with that. And you should be. But if you're weird like me, you might wonder if you ca't make it perfect. Ideally it would be cool if we could pass a statically typed argument when using a server function that takes an input, and we want to pass nothing when we're using a server function that has no input.
+
+TypeScript has a feature exactly for this: overloaded functions.
+
+This post is already far too long, so I'll post the code, and leave deciphering it as an exercise for the reader (or a future blog post)
+
+```ts
+import { QueryKey, queryOptions } from "@tanstack/react-query";
+
+type AnyAsyncFn = (...args: any[]) => Promise<any>;
+
+type ServerFnArgs<TFn extends AnyAsyncFn> = Parameters<TFn>[0] extends infer TRootArgs
+  ? TRootArgs extends { data: infer TResult }
+    ? TResult
+    : undefined
+  : never;
+
+type ServerFnHasArgs<TFn extends AnyAsyncFn> = ServerFnArgs<TFn> extends infer U ? (U extends undefined ? false : true) : false;
+
+type ServerFnWithArgs<TFn extends AnyAsyncFn> = ServerFnHasArgs<TFn> extends true ? TFn : never;
+type ServerFnWithoutArgs<TFn extends AnyAsyncFn> = ServerFnHasArgs<TFn> extends false ? TFn : never;
+
+type RefetchQueryOptions<T> = {
+  queryKey: QueryKey;
+  queryFn?: (_: any) => Promise<T>;
+  meta?: any;
+};
+
+type ValidateServerFunction<Provided, Expected> = Provided extends Expected ? Provided : "This server function requires an argument!";
+
+export function refetchedQueryOptions<TFn extends AnyAsyncFn>(
+  queryKey: QueryKey,
+  serverFn: ServerFnWithArgs<TFn>,
+  arg: Parameters<TFn>[0]["data"],
+): RefetchQueryOptions<Awaited<ReturnType<TFn>>>;
+export function refetchedQueryOptions<TFn extends AnyAsyncFn>(
+  queryKey: QueryKey,
+  serverFn: ValidateServerFunction<TFn, ServerFnWithoutArgs<TFn>>,
+): RefetchQueryOptions<Awaited<ReturnType<TFn>>>;
+export function refetchedQueryOptions<TFn extends (arg: { data: any }) => Promise<any>>(
+  queryKey: QueryKey,
+  serverFn: ServerFnWithoutArgs<TFn> | ServerFnWithArgs<TFn>,
+  arg?: Parameters<TFn>[0]["data"],
+): RefetchQueryOptions<Awaited<ReturnType<TFn>>> {
+  const queryKeyToUse = [...queryKey];
+  if (arg != null) {
+    queryKeyToUse.push(arg);
+  }
+  return queryOptions({
+    queryKey: queryKeyToUse,
+    queryFn: async () => {
+      return serverFn({ data: arg });
+    },
+    meta: {
+      __revalidate: {
+        serverFn,
+        arg,
+      },
+    },
+  });
+}
+```
+
+With this in place we can now call it with server functions that take an argument
+
+```ts
+export const epicsQueryOptions = (page: number) => {
+  return queryOptions({
+    ...refetchedQueryOptions(["epics", "list"], getEpicsList, page),
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 5,
+  });
+};
+```
+
+And the parameter is checked. It errors with the wrong argument
+
+```ts
+...refetchedQueryOptions(["epics", "list"], getEpicsList, "")
+// Argument of type 'string' is not assignable to parameter of type 'number'.
+```
+
+And it errors if you pass no argument
+
+```ts
+...refetchedQueryOptions(["epics", "list"], getEpicsList)
+// Argument of type 'RequiredFetcher<undefined, (page: number) => number, Promise<{ id: number; name: string; }[]>>' is not assignable to parameter of type '"This server function requires an argument!"'.
+```
+
+That last error isn't the clearest, but if you read to the end you get a pretty solid hint as to what's wrong, thanks to this dandy little helper
+
+```ts
+type ValidateServerFunction<Provided, Expected> = Provided extends Expected ? Provided : "This server function requires an argument!";
+```
+
+Again, a full explanation of this TypeScript will have to wait for a future post.
+
 ## Concluding thoughts
 
-Single flight mutations are a great tool for speeding up
+Single flight mutations are a great tool for speeding up updates within your web app. Hopefully this post has shown you the tools needed to put this together.
 
 Happy Coding!

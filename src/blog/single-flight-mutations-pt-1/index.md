@@ -166,6 +166,4 @@ Tune in to part 2 where we'll dive into all of this.
 
 ## Concluding thoughts
 
-Single flight mutations are a great tool for speeding up
-
-Happy Coding!
+Stay tuned for part 2 where we'll build middleware to handle all of this in a flexible, scalable manner.
