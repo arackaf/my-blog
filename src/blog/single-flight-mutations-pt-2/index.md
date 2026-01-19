@@ -4,9 +4,9 @@ date: "2026-01-09T10:00:00.000Z"
 description: Implementing single-flight mutations using TanStack Start, and Query.
 ---
 
-In part 1 of this post we talked about how single flight mutations allow you to update data, and also re-fetch updated payloads for the UI in just 1 roundtrip across the network. We implemented a trivial solution for this, which is to say that we threw caution and coupling to the wind, and just re-fetched some data in the server function we had for updating data. This worked fine, but it was hardly scalable, or flexible.
+In part 1 of this post we talked about how single flight mutations allow you to update something, and re-fetch updated data for the UI in just 1 roundtrip across the network. We implemented a trivial solution for this, which is to say that we threw caution (and coupling) to the wind and just re-fetched what we needed in the server function we had for updating data. This worked fine, but it was hardly scalable, or flexible.
 
-In this post we'll accomplish the same thing in a much better way. We'll define some refetching middleware that we can simply attach to any server function we want. The middleware will allow us to specify, via react-query keys, which data we want re-fetched, and it'll handle everything from there.
+In this post we'll accomplish the same thing, but in a much better way. We'll define some refetching middleware that we can attach to any server function. The middleware will allow us to specify, via react-query keys, which data we want re-fetched, and it'll handle everything from there.
 
 We'll start simple, and keep on adding features and flexibility. Things will get a bit complex by the end, but please don't think you need to use everything we'll talk about. In fact, for the vast majority of apps, single flight mutations probably won't matter at all. And don't be fooled: simply re-fetching some data in a server function might be good enough for a lot of smaller apps as well.
 
@@ -14,7 +14,7 @@ But in going through all of this we'll get to see some really cool TanStack, and
 
 ## Our first middleware
 
-TanStack Query already has a wonderful system of hierarchical keys. Wouldn't it be great if we could just have our middleware receive the query keys of what we want to refetch, and have it just ... work? Have the middleware figure out _what_ to refetch does seem tricky, at first. Sure, our queries have all been simple calls (by design) to server functions. But we can't pass a server function reference up to the server; functions are not serializable. How could they be? You can send strings and numbers (and booleans) across the wire, serialized as json, but sending a function (which can have with state, close over context, etc) makes no sense.
+TanStack Query already has a wonderful system of hierarchical keys. Wouldn't it be great if we could just have our middleware receive the query keys of what we want to refetch, and have it just ... work? Have the middleware figure out _how_ to refetch does seem tricky, at first. Sure, our queries have all been simple calls (by design) to server functions. But we can't pass a server function reference up to the server; functions are not serializable. How could they be? You can send strings and numbers (and booleans) across the wire, serialized as json, but sending a function (which can have with state, close over context, etc) makes no sense.
 
 _Unless_ they're TanStack Start server functions, that is. It turns out the incredible engineers behind this project customized their serialization engine to support server functions. To be clear, you can send a server function to the server, from the client, and it will work fine (under the cover server functions have an internal id; TanStack picks this up, sends the id, and then de-serializes the id on the other end).
 
@@ -78,7 +78,7 @@ export const refetchMiddleware = createMiddleware({ type: "function" })
 
 We define an input to the middleware. This middleware input will automatically get _merged_ with whatever input is defined on whatever server function this middleware winds up attached to.
 
-We define our input as optional (`config?`) since it's entirely possible we might want to call our server function and simply not refetch anything.
+We define our input as optional (`config?`) since it's entirely possible we might want to sometimes call our server function and simply not refetch anything.
 
 Now we start our client callback. This runs directly in our browser. We pull the array of query keys we want refetched.
 
@@ -127,7 +127,7 @@ This check
 if (!entry) return;
 ```
 
-protects us from refetches being requested for queries that don't exist. If that happens, just skip to the next one. We have no way to refetch it if we don't have the serverFn.
+protects us from refetches being requested for queries that don't exist in cache—ie, if they've never been fetched in the UI. If that happens, just skip to the next one. We have no way to refetch it if we don't have the serverFn.
 
 Naturally you could expand the input to this middleware and send up a different payload of query keys, along with the actual refetching payload (including server function and arg) for queries you absolutely want run, even if they haven't yet been requested. Perhaps you're planning on redirecting after the mutation, and you want that new page's data prefetched. We won't implement that here, but it's just a variation on this same theme. These pieces are all very composable, so build whatever you happen to need!
 
@@ -159,7 +159,7 @@ const result = await next({
 });
 ```
 
-The `result` payload is what comes back from this invocation. The server callback will have sent back a payloads array, with entries containing a key (the query key), and result (the actual data). We'll loop it, and update the query data accordingly
+The `result` payload is what comes back from the server function invocation. The server callback will have sent back a payloads array, with entries containing a key (the query key), and result (the actual data). We'll loop it, and update the query data accordingly
 
 We'll fix the TS error covered up with // @ts-expect-error momentarily.
 
