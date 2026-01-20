@@ -166,7 +166,7 @@ We'll fix the TS error covered up with // @ts-expect-error momentarily.
 ```ts
 // @ts-expect-error
 for (const entry of result.context?.payloads ?? []) {
-  queryClient.setQueryData(entry.key, entry.result, { updatedAt: Date.now() });
+  queryClient.setQueryData(entry.key, entry.result);
 }
 
 return result;
@@ -244,7 +244,7 @@ export const refetchMiddleware = createMiddleware({ type: "function" })
 
     // @ts-expect-error
     for (const entry of result.context?.payloads ?? []) {
-      queryClient.setQueryData(entry.key, entry.result, { updatedAt: Date.now() });
+      queryClient.setQueryData(entry.key, entry.result);
     }
 
     return result;
@@ -332,7 +332,7 @@ export const refetchMiddleware = createMiddleware({ type: "function" })
 
     // and here's those last few lines we removed from above
     for (const entry of result.context?.payloads ?? []) {
-      queryClient.setQueryData(entry.key, entry.result, { updatedAt: Date.now() });
+      queryClient.setQueryData(entry.key, entry.result);
     }
 
     return result;
