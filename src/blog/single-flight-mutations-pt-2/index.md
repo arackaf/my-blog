@@ -407,15 +407,12 @@ and now we loop them, and do the same thing as before
 ```ts
 const allQueriesFound = refetch.flatMap(key => cache.findAll({ queryKey: key, exact: false }));
 
-allQueriesFound.forEach(query => {
-  const key = query[0];
-
-  const entry = cache.find({ queryKey: key, exact: true });
-  const revalidatePayload: any = entry?.options?.meta?.__revalidate ?? null;
+allQueriesFound.forEach(entry => {
+  const revalidatePayload: any = entry?.meta?.__revalidate ?? null;
 
   if (revalidatePayload) {
     revalidate.refetch.push({
-      key,
+      key: entry.queryKey,
       fn: revalidatePayload.serverFn,
       arg: revalidatePayload.arg,
     });
@@ -461,11 +458,11 @@ We'll just add this to the client callback of the middleware we feed into
 
 ```ts
 data?.refetch.forEach(key => {
-  queryClient.invalidateQueries({ queryKey: key, exact: false, type: "inactive" });
+  queryClient.invalidateQueries({ queryKey: key, exact: false, type: "inactive", refetchType: "none" });
 });
 ```
 
-Just loop the query keys we passed in, and invalidate any of the inactive queries (the active ones have already been refetched).
+Just loop the query keys we passed in, and invalidate any of the inactive queries (the active ones have already been refetched), but without refetching them.
 
 Here's our entire, updated middleware
 
@@ -542,9 +539,6 @@ export const refetchMiddleware = createMiddleware({ type: "function" })
     data?.refetch.forEach(key => {
       queryClient.invalidateQueries({ queryKey: key, exact: false, type: "inactive", refetchType: "none" });
     });
-
-    // give our react-query cache a chance to update
-    await new Promise(resolve => setTimeout(resolve, 1));
 
     return result;
   });
