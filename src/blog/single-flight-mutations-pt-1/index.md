@@ -10,7 +10,7 @@ The beautiful thing about implementing this with TanStack is that we can leverag
 
 If you're not familiar with these tools, TanStack Router is a client-only SPA framework, about which I wrote a three-part introduction [here](https://frontendmasters.com/blog/introducing-tanstack-router/). TanStack Start is a server layer for Router that enables things like SSR, api routes and server functions; I wrote an introduction for it [here](https://frontendmasters.com/blog/introducing-tanstack-start/), as well as a post on the middleware feature [here](https://frontendmasters.com/blog/introducing-tanstack-start-middleware/).
 
-I've never written about TanStack Query, but it's one of the most widely used React libraries, and there are tons of resources about it.
+I've never written about TanStack Query, but it's one of the most widely used React libraries, and there are tons of resources about it. One of the best would be [TkDodo's blog](https://tkdodo.eu/blog/all). He's the lead maintainer of TanStack Query, and his blog is superb.
 
 Here in part 1 we'll cover some fundamentals, and then implement the simplest imaginable single flight mutation with a TanStack Start Server Function. Then in part 2 we'll dive deep into middleware, and implement a more serious solution, while having some fun with TypeScript in the process.
 

@@ -109,7 +109,7 @@ refetch.forEach((key: QueryKey) => {
   const entry = cache.find({ queryKey: key, exact: true });
   if (!entry) return;
 
-  const revalidatePayload: any = entry?.options?.meta?.__revalidate ?? null;
+  const revalidatePayload: any = entry?.meta?.__revalidate ?? null;
 
   if (revalidatePayload) {
     revalidate.refetch.push({
@@ -134,7 +134,7 @@ Naturally you could expand the input to this middleware and send up a different 
 And then this code grabs that meta object, and puts the properties onto the payload we'll send to the server.
 
 ```ts
-const revalidatePayload: any = entry?.options?.meta?.__revalidate ?? null;
+const revalidatePayload: any = entry?.meta?.__revalidate ?? null;
 
 if (revalidatePayload) {
   revalidate.refetch.push({
@@ -225,7 +225,7 @@ export const refetchMiddleware = createMiddleware({ type: "function" })
       const entry = cache.find({ queryKey: key, exact: true });
       if (!entry) return;
 
-      const revalidatePayload: any = entry?.options?.meta?.__revalidate ?? null;
+      const revalidatePayload: any = entry?.meta?.__revalidate ?? null;
 
       if (revalidatePayload) {
         revalidate.refetch.push({
@@ -396,16 +396,16 @@ to refetch _any_ queries whose key _starts with_ `["epics", "list"]`. Can we do 
 
 Let's do it!
 
-Getting the matching keys will be _slightly_ more complicated. Each key we pass up will potentially be a key prefix, matching multiple entries, so we'll use flatMap to find all matches
+Getting the matching keys will be _slightly_ more complicated. Each key we pass up will potentially be a key prefix, matching multiple entries, so we'll use flatMap to find all matches, and use the nifty `cache.findAll` method.
 
 ```ts
-const allQueriesFound = refetch.flatMap(key => queryClient.getQueriesData({ queryKey: key, exact: false }));
+const allQueriesFound = refetch.flatMap(key => cache.findAll({ queryKey: key, exact: false }));
 ```
 
 and now we loop them, and do the same thing as before
 
 ```ts
-const allQueriesFound = refetch.flatMap(key => queryClient.getQueriesData({ queryKey: key, exact: false }));
+const allQueriesFound = refetch.flatMap(key => cache.findAll({ queryKey: key, exact: false }));
 
 allQueriesFound.forEach(query => {
   const key = query[0];
@@ -429,27 +429,23 @@ And this works!
 
 Our solution still isn't ideal. What if we page around in our epics page (up to page 2, up to page 3, then back down). Our solution will find page 1, and our summary query, but also pages 2 and 3, since they're now in cache. But pages 2 and 3 aren't really active, and we shouldn't refetch them, since they're not even being displayed.
 
-Let's change our code to only refetch active queries. Detecting whether a query entry is actually active is as simple as
+Let's change our code to only refetch active queries. Detecting whether a query entry is actually active is as simple as adding the `type` argument to `findAll`
 
 ```ts
-const isActive = !!entry?.observers?.length;
+cache.findAll({ queryKey: key, exact: false, type: "active" });
 ```
 
 so our code now looks like this
 
 ```ts
-const allQueriesFound = refetch.flatMap(key => queryClient.getQueriesData({ queryKey: key, exact: false }));
+const allQueriesFound = refetch.flatMap(key => cache.findAll({ queryKey: key, exact: false, type: "active" }));
 
-allQueriesFound.forEach(query => {
-  const key = query[0];
+allQueriesFound.forEach(entry => {
+  const revalidatePayload: any = entry?.meta?.__revalidate ?? null;
 
-  const entry = cache.find({ queryKey: key, exact: true });
-  const isActive = !!entry?.observers?.length;
-  const revalidatePayload: any = entry?.options?.meta?.__revalidate ?? null;
-
-  if (isActive && revalidatePayload) {
+  if (revalidatePayload) {
     revalidate.refetch.push({
-      key,
+      key: entry.queryKey,
       fn: revalidatePayload.serverFn,
       arg: revalidatePayload.arg,
     });
@@ -461,50 +457,15 @@ allQueriesFound.forEach(query => {
 
 This works. But when you think about it, those other, inactive queries should probably be invalidated. We don't want to waste resources refetching them immediately, since they're not being used, but if the user were to browse back to those pages, we probably want the data refetched. react-query makes that easy, with the `invalidateQueries` method.
 
-We'll declare an `invalidate` array
+We'll just add this to the client callback of the middleware we feed into
 
 ```ts
-const invalidate: any[] = [];
-```
-
-Make this change
-
-```ts
-if (isActive && revalidatePayload) {
-  revalidate.refetch.push({
-    key,
-    fn: revalidatePayload.serverFn,
-    arg: revalidatePayload.arg,
-  });
-} else {
-  invalidate.push(key);
-}
-```
-
-and now we make this change to our call to `next`
-
-```ts
-return await next({
-  sendContext: {
-    revalidate,
-  },
-  context: {
-    invalidate,
-  },
+data?.refetch.forEach(key => {
+  queryClient.invalidateQueries({ queryKey: key, exact: false, type: "inactive" });
 });
 ```
 
-That `invalidate` array will be used on the _client_, not the _server_, since it'll be used with the queryClient object that's living in your browser, with access to query state for data you're currently looking at.
-
-We use `sendContext` to _send_ context from the client to the server, or vice versa. To just add data to context that the next middleware will see, in client to client, or server to server callbacks, we just use `context`.
-
-And then we add this to the client callback of the middleware we feed into
-
-```ts
-for (const entry of result.context?.invalidate ?? []) {
-  queryClient.invalidateQueries({ queryKey: entry, exact: true });
-}
-```
+Just loop the query keys we passed in, and invalidate any of the inactive queries (the active ones have already been refetched).
 
 Here's our entire, updated middleware
 
@@ -521,34 +482,24 @@ const prelimRefetchMiddleware = createMiddleware({ type: "function" })
     const revalidate: RevalidationPayload = {
       refetch: [],
     };
-    const invalidate: any[] = [];
 
-    const allQueriesFound = refetch.flatMap(key => queryClient.getQueriesData({ queryKey: key, exact: false }));
+    const allQueriesFound = refetch.flatMap(key => cache.findAll({ queryKey: key, exact: false, type: "active" }));
 
-    allQueriesFound.forEach(query => {
-      const key = query[0];
+    allQueriesFound.forEach(entry => {
+      const revalidatePayload: any = entry?.meta?.__revalidate ?? null;
 
-      const entry = cache.find({ queryKey: key, exact: true });
-      const isActive = !!entry?.observers?.length;
-      const revalidatePayload: any = entry?.options?.meta?.__revalidate ?? null;
-
-      if (isActive && revalidatePayload) {
+      if (revalidatePayload) {
         revalidate.refetch.push({
-          key,
+          key: entry.queryKey,
           fn: revalidatePayload.serverFn,
           arg: revalidatePayload.arg,
         });
-      } else {
-        invalidate.push(key);
       }
     });
 
     return await next({
       sendContext: {
         revalidate,
-      },
-      context: {
-        invalidate,
       },
     });
   })
@@ -578,7 +529,7 @@ const prelimRefetchMiddleware = createMiddleware({ type: "function" })
 
 export const refetchMiddleware = createMiddleware({ type: "function" })
   .middleware([prelimRefetchMiddleware])
-  .client(async ({ next }) => {
+  .client(async ({ data, next }) => {
     const result = await next();
 
     const router = await getRouterInstance();
@@ -587,19 +538,25 @@ export const refetchMiddleware = createMiddleware({ type: "function" })
     for (const entry of result.context?.payloads ?? []) {
       queryClient.setQueryData(entry.key, entry.result, { updatedAt: Date.now() });
     }
-    for (const entry of result.context?.invalidate ?? []) {
-      queryClient.invalidateQueries({ queryKey: entry, exact: true });
-    }
+
+    data?.refetch.forEach(key => {
+      queryClient.invalidateQueries({ queryKey: key, exact: false, type: "inactive", refetchType: "none" });
+    });
+
+    // give our react-query cache a chance to update
+    await new Promise(resolve => setTimeout(resolve, 1));
 
     return result;
   });
 ```
 
+We tell TanStack Query to invalidate (but not refetch) any inactive queries matching our key.
+
 And this works perfectly. If we browse up to pages 2 and 3, and then back to page 1, then edit a todo, we do in fact see our list, and summary list update, and then if we page back to page 2, and 3, we'll see network requests fire to get fresh data.
 
 ## Icing on the cake
 
-Remember when we added the server function, and arg it takes to our query options?
+Remember when we added the server function, and the arg it takes to our query options?
 
 ```ts
 export const epicsQueryOptions = (page: number) => {
@@ -621,7 +578,7 @@ export const epicsQueryOptions = (page: number) => {
 };
 ```
 
-I briefly noted that it was a bit gross to duplicate the server function and arg in both our meta object, and our queryFn. Let's fix this.
+I briefly noted that it was a bit gross to duplicate the server function, and arg in both our `meta` object, and our `queryFn`. Let's fix this.
 
 Let's start with the simplest possible helper to remove this duplication, and as before, iterate on it.
 
