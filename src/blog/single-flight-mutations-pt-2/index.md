@@ -4,9 +4,9 @@ date: "2026-01-09T10:00:00.000Z"
 description: Implementing single-flight mutations using TanStack Start, and Query.
 ---
 
-In part 1 of this post we talked about how single flight mutations allow you to update something, and re-fetch updated data for the UI in just 1 roundtrip across the network. We implemented a trivial solution for this, which is to say that we threw caution (and coupling) to the wind and just re-fetched what we needed in the server function we had for updating data. This worked fine, but it was hardly scalable, or flexible.
+In part 1 of this post we talked about how single flight mutations allow you to update something, and re-fetch updated data for the UI, all in just 1 roundtrip across the network. We implemented a trivial solution for this, which is to say that we threw caution (and coupling) to the wind and just re-fetched what we needed in the server function we had for updating data. This worked fine, but it was hardly scalable, or flexible.
 
-In this post we'll accomplish the same thing, but in a much better way. We'll define some refetching middleware that we can attach to any server function. The middleware will allow us to specify, via react-query keys, which data we want re-fetched, and it'll handle everything from there.
+In this post we'll accomplish the same thing, but in a much more flexible way. We'll define some refetching middleware that we can attach to any server function. The middleware will allow us to specify, via react-query keys, which data we want re-fetched, and it'll handle everything from there.
 
 We'll start simple, and keep on adding features and flexibility. Things will get a bit complex by the end, but please don't think you need to use everything we'll talk about. In fact, for the vast majority of apps, single flight mutations probably won't matter at all. And don't be fooled: simply re-fetching some data in a server function might be good enough for a lot of smaller apps as well.
 
@@ -131,7 +131,7 @@ protects us from refetches being requested for queries that don't exist in cache
 
 Naturally you could expand the input to this middleware and send up a different payload of query keys, along with the actual refetching payload (including server function and arg) for queries you absolutely want run, even if they haven't yet been requested. Perhaps you're planning on redirecting after the mutation, and you want that new page's data prefetched. We won't implement that here, but it's just a variation on this same theme. These pieces are all very composable, so build whatever you happen to need!
 
-And then this code grabs that meta object, and puts the properties onto the payload we'll send to the server.
+This code then grabs the meta object, and puts the properties onto the payload we'll send to the server.
 
 ```ts
 const revalidatePayload: any = entry?.meta?.__revalidate ?? null;
@@ -149,7 +149,7 @@ NOTE:
 
 Try not to let the various `any`'s bother you; I'm omitting some type definitions that would have been straightforward to define, in order to help prevent this long post from getting even longer.
 
-calling `next` triggers the actual invocation of the server function (and any other middlewares in the chain). The `sendContext` arg allows us to send data _from_ the client, _up to_ the server. And naturally the server is allowed to call `next` with a `sendContext` payload that sends data back to the client.
+Calling `next` triggers the actual invocation of the server function (and any other middlewares in the chain). The `sendContext` arg allows us to send data _from_ the client, _up to_ the server. And naturally the server is allowed to call `next` with a `sendContext` payload that sends data back to the client.
 
 ```ts
 const result = await next({
@@ -159,7 +159,7 @@ const result = await next({
 });
 ```
 
-The `result` payload is what comes back from the server function invocation. The server callback will have sent back a payloads array, with entries containing a key (the query key), and result (the actual data). We'll loop it, and update the query data accordingly
+The `result` payload is what comes back from the server function invocation. The context object on it will have a payloads array, returned from the .server callback just below, with entries containing a key (the query key), and result (the actual data). We'll loop it, and update the query data accordingly.
 
 We'll fix the TS error covered up with // @ts-expect-error momentarily.
 
@@ -355,7 +355,7 @@ export const updateEpic = createServerFn({ method: "POST" })
   });
 ```
 
-now we set it up to call from our component with the `useServerFn` hook, which handles things like errors and redirects automatically
+now we set it up to call from our React component with the `useServerFn` hook, which handles things like errors and redirects automatically
 
 ```ts
 const runSave = useServerFn(updateEpic);
@@ -452,7 +452,7 @@ allQueriesFound.forEach(entry => {
 
 ## Even deeper
 
-This works. But when you think about it, those other, inactive queries should probably be invalidated. We don't want to waste resources refetching them immediately, since they're not being used, but if the user were to browse back to those pages, we probably want the data refetched. react-query makes that easy, with the `invalidateQueries` method.
+This works. But when you think about it, those other, inactive queries should probably be invalidated. We don't want to waste resources refetching them immediately, since they're not being used; but if the user were to browse back to those pages, we probably want the data refetched. react-query makes that easy, via the `invalidateQueries` method.
 
 We'll just add this to the client callback of the middleware we feed into
 
@@ -546,7 +546,7 @@ export const refetchMiddleware = createMiddleware({ type: "function" })
 
 We tell TanStack Query to invalidate (but not refetch) any inactive queries matching our key.
 
-And this works perfectly. If we browse up to pages 2 and 3, and then back to page 1, then edit a todo, we do in fact see our list, and summary list update, and then if we page back to page 2, and 3, we'll see network requests fire to get fresh data.
+And this works perfectly. If we browse up to pages 2 and 3, and then back to page 1, then edit a todo, we do in fact see our list, and summary list update. If we then page back to page 2, and 3, we'll see network requests fire to get fresh data.
 
 ## Icing on the cake
 
@@ -597,9 +597,9 @@ export function refetchedQueryOptions(queryKey: QueryKey, serverFn: any, arg?: a
 }
 ```
 
-It's just a simple helper that takes in your query key, server function, and returns back some of our query options: our queryKey (to which we add whatever argument we need for the server function), the queryFn which calls the server function, and then our meta object.
+It's just a simple helper that takes in your query key, server function and arg, and returns back some of our query options: our queryKey (to which we add whatever argument we need for the server function), the queryFn which calls the server function, and our meta object.
 
-And now our epics list query looks like this
+Our epics list query now looks like this
 
 ```ts
 export const epicsQueryOptions = (page: number) => {
@@ -611,7 +611,7 @@ export const epicsQueryOptions = (page: number) => {
 };
 ```
 
-This works, but it's not great. We have `any`'s everywhere. This means that the argument we pass to our server function is never type checked. Even worse, the return value of our queryFn is not type checked, which means our queries (like this very epics list query) now return `any`.
+This works, but it's not great. We have `any`'s everywhere, which means the argument we pass to our server function is never type checked. Even worse, the return value of our queryFn is not type checked, which means our queries (like this very epics list query) now return `any`.
 
 Let's add some typings. Server functions are just functions. They take a single object argument, and if the server function has defined an input, then that argument will have a data property for that argument. That's a lot of words to say what we already know. When we call a server function, we pass our argument like this
 
