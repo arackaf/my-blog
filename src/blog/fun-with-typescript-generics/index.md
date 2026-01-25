@@ -456,6 +456,15 @@ From there we can start to ask questions about our types
 type ServerFnHasArgs<TFn extends AnyAsyncFn> = ServerFnArgs<TFn> extends undefined ? false : true;
 ```
 
+And we can then make other type helpers
+
+```ts
+type ServerFnWithArgs<TFn extends AnyAsyncFn> = ServerFnHasArgs<TFn> extends true ? TFn : never;
+type ServerFnWithoutArgs<TFn extends AnyAsyncFn> = ServerFnHasArgs<TFn> extends false ? TFn : never;
+```
+
+We've built some helper types that take a function type in, and tests whether that function has, or does not have server function arguments.
+
 ## Concluding thoughts
 
 In the end, a few lines of webpack config allowed us to easily load global, or scoped css, with optional sass processing in either case. Of course this is only scratching the surface of what's possible. There's no shortage of PostCSS, or other plugins you could toss into the loader list.
