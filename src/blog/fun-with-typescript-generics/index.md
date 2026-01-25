@@ -274,10 +274,155 @@ The rest of this post will get everything typed properly. We'll have to do some 
 
 ## Iteration 1
 
-How's this for a minimal improvement. Right
+How's this for a minimal improvement. Right now, lack of a return type for the server function is absolutely killing us. Any usage of this query data will give use any; we _really_ want our data properly typed in application code.
 
-NOTE:
-As the original post on single flight mutations from which this example noted, it may very well be the case that this much effort to lock down typings for such a simple utility may not be worth it.
+TanStack Server functions are just ... _functions_. They're special in that you can call them from the client or the server, but at the end of the day they're functions. They always take in a single argument that has a `data` property for the standard arguments your function has defined (it also allows you to pass things like headers, but we won't worry about that, here).
+
+Couldn't we add a generic to our function, representing the server function? Once we have a function, we can use TypeScript's built-in `Parameters` and `ReturnType` helpers. Let's see what that looks like
+
+```ts
+export function refetchedQueryOptions<T extends (arg: { data: any }) => Promise<any>>(
+  queryKey: QueryKey,
+  serverFn: T,
+  arg: Parameters<T>[0]["data"],
+) {
+  const queryKeyToUse = [...queryKey];
+  if (arg != null) {
+    queryKeyToUse.push(arg);
+  }
+  return queryOptions({
+    queryKey: queryKeyToUse,
+    queryFn: async (): Promise<Awaited<ReturnType<T>>> => {
+      return serverFn({ data: arg });
+    },
+    meta: {
+      __revalidate: {
+        serverFn,
+        arg,
+      },
+    },
+  });
+}
+```
+
+We constrain our generic to be a function that takes in an arg with a data property. Moreover, we can now _use_ our `T` generic in the parameter definition of `arg`, here `arg: Parameters<T>[0]["data"]`. Whatever our function is, we say that `arg` is the same type as the `data` property on the main argument that the function takes in.
+
+How does this look? Let's check our tests
+
+```ts
+refetchedQueryOptions(["test"], serverFnWithArgs, { value: "" });
+refetchedQueryOptions(["test"], serverFnWithoutArgs);
+// Error: Expected 3 arguments, but got 2.
+
+// wrong argument type
+// FAILS - Unused '@ts-expect-error' directive.
+// @ts-expect-error
+refetchedQueryOptions(["test"], serverFnWithArgs, 123);
+
+// need an argument
+// FAILS - Unused '@ts-expect-error' directive.
+// @ts-expect-error
+refetchedQueryOptions(["test"], serverFnWithArgs);
+```
+
+We have one argument. It seems we need to pass an argument for the query options for the query function which ... doesn't take any arguments. It makes sense: `refetchedQueryOptions` does indeed define an `arg` parameter, which needs to be passed. I'll be quick to note that simply passing undefined for that arg
+
+```ts
+refetchedQueryOptions(["test"], serverFnWithoutArgs, undefined);
+```
+
+works perfectly. For the vast, vast majority of apps, this will likely be fine. It's entirely possible the work I'm about to show you to improve on this may not be worth the effort. **But** going through that effort will likely teach us some neat things about TypeScript, and if we're a special kind of strange, may even be fun.
+
+## False prophets
+
+You might think making arg optional would solve all our problem. Unfortunately, when we do that, `arg` becomes optional _everywhere_, including places we want to require it
+
+```ts
+// need an argument
+// FAILS - Unused '@ts-expect-error' directive.
+// @ts-expect-error
+refetchedQueryOptions(["test"], serverFnWithArgs);
+```
+
+If you're an advanced TypeScript user you might think a conditional type is what we need. Detect the inferred arg type (what's in the `data` arg), and if it's not undefined, require it, but if it _is_ undefined, then _don't_ require it. Unfortunately there's not really an easy way to represent "pass nothing" as the result of a conditional type. I've tried, and I was never able to get things fully working. I may have been missing something (feel free to drop a comment if you can figure it out), but even if there's a trick to make it work, there's a much more straightforward, idiomatic solution.
+
+We essentially want different function parameters in different circumstances: we want an arg when the server function we pass in takes an arg, and we want no arg when the server function we pass in takes no arg. Different function api's is usually referred to a function overloading in computer science, and TypeScript does support this.
+
+### Function overloading in TypeScript
+
+As the simplest possible example, imagine you wanted to write an `add` function with two versions: one that takes in two numbers, and adds them; and one that takes in two strings, and concatenates them. Conceptually we want this
+
+```ts
+function add(x: number, y: number): number {
+  return x + y;
+}
+
+function add(x: string, y: string): string {
+  return x + y;
+}
+```
+
+But that's not valid; since JavaScript is a dynamically typed language you can't have more than one function of the same name, in the same scope. _TypeScript_ does how ever allow us to overload functions, but the mechanics are a bit different. Here's how we do this:
+
+```ts
+function add(x: number, y: number): number;
+function add(x: string, y: string): string;
+function add(x: string | number, y: string | number): string | number {
+  if (typeof x === "string" && typeof y === "string") {
+    return x + y;
+  }
+  if (typeof x === "number" && typeof y === "number") {
+    return x + y;
+  }
+  throw new Error("Invalid arguments");
+}
+```
+
+We start with the function _definitions_.
+
+```ts
+function add(x: number, y: number): number;
+```
+
+and
+
+```ts
+function add(x: string, y: string): string;
+```
+
+These define the actual api of our function. We declare that this function can take in two numbers and return a number, or two strings and return a string.
+
+Then we have the actual implementation of the function.
+
+```ts
+function add(x: string | number, y: string | number): string | number {
+  if (typeof x === "string" && typeof y === "string") {
+    return x + y;
+  }
+  if (typeof x === "number" && typeof y === "number") {
+    return x + y;
+  }
+  throw new Error("Invalid arguments");
+}
+```
+
+The inputs, and return types all have to be a union of every definition. In other words, the actual implementation has to accept any of the definitions.
+
+And now when we try to call this function, we only see the definitions available to us.
+
+![image](/typescript-fun-with-generics/img1.png)
+
+and
+
+![image](/typescript-fun-with-generics/img2.png)
+
+The implementation is a little weird. You might wonder why we need
+
+```ts
+throw new Error("Invalid arguments");
+```
+
+The only valid invocations for this function are two strings, or two numbers; that's all TypeScript will allow. So why does TypeScript require us to have that throw at the end. If both arguments are not strings, and both arguments are also not both numbers, the function will never have been allowed. Unfortunately TypeScript isn't quite smart enough to understand that. The function implementation has x and y both as `string | number` so as far as it's concerned, `x` could be a string and `y` could be a number. Understanding that this combination is disallowed by the prior overload definitions isn't a feature it currently has.
 
 ## Concluding thoughts
 
