@@ -422,7 +422,47 @@ The implementation is a little weird. You might wonder why we need
 throw new Error("Invalid arguments");
 ```
 
-The only valid invocations for this function are two strings, or two numbers; that's all TypeScript will allow. So why does TypeScript require us to have that throw at the end. If both arguments are not strings, and both arguments are also not both numbers, the function will never have been allowed. Unfortunately TypeScript isn't quite smart enough to understand that. The function implementation has x and y both as `string | number` so as far as it's concerned, `x` could be a string and `y` could be a number. Understanding that this combination is disallowed by the prior overload definitions isn't a feature it currently has.
+The only valid invocations for this function are two strings, or two numbers; that's all TypeScript will allow. So why does TypeScript require us to have that throw at the end. If both arguments are not strings, and both arguments are also not both numbers, the function will never have been allowed. Unfortunately TypeScript isn't quite smart enough to understand that. The function implementation has x and y both as `string | number` so as far as it's concerned, `x` could be a string and `y` could be a number. Understanding that this combination is disallowed by the prior overload definitions isn't currently within its capabilities.
+
+## Building our solution
+
+So we want to overload `refetchedQueryOptions` twice: once for a server function that takes in an argument, and once for a server function that takes no arguments. How do we define either case? This is where things get fun.
+
+To start, let's define a type representing any async function
+
+```ts
+type AnyAsyncFn = (...args: any[]) => Promise<any>;
+```
+
+This seems like a waste of time, but it'll save us some typing and add a lot of clarity soon.
+
+Let's definte a type that takes in an async function, and just strips out the argument type. A conditional type is perfect for this. We saw something similar before with a conditional type that strips out the type of an array's elements
+
+```ts
+type ArrayOf<T extends Array<any>> = T extends Array<infer U> ? U : never;
+```
+
+We check that T extends an array, and then we plopped `infer U` right into the generic slow the Array type already has. Can we do something similar to get the parameter type of an async function?
+
+```ts
+type ServerFnArgs<TFn extends AnyAsyncFn> = /* something here? */ infer TRootArgs
+  ? TRootArgs extends { data: infer TResult }
+    ? TResult
+    : undefined
+  : never;
+```
+
+There's a `Parameters<T>` type that can pluck parameters out of a function type. But function types don't themselves have a convenient generic slot that we can put an `infer U` into, like we did with Array, above. Fortunately typescript has a trick up its sleeve
+
+```ts
+type ServerFnArgs<TFn extends AnyAsyncFn> = Parameters<TFn>[0] extends infer TRootArgs
+  ? TRootArgs extends { data: infer TResult }
+    ? TResult
+    : undefined
+  : never;
+```
+
+`extends infer` seems weird at first, but it's exactly what we need. We can just grab `Parameters<TFn>` and stick it onto an inferred type. Then we can put that type into a conditional type.
 
 ## Concluding thoughts
 
