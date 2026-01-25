@@ -675,11 +675,7 @@ import { QueryKey, queryOptions } from "@tanstack/react-query";
 
 type AnyAsyncFn = (...args: any[]) => Promise<any>;
 
-type ServerFnArgs<TFn extends AnyAsyncFn> = Parameters<TFn>[0] extends infer TRootArgs
-  ? TRootArgs extends { data: infer TResult }
-    ? TResult
-    : undefined
-  : never;
+type ServerFnArgs<TFn extends AnyAsyncFn> = Parameters<TFn>[0] extends { data: infer TResult } ? TResult : undefined;
 
 type ServerFnHasArgs<TFn extends AnyAsyncFn> = ServerFnArgs<TFn> extends infer U ? (U extends undefined ? false : true) : false;
 
