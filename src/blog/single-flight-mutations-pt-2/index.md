@@ -677,7 +677,7 @@ type AnyAsyncFn = (...args: any[]) => Promise<any>;
 
 type ServerFnArgs<TFn extends AnyAsyncFn> = Parameters<TFn>[0] extends { data: infer TResult } ? TResult : undefined;
 
-type ServerFnHasArgs<TFn extends AnyAsyncFn> = ServerFnArgs<TFn> extends infer U ? (U extends undefined ? false : true) : false;
+type ServerFnHasArgs<TFn extends AnyAsyncFn> = ServerFnArgs<TFn> extends undefined ? false : true;
 
 type ServerFnWithArgs<TFn extends AnyAsyncFn> = ServerFnHasArgs<TFn> extends true ? TFn : never;
 type ServerFnWithoutArgs<TFn extends AnyAsyncFn> = ServerFnHasArgs<TFn> extends false ? TFn : never;
