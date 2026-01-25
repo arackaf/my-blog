@@ -699,7 +699,7 @@ export function refetchedQueryOptions<TFn extends AnyAsyncFn>(
   queryKey: QueryKey,
   serverFn: ValidateServerFunction<TFn, ServerFnWithoutArgs<TFn>>,
 ): RefetchQueryOptions<Awaited<ReturnType<TFn>>>;
-export function refetchedQueryOptions<TFn extends (arg: { data: any }) => Promise<any>>(
+export function refetchedQueryOptions<TFn extends AnyAsyncFn>(
   queryKey: QueryKey,
   serverFn: ServerFnWithoutArgs<TFn> | ServerFnWithArgs<TFn>,
   arg?: Parameters<TFn>[0]["data"],
