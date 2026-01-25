@@ -207,6 +207,78 @@ export const epicsQueryOptions = (page: number) => {
 
 It worked fine, but nothing was typed; our server function, and argument payload were both marked as `any`. This post will implement a fully typed version of our `refetchedQueryOptions` functionl it's much harder than it might appear.
 
+## Our success criteria
+
+Here's our complete test setup
+
+```ts
+import { QueryKey, queryOptions } from "@tanstack/react-query";
+import { createServerFn } from "@tanstack/react-start";
+
+// ============================ Current Implementation ============================
+
+export function refetchedQueryOptions(queryKey: QueryKey, serverFn: any, arg?: any) {
+  const queryKeyToUse = [...queryKey];
+  if (arg != null) {
+    queryKeyToUse.push(arg);
+  }
+  return queryOptions({
+    queryKey: queryKeyToUse,
+    queryFn: async () => {
+      return serverFn({ data: arg });
+    },
+    meta: {
+      __revalidate: {
+        serverFn,
+        arg,
+      },
+    },
+  });
+}
+
+// ============== Server Functions for testing ==============
+
+const serverFnWithArgs = createServerFn({ method: "GET" })
+  .inputValidator((arg: { value: string }) => arg)
+  .handler(async () => {
+    return { value: "Hello World" };
+  });
+
+const serverFnWithoutArgs = createServerFn({ method: "GET" }).handler(async () => {
+  return { value: "Hello World" };
+});
+
+// ============================ Tests ============================
+
+refetchedQueryOptions(["test"], serverFnWithArgs, { value: "" });
+refetchedQueryOptions(["test"], serverFnWithoutArgs);
+
+// wrong argument type
+// FAILS - Unused '@ts-expect-error' directive.
+// @ts-expect-error
+refetchedQueryOptions(["test"], serverFnWithArgs, 123);
+
+// need an argument
+// @ts-expect-error
+// FAILS - Unused '@ts-expect-error' directive.
+refetchedQueryOptions(["test"], serverFnWithArgs);
+```
+
+At the top we have the current iteration of out `refetchedQueryOptions` method. Beneath that, we have some server functions that will help us test this, one with an argument, the other without. And beneath that, we see four calls to `refetchedQueryOptions` to validate that our type checking is working properly. The top two we expect to succeed, and the bottom two we expect to error our, which we verify with the // @ts-expect-error directive. `@ts-expect-error`, well, _expects_ an error on the very next line. If there is an error on the very next line, all is well; if there is no error on the next line, then the `@ts-expect-error` line will itself raise an error.
+
+Above, with our initial implementation we see our expected errors fail to error out. This makes sense, since everything is typed as `any`, and our `arg` parameter is optional, so really anything goes.
+
+Even if you're more than willing to live with imperfect typings, this current solution isn't good for much. Since `serverFn` is typed as any, our `queryFn` will return `any`. That means any application code that's using `useQuery` or `useSuspenseQuery` will now spit out `any` for your data.
+
+The rest of this post will get everything typed properly. We'll have to do some unhinged things, so hopefully we'll learn something new, and maybe even have some fun.
+
+## Iteration 1
+
+How's this for a minimal improvement. Right
+
+NOTE:
+As the original post on single flight mutations from which this example noted, it may very well be the case that this much effort to lock down typings for such a simple utility may not be worth it.
+
 ## Concluding thoughts
 
 In the end, a few lines of webpack config allowed us to easily load global, or scoped css, with optional sass processing in either case. Of course this is only scratching the surface of what's possible. There's no shortage of PostCSS, or other plugins you could toss into the loader list.
