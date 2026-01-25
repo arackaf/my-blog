@@ -442,27 +442,19 @@ Let's definte a type that takes in an async function, and just strips out the ar
 type ArrayOf<T extends Array<any>> = T extends Array<infer U> ? U : never;
 ```
 
-We check that T extends an array, and then we plopped `infer U` right into the generic slow the Array type already has. Can we do something similar to get the parameter type of an async function?
+We check that T extends an array, and then we plopped `infer U` right into the generic slow the Array type already has. Let's do something similar to get the parameter type of an async function
 
 ```ts
-type ServerFnArgs<TFn extends AnyAsyncFn> = /* something here? */ infer TRootArgs
-  ? TRootArgs extends { data: infer TResult }
-    ? TResult
-    : undefined
-  : never;
+type ServerFnArgs<TFn extends AnyAsyncFn> = Parameters<TFn>[0] extends { data: infer TResult } ? TResult : undefined;
 ```
 
-There's a `Parameters<T>` type that can pluck parameters out of a function type. But function types don't themselves have a convenient generic slot that we can put an `infer U` into, like we did with Array, above. Fortunately typescript has a trick up its sleeve
+There's a `Parameters<T>` type that can pluck parameters out of a function type. We grab the zero'th parameter (functions can have multiple parameters; but server functions only have one). On that single, 0th parameter, look for a `data` property, and if present, infer that. Otherwise return undefined.
+
+From there we can start to ask questions about our types
 
 ```ts
-type ServerFnArgs<TFn extends AnyAsyncFn> = Parameters<TFn>[0] extends infer TRootArgs
-  ? TRootArgs extends { data: infer TResult }
-    ? TResult
-    : undefined
-  : never;
+type ServerFnHasArgs<TFn extends AnyAsyncFn> = ServerFnArgs<TFn> extends undefined ? false : true;
 ```
-
-`extends infer` seems weird at first, but it's exactly what we need. We can just grab `Parameters<TFn>` and stick it onto an inferred type. Then we can put that type into a conditional type.
 
 ## Concluding thoughts
 
