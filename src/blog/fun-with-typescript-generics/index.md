@@ -4,9 +4,9 @@ date: "2019-05-13T10:00:00.000Z"
 description: A deep dive into TypeScript generics via a bespoke use case
 ---
 
-Generics are an incredibly powerful feature of TypeScript. There's endless content on TypeScript in general, and certainly generics in particular. This post will (hopefully) differ in that we'll cover things a bit deeper.
+Generics are an incredibly powerful feature of TypeScript. There's endless content on TypeScript in general, and generics in particular. This post will (hopefully) differ from the usual, and cover things more deeply.
 
-This won't be a generic introduction to generics. Instead, we'll implement a very, very niche use case, and in the process we'll cover some advanced uses for generics (and conditional types, and some other goodies)
+This won't be a generic introduction to generics (pun unintented). Instead, we'll implement a very, very niche use case, and in the process cover some advanced uses for generics (and conditional types, and some other goodies)
 
 ## A quick refresher on generics (and conditional types)
 
@@ -40,7 +40,7 @@ function arrayLength(arr: any[]) {
 }
 ```
 
-`arr` is an array of `any`, but that's fine. No matter what the elements of the array are, the `.length` property will always be there.
+`arr` is an array of `any`, but it doesn't matter; no matter what the elements of the array are, the `.length` property will always be there.
 
 Let's go from one pointless function to another one. Let's implement our own filter method
 
@@ -119,7 +119,7 @@ const adminUsers: AdminUser[] = [];
 const adminUsersNamedAdam = filterUser(adminUsers, user => user.name === "Adam");
 ```
 
-adminUsersNamedAdam is typed as `User[]`, and how could it not be; `filterUser` is explicitly typed to return `User[]` so how could it be otherwise.
+adminUsersNamedAdam is typed as `User[]`, and how could it not be; `filterUser` is explicitly typed to return `User[]`, so how could it be otherwise.
 
 The correct solution is to go back to the generic version, but _restrict_ the acceptable values for T
 
@@ -133,7 +133,7 @@ Now our return type is correctly inferred to be the correct, exact same type tha
 
 ### Conditional Types
 
-Conditional types allow us to, essentially, _ask questions_ about types, and form new types based on the responses.
+Conditional types allow us to, essentially, _ask questions_ about types, and form new types based on the answers.
 
 ```ts
 type IsArray<T> = T extends any[] ? true : false;
@@ -151,7 +151,7 @@ type NumberType = ArrayOf<number[]>;
 type NeverType = ArrayOf<number>;
 ```
 
-Here `Number` type is `number` and NeverType is, predictable, `never`. And yes, we can (and should) use generic constrainted with these helper types
+Here `Number` type is `number` and NeverType is, predictably, `never`. And yes, we can (and should) use generic constraints with these helper types
 
 ```ts
 type ArrayOf2<T extends Array<any>> = T extends Array<infer U> ? U : never;
@@ -166,7 +166,7 @@ Now we're simply forbidden from using `ArrayOf2` with any type that's not an arr
 
 ## Let's get started
 
-I recently wrote a [two-part post on single flight mutations](https://todo) using TanStack start. In order to make that work we very carefully put together react-query options. Our query functions (which do the actual data fetching) were purposefully designed to be a single call against a TanStack Server Function. Then that same query function, as well as the argument payload it takes were placed on the `meta` object, which is a lesser known option in react-query; it allows us to specify arbitrary metadata for a react-query set of options.
+I recently wrote a [two-part post on single flight mutations](https://todo) using TanStack Start. In order to make that work, we very carefully put together react-query options. Our query functions (which do the actual data fetching) were purposefully designed to be a single call against a TanStack Server Function. Then that same query function, as well as the argument payload it takes, were placed on the `meta` object, which is a lesser known option in react-query; it allows us to specify arbitrary metadata for a react-query set of options.
 
 Then in middleware, we had code to receive in some query keys, and we looked up the server functions, and argument payloads for a query, so we'd know how to refetch the data for that query on the server.
 
@@ -205,7 +205,9 @@ export const epicsQueryOptions = (page: number) => {
 };
 ```
 
-It worked fine, but nothing was typed; our server function, and argument payload were both marked as `any`. This post will implement a fully typed version of our `refetchedQueryOptions` functionl it's much harder than it might appear.
+It worked fine, but nothing was typed; our server function, and argument payload were both marked as `any`, which didn't just fail to restrict invalid argument payloads, but nore disasterously led all query hooks this was used with to report the queried data as `any`.
+
+This post will implement a fully typed version of our `refetchedQueryOptions` functionl; it's much harder than it might appear.
 
 ## Our success criteria
 
@@ -315,17 +317,15 @@ refetchedQueryOptions(["test"], serverFnWithoutArgs);
 // Error: Expected 3 arguments, but got 2.
 
 // wrong argument type
-// FAILS - Unused '@ts-expect-error' directive.
 // @ts-expect-error
 refetchedQueryOptions(["test"], serverFnWithArgs, 123);
 
 // need an argument
-// FAILS - Unused '@ts-expect-error' directive.
 // @ts-expect-error
 refetchedQueryOptions(["test"], serverFnWithArgs);
 ```
 
-We have one argument. It seems we need to pass an argument for the query options for the query function which ... doesn't take any arguments. It makes sense: `refetchedQueryOptions` does indeed define an `arg` parameter, which needs to be passed. I'll be quick to note that simply passing undefined for that arg
+We have one problem. It seems we need to pass an argument for the query options for the query function which ... doesn't take any arguments. It makes sense: `refetchedQueryOptions` does indeed define an `arg` parameter, which needs to be passed. I'll be quick to note that simply passing `undefined` for that arg
 
 ```ts
 refetchedQueryOptions(["test"], serverFnWithoutArgs, undefined);
@@ -346,7 +346,7 @@ refetchedQueryOptions(["test"], serverFnWithArgs);
 
 If you're an advanced TypeScript user you might think a conditional type is what we need. Detect the inferred arg type (what's in the `data` arg), and if it's not undefined, require it, but if it _is_ undefined, then _don't_ require it. Unfortunately there's not really an easy way to represent "pass nothing" as the result of a conditional type. I've tried, and I was never able to get things fully working. I may have been missing something (feel free to drop a comment if you can figure it out), but even if there's a trick to make it work, there's a much more straightforward, idiomatic solution.
 
-We essentially want different function parameters in different circumstances: we want an arg when the server function we pass in takes an arg, and we want no arg when the server function we pass in takes no arg. Different function api's is usually referred to a function overloading in computer science, and TypeScript does support this.
+We essentially want different function signatures in different circumstances: we want an arg when the server function we pass in takes an arg, and we want no arg when the server function we pass in takes no arg. Different function signatures is usually referred to a function overloading in computer science, and TypeScript supports this.
 
 ### Function overloading in TypeScript
 
@@ -422,7 +422,7 @@ The implementation is a little weird. You might wonder why we need
 throw new Error("Invalid arguments");
 ```
 
-The only valid invocations for this function are two strings, or two numbers; that's all TypeScript will allow. So why does TypeScript require us to have that throw at the end. If both arguments are not strings, and both arguments are also not both numbers, the function will never have been allowed. Unfortunately TypeScript isn't quite smart enough to understand that. The function implementation has x and y both as `string | number` so as far as it's concerned, `x` could be a string and `y` could be a number. Understanding that this combination is disallowed by the prior overload definitions isn't currently within its capabilities.
+The only valid invocations for this function are two strings, or two numbers; that's all TypeScript will allow. So why does TypeScript require us to have that throw at the end. If both arguments are not strings, and both arguments are also not both numbers, the function will never have been allowed. Unfortunately TypeScript isn't quite smart enough to understand that. The function implementation has x and y both as `string | number` so as far as it's concerned, `x` could be a string and `y` could be a number. Understanding that this combination is disallowed by the prior overload definitions isn't currently within TypeScript's capabilities.
 
 ## Building our solution
 
@@ -448,7 +448,7 @@ We check that T extends an array, and then we plopped `infer U` right into the g
 type ServerFnArgs<TFn extends AnyAsyncFn> = Parameters<TFn>[0] extends { data: infer TResult } ? TResult : undefined;
 ```
 
-There's a `Parameters<T>` type that can pluck parameters out of a function type. We grab the zero'th parameter (functions can have multiple parameters; but server functions only have one). On that single, 0th parameter, look for a `data` property, and if present, infer that. Otherwise return undefined.
+There's a `Parameters<T>` type that can pluck parameters out of a function type. We grab the zero'th parameter (functions can have multiple parameters, but server functions only have one). On that single, 0th parameter, look for a `data` property, and if present, infer that. Otherwise return undefined.
 
 From there we can start to ask questions about our types
 
