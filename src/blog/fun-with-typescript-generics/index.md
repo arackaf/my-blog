@@ -465,8 +465,65 @@ type ServerFnWithoutArgs<TFn extends AnyAsyncFn> = ServerFnHasArgs<TFn> extends 
 
 We've built some helper types that take a function type in, and tests whether that function has, or does not have server function arguments.
 
+One major bummer of TypeScript overloading is that we can't rely on inferred return types, so we'll have to define our return type manually.
+
+```ts
+type RefetchQueryOptions<T> = {
+  queryKey: QueryKey;
+  queryFn: (_?: any) => Promise<T>;
+  meta: any;
+};
+```
+
+And with that, we should be ready to define our overload signatures
+
+```ts
+export function refetchedQueryOptions<TFn extends AnyAsyncFn>(
+  queryKey: QueryKey,
+  serverFn: ServerFnWithArgs<TFn>,
+  arg: Parameters<TFn>[0]["data"],
+): RefetchQueryOptions<Awaited<ReturnType<TFn>>>;
+export function refetchedQueryOptions<TFn extends AnyAsyncFn>(
+  queryKey: QueryKey,
+  serverFn: ServerFnWithoutArgs<TFn>,
+): RefetchQueryOptions<Awaited<ReturnType<TFn>>>;
+```
+
+One version for a Server Function that takes an argument, as well as the argument, and a version for a Server Function that takes no argument, with no such argument passed.
+
+And then the implementation
+
+```ts
+export function refetchedQueryOptions<TFn extends AnyAsyncFn>(
+  queryKey: QueryKey,
+  serverFn: ServerFnWithoutArgs<TFn> | ServerFnWithArgs<TFn>,
+  arg?: Parameters<TFn>[0]["data"],
+): RefetchQueryOptions<Awaited<ReturnType<TFn>>> {
+  const queryKeyToUse = [...queryKey];
+  if (arg != null) {
+    queryKeyToUse.push(arg);
+  }
+  return {
+    queryKey: queryKeyToUse,
+    queryFn: async () => {
+      return serverFn({ data: arg });
+    },
+    meta: {
+      __revalidate: {
+        serverFn,
+        arg,
+      },
+    },
+  };
+}
+```
+
+And that's that.
+
+Generics, combined with conditional types can make for an incredibly powerful combination. When you look at things the right way, you can ask very useful questions about your types that allow you to build the precise api you want.
+
 ## Concluding thoughts
 
-In the end, a few lines of webpack config allowed us to easily load global, or scoped css, with optional sass processing in either case. Of course this is only scratching the surface of what's possible. There's no shortage of PostCSS, or other plugins you could toss into the loader list.
+I hope this deep dive into a niche use case has taught you at least something useful about TypeScript. Even if you never need to solve this particular problem—and let's face it, you probably won't—these tools and skills and widely applicable.
 
 Happy Coding!
