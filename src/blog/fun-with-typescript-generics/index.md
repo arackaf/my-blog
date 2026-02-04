@@ -1,16 +1,16 @@
 ---
-title: Fun with TypeScript
-date: "2019-05-13T10:00:00.000Z"
+title: Fun with TypeScript Generics
+date: "2026-02-03T10:00:00.000Z"
 description: A deep dive into TypeScript generics via a bespoke use case
 ---
 
 Generics are an incredibly powerful feature of TypeScript. There's endless content on TypeScript in general, and generics in particular. This post will (hopefully) differ from the usual, and cover things more deeply.
 
-This won't be a generic introduction to generics (pun unintented). Instead, we'll implement a very, very niche use case, and in the process cover some advanced uses for generics (and conditional types, and some other goodies)
+This won't be a generic introduction to generics (pun intented). Instead, we'll implement a very, very niche use case, and in the process cover some advanced uses for generics (and conditional types, and some other goodies).
 
 ## A quick refresher on generics (and conditional types)
 
-Let's take a very, very fast introduction to the key concepts of this post. We'll cover the core concepts with extremely contrived examples to keep everything as brief as possible.
+Let's take a very, very fast introduction to the key concepts of this post. We'll use extremely contrived examples to keep everything as brief as possible.
 
 If you're already an expert, just scroll past. If you're not sure, give it a read, and if what's in this section isn't old hat, you might want to read some refresher materials before tackling the rest of this post.
 
@@ -32,7 +32,7 @@ function arrayLengthTyped<T>(arr: T[]) {
 }
 ```
 
-Now, whenever we call this method, and pass an array, the generic argument `T` will infer to whatever the type of the array is. Make no mistake, even though `T` makes this method definition more accurate, but it's completely pointless. The original method was perfectly fine
+Now, whenever we call this method, and pass an array, the generic argument `T` will infer to whatever the type of the array is. Make no mistake, even though `T` makes this method definition more accurate, it's completely pointless. The original method was perfectly fine
 
 ```ts
 function arrayLength(arr: any[]) {
@@ -207,7 +207,7 @@ export const epicsQueryOptions = (page: number) => {
 
 It worked fine, but nothing was typed; our server function, and argument payload were both marked as `any`, which didn't just fail to restrict invalid argument payloads, but nore disasterously led all query hooks this was used with to report the queried data as `any`.
 
-This post will implement a fully typed version of our `refetchedQueryOptions` functionl; it's much harder than it might appear.
+This post will implement a fully typed version of our `refetchedQueryOptions` function; it's much harder than it might appear.
 
 ## Our success criteria
 
@@ -261,8 +261,8 @@ refetchedQueryOptions(["test"], serverFnWithoutArgs);
 refetchedQueryOptions(["test"], serverFnWithArgs, 123);
 
 // need an argument
-// @ts-expect-error
 // FAILS - Unused '@ts-expect-error' directive.
+// @ts-expect-error
 refetchedQueryOptions(["test"], serverFnWithArgs);
 ```
 
@@ -442,7 +442,7 @@ Let's definte a type that takes in an async function, and just strips out the ar
 type ArrayOf<T extends Array<any>> = T extends Array<infer U> ? U : never;
 ```
 
-We check that T extends an array, and then we plopped `infer U` right into the generic slow the Array type already has. Let's do something similar to get the parameter type of an async function
+We check that T extends an array, and then we plopped `infer U` right into the generic slot the Array type already has. Let's do something similar to get the parameter type of an async function
 
 ```ts
 type ServerFnArgs<TFn extends AnyAsyncFn> = Parameters<TFn>[0] extends { data: infer TResult } ? TResult : undefined;
@@ -524,6 +524,6 @@ Generics, combined with conditional types can make for an incredibly powerful co
 
 ## Concluding thoughts
 
-I hope this deep dive into a niche use case has taught you at least something useful about TypeScript. Even if you never need to solve this particular problem—and let's face it, you probably won't—these tools and skills and widely applicable.
+I hope this deep dive into a niche use case has taught you at least something useful about TypeScript. Even if you never need to solve this particular problem—and let's face it, you probably won't—these tools and skills are widely applicable.
 
 Happy Coding!
