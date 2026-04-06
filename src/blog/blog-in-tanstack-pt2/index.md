@@ -4,21 +4,21 @@ date: "2026-02-16T10:00:00.000Z"
 description: An introduction to building a blog in TanStack Start Part 2
 ---
 
-In part 1 of our post we built a blog in TanStack Start. We set up Shiki for code formatting, and we created server functions to inspect the file system and discover our blog posts (in markdown files), as well as put together the actual blog content for any single post.
+In part 1 of our post we built a blog in TanStack Start. We set up Shiki for code formatting, and we created server functions to inspect the file system and discover our blog posts (in markdown files), and build the actual blog content for any single post.
 
 ## Performance issues
 
-It turns out that the Shiki setup, which lives in the top-level `async function getMarkdownIt() {` method we saw in part 1 takes no small amount of time to set up. It's not that the function is slow to call; it's quite fast, in fact. But the initial _parsing_ of this module is extremely slow. On my own, modern MacBook Pro is takes about 2 _seconds_ (2000ms) to parse.
+It turns out that the Shiki setup, which lives in the top-level `async function getMarkdownIt() {` method we saw in part 1 takes no small amount of time to set up. It's not that the function is slow to call; it's quite fast. But the initial _parsing_ of this module is extremely slow. On my own, modern MacBook Pro it takes about 2 _seconds_ (2000ms) to parse. This is because no small amount of wasm is being loaded to parse, and format whatever code is passed in.
 
-This means that, when your web server first spins up, and processes the import graph, this particular function will block the process for about 2 seconds. You might this that, for a blog, this is an unimportant cost: it's just spin-up time, after all, which happens only once.
+This means that, when your web server first spins up, and processes the import graph, this particular function will block the process for about 2 seconds. You might think that, for a blog, this is an unimportant cost: it's just spin-up time, after all, which happens only once.
 
 ## Cold Starts
 
-Or does it? What if you deploy this site to Netlify, Vercel, or any other serverless platform, like AWS Lambda. With that deployment model, cloud functions will constantly be spinning up, to process requests. This spin-up time is called a "cold start," and is a well known issue with Serverless. Usually cold start times are reasonable, and modern platforms like Netlify and Vercel will "pre-warm" serverless functions to minimize this cost from happening at all.
+Or does it? What if you deploy this site to Netlify, Vercel, or any other serverless platform, like AWS Lambda. With that runtime model, cloud functions will constantly be spinning up, to process requests. This spin-up time is called a "cold start," and is a well known issue with Serverless. Usually cold start times are reasonable, and modern platforms like Netlify and Vercel will "pre-warm" serverless functions to minimize this cost from happening at all.
 
 ## Going static
 
-Rather than debate the importance of minimizing cold starts for a blog that likely has few readers, let's take a step back: do we even need a server at all? Blogs are inherently static. Any modern web framework provides a way to statically pre-render content. This is exactly what we need. Why not just pre-render our blog pages, and then we can render them anywhere, without any server processing. We could even just toss the built static assets onto a CDN.
+Rather than debate the importance of minimizing cold starts for a blog that likely has few readers, let's take a step back: do we even need a server? Blogs are inherently static. Any modern web framework provides a way to statically pre-render content. This is exactly what we need. Why not just pre-render our blog pages, and then we can render them anywhere, without any server processing. We could even just toss the built static assets onto a CDN.
 
 ## Pre-rendering our pages
 
@@ -32,7 +32,7 @@ tanstackStart({
 }),
 ```
 
-This enables, well, pre-rendering. Now, during build, TanStack will crawl declared pages, and crawl links therein, and so on. So it will start with our / route, it will build the page, with all our blog posts, which includes the `<Link>` tags to each. From there, each Link on the page will be crawled. If those pages had links, they'd be crawled as well.
+This enables, well, pre-rendering. Now, during build, TanStack will crawl routes, and crawl links therein. So it will start with our / route, it will build the page, with all our blog posts, which includes the `<Link>` tags to each. From there, each Link on the page will be crawled. If those pages had links, they'd be crawled as well.
 
 When we run our build, we can see this in action
 
@@ -42,11 +42,11 @@ We can look at the output of this build by peaking inside the .output folder, wh
 
 ![Built assets](/tanstack-blog-post/img6.png)
 
-As we can see, the /public folder contains everything that can be routed to directly. Our index.html is in there, as well as paths to both blogs, and the images links from blog post-2.
+As we can see, the /public folder contains everything that can be routed to directly. Our index.html is in there, as well as paths to both blogs, and the images from blog post-2.
 
 ## Running our content as a static website
 
-Uploading these files to an S3 bucket would be a bit over the top for this post, but to test true static rendering more simply I've put together these two scripts on this post's repo
+Uploading these files to an S3 bucket would be a bit over the top for this post, but to test true static rendering more simply, I've put together these two scripts on this post's repo
 
 ```
 "generate-static-site": "npm run build && rm -rf static-site && mkdir -p static-site && cp -r .output/. static-site",
@@ -55,7 +55,7 @@ Uploading these files to an S3 bucket would be a bit over the top for this post,
 
 Basically a script to run build, and copy the contents to a folder called `static-site`.
 
-And then a script to run `static-server.ts`. This file looks like this, in its entirety.
+And then a script to run `static-server.ts`, which looks like this, in its entirety.
 
 ```ts
 import express from "express";
@@ -76,7 +76,7 @@ app.listen(PORT, () => {
 });
 ```
 
-It fires up Express, and points the static middleware at /public inside the static-site folder we just copied out build into.
+It fires up Express, and points the static middleware at /public inside the static-site folder we just copied our build into.
 
 When we run this app, all of our pages work when we browse directly to them.
 
@@ -108,7 +108,7 @@ We already saw the first, which was static pre-rendering. Now let's look at the 
 
 ## Static server functions
 
-Our client navigation will run either way, but the real problem is our server functions. To solve this, TanStack provides static middleware we can apply to server functions. This causes our server functions to record invocations, and results during build, and then save those payloads to simple json files in the build output we already saw.
+Our client navigation will run either way, but the real problem is our server functions. To solve this, TanStack provides static middleware we can apply to server functions. This causes our server functions to, during build, record invocations and results, and then save those payloads to simple json files in the build output.
 
 Let's try it!
 
@@ -137,10 +137,14 @@ Now when we run our build, we see something new in there
 
 \_\_tsr refers to TanStack Router, and the `staticServerFnCache` contains the 3 server function calls from parsing our blog: one for the index page, and one each for the two posts we have.
 
-The plugin recorded those invocations and results, and more importantly, replaced those call sites with fetches to those json files in the \_\_tsr folder.
+The plugin recorded those invocations and results, and more importantly, replaced those call sites with fetches to the json files in the \_\_tsr folder.
 
-If we run our blog again, we can navigate, and see much simpler fetches for those json files, which replace the original calls to the actual server function.
+If we run our blog again, we can navigate, and see much simpler fetches to those json files.
+
+![Network tab](/tanstack-blog-post/img12.png)
 
 ## Concluding thoughts
+
+TanStack Start is a superb framework. It's known more for things like strong static typing support, and flexible data loading. But as we saw here, it also has creative ways of supporting static generation.
 
 Happy Coding!
