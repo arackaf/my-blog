@@ -316,7 +316,7 @@ export default async function markdownToHtml(markdown: string) {
 }
 ```
 
-The vast majority was for a custom transformer that allows this in the markdown
+The vast majority of this setup was for a custom transformer that allows this in the markdown
 
 ````
 ```sql line-numbers
@@ -364,6 +364,6 @@ And our line numbers work
 
 ![Line numbers](/tanstack-blog-post/img4.png)
 
-## Concluding thoughts
+## On to part 2
 
-Happy Coding!
+Our blog is set up and working. In part 2 we'll look at some simple tricks we can use to deploy our blog as a static site, with no server dependencies.
