@@ -4,21 +4,21 @@ date: "2026-02-16T10:00:00.000Z"
 description: An introduction to building a blog in TanStack Start
 ---
 
-TanStack Start is one of the newest web frameworks around, whose popularity is rising quickly. Start is actually a thin server-side layer which sits on top of TanStack Router, and provides things like server functions, api endpoints, and server-side rendering. I wrote a three-part introduction to Router [here](https://frontendmasters.com/blog/introducing-tanstack-router/), and an introduction to Start [here](https://frontendmasters.com/blog/introducing-tanstack-start/).
+TanStack Start is one of the newest web frameworks, whose popularity is quickly rising. Start is actually a thin server-side layer which sits atop TanStack Router, and provides things like server functions, api endpoints, and server-side rendering. I wrote a three-part introduction to Router [here](https://frontendmasters.com/blog/introducing-tanstack-router/), and an introduction to Start [here](https://frontendmasters.com/blog/introducing-tanstack-start/).
 
-This post will be a bit different. We'll explore TanStack start via a more traditional, old-school use case: we'll implement a blog. It's somewhat of a cliche, but it will let us explore some important features, like server functions and routing parameters, and also some niche patters, like static pre-generation and static server function middleware.
+This post will be a bit different. We'll explore TanStack start via a more traditional, old-school use case: we'll implement a blog. It's somewhat of a cliche, but it will let us explore some important features, like server functions and routing parameters, and also some niche patterns, like static pre-rendering.
 
 Here in part 1 we'll implement our blog. Then in part 2, we'll explore static generation in order to deploy it in the most sensible way.
 
 Let's get started!
 
-## Getting started
+## Setting up
 
-We'll write our blog posts in markdown files. We'll scan the appropriate directory to discover the posts we have, to generate links to them all. Then for the actual page that displays an individual blog post, we'll read the markdown content, and generate html from it, complete with code highlighting.
+We'll write our blog posts in markdown files, and scan the appropriate directory to discover the posts we have, in order to generate links to them. Then for the actual page that displays an individual blog post, we'll read the markdown content, and generate html from it, complete with code highlighting.
 
 ### Finding the posts
 
-As a good first step, we'll need to read in a simple list of all blog posts which exist. Our blog posts are each in a folder named for the post in question, and inside of each folder is index.md.
+As a good first step we'll need to read all our blog posts. These posts are under the blog folder, in eponymous folders, each with an `index.md`.
 
 ![Markdown files](/tanstack-blog-post/img1.png)
 
@@ -55,7 +55,7 @@ We'll use `gray-matter` to read metadata from our blog posts.
 import matter from "gray-matter";
 ```
 
-This will allow us to put metadata at the top of our blog markdown file
+This will allow us to put metadata at the top of our blog's markdown file
 
 ```
 ---
@@ -129,11 +129,11 @@ export const Route = createFileRoute("/")({
 });
 ```
 
-Don't let the details of the boilerplate here scare you. Even without ai, the normal TanStack file watcher than runs when you have dev mode running will generate a minimal route object with the right path whenever you add a new file under the routes folder.
+Don't let the details of the boilerplate here scare you. Even without ai, the normal TanStack file watcher that runs when you have dev mode running will generate a minimal route object with the right path whenever you add a new file under the routes folder.
 
-Our loader reads our posts. And then we connect up a React component for this route. Let's look at each, in turn. If you're thinking our loader can just call those utility methods we looked at before, well, not so fast. Those methods were reading file contents on disk. That's all well and good, but in TanStack Start, our loaders are isomorphic. When you first browse to your web site, that initial page will run it's loader on the server, and server render your React component. Any subsequent time you browse to any page, that loader will run on the client, in your user's browser. That means there's no way we'd be able to run Node api's to read file contents.
+Our loader reads our posts. And then we connect up a React component for this route. Let's look at each, in turn. If you're thinking our loader can just call those utility methods we looked at before, well, not so fast. Those methods were reading file contents on disk. That's all well and good, but in TanStack Start, our loaders are isomorphic. When you first browse to your web site, that initial page will run its loader on the server, and server render your React component. Any subsequent time you browse to any page, that loader will run on the client, in your user's browser. That means there's no way we'd be able to run Node api's to read file contents.
 
-The solution is to use a Server Function. The docs [are here](https://tanstack.com/start/latest/docs/framework/react/guide/server-functions), but the short version is that a TanStack Server Function is a function you define which always runs only on the server. If you call a server function from a server-only location, like an api endpoint, another server function, or even a route loader than's running on the server, then TanStack will simply invoke it. And if you call a Server Function from the client, then TanStack will do the legwork of firing off the correct network request.
+The solution is to use a Server Function. The docs [are here](https://tanstack.com/start/latest/docs/framework/react/guide/server-functions), but the short version is that a TanStack Server Function is a function you define which always runs only on the server. If you call a server function from a server-only location, like an api endpoint, another server function, or even a route loader that's running on the server, TanStack will simply invoke it. And if you call a Server Function from the client, TanStack will do the legwork of firing off the correct network request.
 
 The call to
 
@@ -193,7 +193,11 @@ and it works
 
 ## Rendering each blog post
 
-Let's get a route created to render an individual blog post. As the `<Link>` component from the homepage implied, we want our url's of the form `/blog/title-of-post`. Obviously `title-of-post` is dynamic, so we'll need a route variable. In TanStack, we do this by first creating a folder called `blog` inside of our `routes` folder, and then inside of that, we create a `$slug.tsx` file. As before, the TanStack file watcher will scaffold a minimal route for us.
+Let's get a route created to render an individual blog post. As the `<Link>` component from the homepage implied, we want our url's of the form `/blog/title-of-post`. Obviously `title-of-post` is dynamic, so we'll need a route variable. In TanStack, we do this by first creating a folder called `blog` inside of our `routes` folder, and then inside of that, we create a `$slug.tsx` file.
+
+The dollar sign in front of `$slug` means that `$slug` is actually a route parameter, which will be replaced with whatever is in the url at that location.
+
+As before, the TanStack file watcher will scaffold a minimal route for us.
 
 ```tsx
 import { createFileRoute } from "@tanstack/react-router";
@@ -227,7 +231,7 @@ export const Route = createFileRoute("/blog/$slug")({
 });
 ```
 
-We add a loader that again makes a call to a Server Function we'll create in a moment. The loader takes a params object we can destructure, which contains the value of our path parameter, which we named `$slug` by virtue of naming our route `$slug.tsx`.
+We add a loader that again makes a call to a Server Function we'll create in a moment. The loader takes a params object we can destructure, which contains the value of our path parameter, which we named `$slug`. This was because our route was named `$slug.tsx`.
 
 Then we have a `head` function which allows us to set a title for this page (among other things), and like the loader, allows us access to the path params.
 
