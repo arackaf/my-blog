@@ -14,11 +14,11 @@ This means that, when your web server first spins up, and processes the import g
 
 ## Cold Starts
 
-Or does it? What if you deploy this site to Netlify, Vercel, or any other serverless platform, like AWS Lambda. With that deployment model, cloud functions will constantly be spinning up, to process requests. This spin-up time is called a "cold start," and is a well known issue with Serverless. Usually cold start times are reaosnable, and modern platforms like Netlify and Vercel will "pre-warm" serverless functions to minimize this cost from happening at all.
+Or does it? What if you deploy this site to Netlify, Vercel, or any other serverless platform, like AWS Lambda. With that deployment model, cloud functions will constantly be spinning up, to process requests. This spin-up time is called a "cold start," and is a well known issue with Serverless. Usually cold start times are reasonable, and modern platforms like Netlify and Vercel will "pre-warm" serverless functions to minimize this cost from happening at all.
 
 ## Going static
 
-Rather than debate the importance of minimizing cold starts for a blog that likely has few readers, let's take a step back: do we even need a server at all? Blogs are inherently static. Any modern web framework provides a way to statically prerender content. This is exactly what we need. Why not just pre-render our blog pages, and then we can render them anywhere, without any server processing. We could even just toss the built static assets onto a CDN.
+Rather than debate the importance of minimizing cold starts for a blog that likely has few readers, let's take a step back: do we even need a server at all? Blogs are inherently static. Any modern web framework provides a way to statically pre-render content. This is exactly what we need. Why not just pre-render our blog pages, and then we can render them anywhere, without any server processing. We could even just toss the built static assets onto a CDN.
 
 ## Pre-rendering our pages
 
@@ -32,7 +32,7 @@ tanstackStart({
 }),
 ```
 
-This enables, well, prerendering. Now, during build, TanStack will crawl declared pages, and crawl links therein, and so on. So it will start with our / route, it will build the page, with all our blog posts, which includes the `<Link>` tags to each. From there, each Link on the page will be crawled. If those pages had links, they'd be crawled as well.
+This enables, well, pre-rendering. Now, during build, TanStack will crawl declared pages, and crawl links therein, and so on. So it will start with our / route, it will build the page, with all our blog posts, which includes the `<Link>` tags to each. From there, each Link on the page will be crawled. If those pages had links, they'd be crawled as well.
 
 When we run our build, we can see this in action
 
@@ -94,9 +94,9 @@ Looking in the network tab makes this even clearer.
 
 ![Network tab](/tanstack-blog-post/img10.png)
 
-As we _navigate_ our server function is being called. Didn't we prerender these pages?
+As we _navigate_ our server function is being called. Didn't we pre-render these pages?
 
-## How TanStack does prerendering
+## How TanStack does pre-rendering
 
 Our pre-rendered html file is indeed rendered by our Express server. But when it is, script tags containing the normal TanStack app will spin up, and take over. At the end of the day, TanStack Start is generating the same kind of application either way, except in this case the initial render is served from a pre-generated html file, rather than server rendering.
 
@@ -104,7 +104,7 @@ From there on, Link tags trigger normal client-side loading, which trigger the s
 
 TanStack Start does not try to morph itself into a full MPA framework just to handle static web apps. Instead, it gives you the primitives to achieve this yourself.
 
-We already saw the first, which was static prerendering. Now let's look at the other.
+We already saw the first, which was static pre-rendering. Now let's look at the other.
 
 ## Static server functions
 
