@@ -130,6 +130,8 @@ The structure of the defaultValues we provided became the structure of the data 
 
 ![Field name autocomplete](/tanstack-form/img1.png)
 
+Similarly, the _value_ associated with any particular form field is also strongly typed, also based on those same defaultValues.
+
 ### Validators
 
 Moving on,
@@ -176,6 +178,10 @@ TanStack Form's Field component handles the grunt work of _calling_ the function
 In this code, I'm rendering a ShadCN Label and Input. The field prop passed to my render function gives me a name value, plus a state object that has things like the current value. Naturally there's an onChange handler we need to invoke with any updated values, but you might wonder why I need to pass through an onBlur handler.
 
 That's to help some of the field's state. You can see the validation error info attached to the field's state.meta object, which you can render however you'd like, but there's also input state like `isTouched` and `isDirty`. Check the [the docs](https://tanstack.com/form/latest/docs/framework/react/guides/basic-concepts#field-state) for a full accounting of all these various state values, but `isTouched` indicates whether the user has ever focused, and blured your input, and the onBlur callabck is what makes this work.
+
+## Composition
+
+Do we have everything we need? Not really. Our `form` object was created from the `useForm` hook, and we've been using that for our Field components. Field is not a component we import; instead it's created on the fly, from the `useForm` hook, and attached to the `form` object returned therefrom. The reason is so that all our various form fields will be strongly typed, with appropriate `name`, `value`, etc values.
 
 ## Concluding thoughts
 
