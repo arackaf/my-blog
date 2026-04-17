@@ -179,9 +179,290 @@ In this code, I'm rendering a ShadCN Label and Input. The field prop passed to m
 
 That's to help some of the field's state. You can see the validation error info attached to the field's state.meta object, which you can render however you'd like, but there's also input state like `isTouched` and `isDirty`. Check the [the docs](https://tanstack.com/form/latest/docs/framework/react/guides/basic-concepts#field-state) for a full accounting of all these various state values, but `isTouched` indicates whether the user has ever focused, and blured your input, and the onBlur callabck is what makes this work.
 
+## Array fields
+
+Remember when we said that our data would have a metadata field that was an Array?
+
+```ts
+metadata: {
+  name: string;
+  value: string;
+}
+[];
+```
+
+Let's see how TanStack Form manages that. First we use a Field like we have been, but we set its mode to "array." The "field" in the render prop will have a `pushValue` method, for adding an item to the array, as well as a `removeValue` method for removing one of the items, by index.
+
+From there, `field.state.value` inside the Field component's render function would be the array. We can loop it, and for each item, render _another_ field for each item.
+
+Let's look at the code
+
+```tsx
+<form.Field name="metadata" mode="array">
+  {field => (
+    <div className="flex flex-col gap-1">
+      <Button variant="outline" type="button" onClick={() => field.pushValue({ name: "", value: "" })}>
+        Add Metadata
+      </Button>
+      {field.state.value.map((_, idx) => {
+        return (
+          <div key={idx} className="flex gap-1">
+            <div>
+              <form.Field
+                name={`metadata[${idx}].name`}
+                validators={{
+                  onSubmit: ({ value }) => {
+                    if (!value) {
+                      return "Name is required";
+                    }
+                  },
+                }}
+                children={field => (
+                  <div className="flex flex-col gap-1">
+                    <Label htmlFor={field.name}>Name</Label>
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={event => field.handleChange(event.target.value)}
+                      placeholder=""
+                    />
+                    {!field.state.meta.isValid && <p className="text-red-500">{field.state.meta.errors.join(", ")}</p>}
+                  </div>
+                )}
+              />
+            </div>
+            <div>
+              <form.Field
+                name={`metadata[${idx}].value`}
+                validators={{
+                  onSubmit: ({ value }) => {
+                    if (!value) {
+                      return "Value is required";
+                    }
+                  },
+                }}
+                children={field => (
+                  <div className="flex flex-col gap-1">
+                    <Label htmlFor={field.name}>Value</Label>
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={event => field.handleChange(event.target.value)}
+                      placeholder=""
+                    />
+                    {!field.state.meta.isValid && <p className="text-red-500">{field.state.meta.errors.join(", ")}</p>}
+                  </div>
+                )}
+              />
+            </div>
+            <div className="self-end">
+              <Button variant="outline" type="button" onClick={() => field.removeValue(idx)}>
+                Remove
+              </Button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  )}
+</form.Field>
+```
+
+It's a lot, but with this many moving pieces hopefully having all the code in one place aids in understanding it.
+
+## Referencing other field values
+
+Let's get a little contrived and pretend that, when entering a product, if the price is > 50, we require a description. Let's further pretend that whenever price has a value > 50, we immediately want to display a helpful message indicating that description will be required since the price is what it is.
+
+The naive solution won't work; we can't just do this
+
+```ts
+const DescriptionFieldUseStore: FC<{ form: ProductForm }> = (props) => {
+  const { form } = props;
+
+  const price = form.getFieldValue("price");
+  const descriptionRequired = typeof price === "number" && price > 50;
+
+  // later ...
+  {descriptionRequired && <p className="text-yellow-800">Description is required when price is greater than $50</p>}
+}
+```
+
+The reason is that `form.getFieldValue("price");` is not reactive. This is for performance reasons. If you want to dynamically and reactively get access to other parts of the form, you have a few options.
+
+### useStore
+
+The useStore is one option.
+
+```ts
+import { useStore } from "@tanstack/react-form";
+```
+
+This allows you to reactively grab whatever you need.
+
+```ts
+const price = useStore(form.store, state => state.values.price);
+```
+
+### Subscribe
+
+The other option is the Subscribe component. You specify the slice of the form's state you want, and you're then given a render prop with that reactive slice of the form
+
+```tsx
+<form.Subscribe selector={(formState) => ({ price: formState.values.price })}>
+  {({ price }) => {
+    const descriptionRequired = typeof price === "number" && price > 50;
+    return (
+      <form.Field
+        name="description"
+        // and so on...
+```
+
+Use whichever is more convenient for your particular use case.
+
 ## Composition
 
 Do we have everything we need? Not really. Our `form` object was created from the `useForm` hook, and we've been using that for our Field components. Field is not a component we import; instead it's created on the fly, from the `useForm` hook, and attached to the `form` object returned therefrom. The reason is so that all our various form fields will be strongly typed, with appropriate `name`, `value`, etc values.
+
+But we may not want to put our entire form into one big React component if things grow even moderately large. Breaking up our form into smaller components is a great idea, and we could pass our `form` object as needed, as a prop. But what's the `type`? Unfortunately, Typescript reports it as
+
+```ts
+const form: ReactFormExtendedApi<Product, FormValidateOrFn<Product> | undefined, FormValidateOrFn<Product> | undefined, FormAsyncValidateOrFn<Product> | undefined, FormValidateOrFn<Product> | undefined, FormAsyncValidateOrFn<Product> | undefined, FormValidateOrFn<Product> | undefined, FormAsyncValidateOrFn<Product> | undefined, FormValidateOrFn<...> | undefined, FormAsyncValidateOrFn<...> | undefined, FormAsyncValidateOrFn<...> | undefined, unknown>
+```
+
+The return type from the `useForm` type is a generic that takes a LOT of args, and they're required. These control things like the data in the form, obviously, but also things like validation.
+
+Fortunately, a good understanding of TypeScript can go a long, long way here. Let's move the call to useForm into its own function
+
+```ts
+export const useProductForm = (onSubmit: (value: Product) => void) => {
+  return useForm({
+    defaultValues: defaultProduct,
+
+    onSubmit: async ({ value }) => {
+      onSubmit(value);
+    },
+  });
+};
+```
+
+and now we can leverage some TypeScript helpers, and inferred typing to easily get the type we're looking for.
+
+```
+export type ProductForm = ReturnType<typeof useProductForm>;
+```
+
+And now we can break up our form into smaller components, and pass the `form` object in correctly
+
+```ts
+const DescriptionFieldSubscribe: FC<{ form: ProductForm }> = (props) => {
+```
+
+## Composing even better
+
+Let's imagine this bit of markup
+
+```tsx
+<div className="flex flex-col gap-1">
+  <Label htmlFor={field.name}>Product Name</Label>
+  <Input
+    id={field.name}
+    name={field.name}
+    value={field.state.value}
+    onBlur={field.handleBlur}
+    onChange={event => field.handleChange(event.target.value)}
+  />
+  {!field.state.meta.isValid && <p className="text-red-500">{field.state.meta.errors.join(", ")}</p>}
+</div>
+```
+
+is actually more complex than it is, and that it would make sense to put it into a reusable component. You'd think this would be easy, but in practice passing the `field` object we see used above is trickier than it would seem; there's again no simple type, and there's no trick available like we saw before, when we wrapped our useForm hook call in a function, and then used TypeScript's ReturnType helper.
+
+But Form has the helpers we need. Let's take a look.
+
+First we can grab some new imports
+
+```ts
+import { createFormHook, createFormHookContexts } from "@tanstack/react-form";
+```
+
+This part is a little weird and won't make complete sense, yet, but
+
+```ts
+const { fieldContext, useFieldContext, formContext } = createFormHookContexts();
+```
+
+Now let's create the reusable form component
+
+```ts
+const BasicTextField: FC<{ label: string }> = (props) => {
+  const { label } = props;
+  const field = useFieldContext<string>();
+
+  return (
+    <div className="flex flex-col gap-1">
+      <Label htmlFor={field.name}>{label}</Label>
+      <Input
+        id={field.name}
+        name={field.name}
+        value={field.state.value}
+        onBlur={field.handleBlur}
+        onChange={(event) => field.handleChange(event.target.value)}
+      />
+      {!field.state.meta.isValid && <p className="text-red-500">{field.state.meta.errors.join(", ")}</p>}
+    </div>
+  );
+};
+```
+
+It's just a simple component, which takes a label as a prop. The real magic happens here:
+
+```ts
+const field = useFieldContext<string>();
+```
+
+This says, just grab whatever the current field is, in this form. And since we can't rely on inferred typing, since we don't have direct access to the type, we have to pass a generic arg to let TS know that this is in fact a string field.
+
+Now we can tell TanStack about our custom form component, and get back a new hook to create our form with
+
+```ts
+const { useAppForm } = createFormHook({
+  fieldContext,
+  formContext,
+  fieldComponents: { BasicTextField },
+  formComponents: {},
+});
+
+export const useProductForm = (onSubmit: (value: Product) => void) => {
+  return useAppForm({
+    defaultValues: defaultProduct,
+
+    onSubmit: async ({ value }) => {
+      onSubmit(value);
+    },
+  });
+};
+```
+
+And now we can do everything as before, but now when we provide the markup for a field, we have a new option
+
+```ts
+<form.AppField
+  name="name"
+  validators={{
+    onSubmit: ({ value }) => {
+      if (!value) {
+        return "Product name is required!";
+      }
+    },
+  }}
+  children={(field) => <field.BasicTextField label="Product Name" />}
+/>
+```
 
 ## Concluding thoughts
 
