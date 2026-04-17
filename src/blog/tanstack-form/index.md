@@ -126,7 +126,25 @@ useForm({
 });
 ```
 
-![Network tab](/tanstack-blog-post/img12.png)
+The structure of the defaultValues we provided became the structure of the data our form collected, and maintained. This means that things like the `name` value we provide to Fields is statically checked, and therefore even autocompleted.
+
+![Field name autocomplete](/tanstack-form/img1.png)
+
+### Validators
+
+Moving on,
+
+```ts
+validators={{
+  onSubmit: ({ value }) => {
+    if (!value) {
+      return "Name is required";
+    }
+  },
+}}
+```
+
+defines our validation. Start allows you to specify where and even _when_ validation occurs. I like having these errors show up only after the user tries to submit the form, but you can specify onChange, or onBlur, or even some other, more advanced options. See the [docs](https://tanstack.com/form/latest/docs/framework/react/guides/validation) for more info.
 
 ## Concluding thoughts
 
