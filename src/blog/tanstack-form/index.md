@@ -146,6 +146,37 @@ validators={{
 
 defines our validation. Start allows you to specify where and even _when_ validation occurs. I like having these errors show up only after the user tries to submit the form, but you can specify onChange, or onBlur, or even some other, more advanced options. See the [docs](https://tanstack.com/form/latest/docs/framework/react/guides/validation) for more info.
 
+### Rendering the actual form input
+
+Ok how do we actually render the form input? TanStack Form is headless; it gives you the state you need, and then lets you render whatever you want. It does this with a React classic pattern that's not used quite as often anymore (hooks removed many of its applications) but is no less valuable for use cases exactly like this: render props.
+
+Some may not know this, but the `children` value passed into a React component does not have to be a React Node: you can also pass a _function_ that creates your React node. That's what this is:
+
+```ts
+children={(field) => (
+  <div className="flex flex-col gap-1">
+    <Label htmlFor={field.name}>Product Name</Label>
+    <Input
+      id={field.name}
+      name={field.name}
+      value={field.state.value}
+      onBlur={field.handleBlur}
+      onChange={(event) => field.handleChange(event.target.value)}
+    />
+    {!field.state.meta.isValid && <p className="text-red-500">{field.state.meta.errors.join(", ")}</p>}
+    {field.state.meta.isPristine && <p className="text-gray-500">Pristine</p>}
+    {field.state.meta.isTouched && <p className="text-gray-500">Touched</p>}
+    {field.state.meta.isDirty && <p className="text-gray-500">Dirty</p>}
+  </div>
+)}
+```
+
+TanStack Form's Field component handles the grunt work of _calling_ the function you provide, and it _passes_ this function a parameter that has everything we need to render everything.
+
+In this code, I'm rendering a ShadCN Label and Input. The field prop passed to my render function gives me a name value, plus a state object that has things like the current value. Naturally there's an onChange handler we need to invoke with any updated values, but you might wonder why I need to pass through an onBlur handler.
+
+That's to help some of the field's state. You can see the validation error info attached to the field's state.meta object, which you can render however you'd like, but there's also input state like `isTouched` and `isDirty`. Check the [the docs](https://tanstack.com/form/latest/docs/framework/react/guides/basic-concepts#field-state) for a full accounting of all these various state values, but `isTouched` indicates whether the user has ever focused, and blured your input, and the onBlur callabck is what makes this work.
+
 ## Concluding thoughts
 
 In the end, a few lines of webpack config allowed us to easily load global, or scoped css, with optional sass processing in either case. Of course this is only scratching the surface of what's possible. There's no shortage of PostCSS, or other plugins you could toss into the loader list.
