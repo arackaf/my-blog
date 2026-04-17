@@ -146,7 +146,7 @@ validators={{
 }}
 ```
 
-defines our validation. Start allows you to specify where and even _when_ validation occurs. I like having these errors show up only after the user tries to submit the form, but you can specify onChange, onBlur, or even some other, more advanced options. See the [docs](https://tanstack.com/form/latest/docs/framework/react/guides/validation) for more info.
+defines our validation. Form allows you to specify where and even _when_ validation occurs. I like having these errors show up only after the user tries to submit the form, but you can specify onChange, onBlur, or even some other, more advanced options. See the [docs](https://tanstack.com/form/latest/docs/framework/react/guides/validation) for more info.
 
 ### Rendering the actual form input
 
