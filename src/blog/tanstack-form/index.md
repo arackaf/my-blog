@@ -4,19 +4,19 @@ date: "2026-04-12T10:00:00.000Z"
 description: An introduction to TanStack Form
 ---
 
-Forms are a notoriously annoying part of React. They seem simple at first. Just create some basic state for each input, wire up your controlled inputs, and that's that. But of course you'll need to wire up validation somehow. And you'll probably want to add some niceties, like clearing those validation errors as a user types into an invalid field. And you'll probably not want to dump your entire form into one component, so just pass around all those state values. Or put them into context. Of you could use uncontrolled form inputs, in which case you don't need those state values, but now you'll be dealing with raw dom element objects for all your inputs.
+Forms are a notoriously annoying part of React. They seem simple at first, just create some basic state for each input, wire up your controlled inputs, and that's that. But of course you'll need to wire up validation somehow. And you'll probably want to add some niceties, like clearing validation errors as a user types into an invalid field. And you'll probably not want to dump your entire form into one component, so you'd just pass around all those state values. Or put them into context. Of you could use uncontrolled form inputs, in which case you don't need those state values, but now you'll be dealing with raw dom element objects for all your inputs.
 
-Manually managing your own forms always starts simple, but quickly becomes an enormous pain.
+Manually managing your own forms always starts simple, but quickly becomes a pain.
 
-## TanStack Start
+## TanStack Form
 
-There's no shortage of form libraries to help manage this complexity. In this post, we'll look at TanStack Start.
+There's no shortage of form libraries to help manage this complexity. In this post, we'll look at TanStack Form.
 
 Like other TanStack libraries, Form takes strong typing, and performance seriously. It's also detail-oriented, and has planned for any weird edge case imaginable.
 
 ## Our first form
 
-Let's jump in. We'll build a form to manage a Product of this form
+Let's jump in. We'll build a form to manage a Product of this structure
 
 ```ts
 export interface Product {
@@ -38,10 +38,10 @@ const defaultProduct: Product = {
 };
 ```
 
-TanStack Form gives us a `useForm` hook for generating out ... _form_.
+TanStack Form gives us a `useForm` hook for generating our ... _form_.
 
 ```ts
-useForm({
+const form = useForm({
   defaultValues: defaultProduct,
 
   onSubmit: async ({ value }) => {
@@ -50,7 +50,7 @@ useForm({
 });
 ```
 
-Now we can render our form
+Now we can render our form.
 
 ```tsx
 <form
@@ -63,7 +63,7 @@ Now we can render our form
 ></form>
 ```
 
-The onSubmit handler prevents the native html forma behavior, and then calls `form.handleSubmit()` which invokes any validation you define, which we'll get to, and, if no validation errors, invokes the onSubmit handler you passed to the useForm hook.
+Our onSubmit handler prevents the native html forma behavior, and then calls `form.handleSubmit()` which invokes any validation you define, which we'll get to, and, if no validation errors, invokes the original `onSubmit` callback you passed to the useForm hook.
 
 ## Defining fields
 
@@ -126,7 +126,7 @@ useForm({
 });
 ```
 
-The structure of the defaultValues we provided became the structure of the data our form collected, and maintained. This means that things like the `name` value we provide to Fields is statically checked, and therefore even autocompleted.
+The structure of the defaultValues we provided became the structure of the data our form now collects, and maintains. This means things like our Fields's `name` prop is statically checked, and therefore even autocompleted.
 
 ![Field name autocomplete](/tanstack-form/img1.png)
 
@@ -146,13 +146,13 @@ validators={{
 }}
 ```
 
-defines our validation. Start allows you to specify where and even _when_ validation occurs. I like having these errors show up only after the user tries to submit the form, but you can specify onChange, or onBlur, or even some other, more advanced options. See the [docs](https://tanstack.com/form/latest/docs/framework/react/guides/validation) for more info.
+defines our validation. Start allows you to specify where and even _when_ validation occurs. I like having these errors show up only after the user tries to submit the form, but you can specify onChange, onBlur, or even some other, more advanced options. See the [docs](https://tanstack.com/form/latest/docs/framework/react/guides/validation) for more info.
 
 ### Rendering the actual form input
 
-Ok how do we actually render the form input? TanStack Form is headless; it gives you the state you need, and then lets you render whatever you want. It does this with a React classic pattern that's not used quite as often anymore (hooks removed many of its applications) but is no less valuable for use cases exactly like this: render props.
+How do we actually render the form input? TanStack Form is headless; it gives you the state you need, and then lets you render whatever you want. It does this with a classic React pattern that's not used quite as often anymore (hooks removed many of its applications) but is no less valuable for use cases exactly like this: render functions.
 
-Some may not know this, but the `children` value passed into a React component does not have to be a React Node: you can also pass a _function_ that creates your React node. That's what this is:
+Some may not know this, but the `children` value passed into a React component does not have to be a React Node: you can also pass a _function_ that returns your React node. That's what this is:
 
 ```ts
 children={(field) => (
@@ -175,13 +175,13 @@ children={(field) => (
 
 TanStack Form's Field component handles the grunt work of _calling_ the function you provide, and it _passes_ this function a parameter that has everything we need to render everything.
 
-In this code, I'm rendering a ShadCN Label and Input. The field prop passed to my render function gives me a name value, plus a state object that has things like the current value. Naturally there's an onChange handler we need to invoke with any updated values, but you might wonder why I need to pass through an onBlur handler.
+In this code, I'm rendering a ShadCN Label, and Input. The field prop passed to my render function gives me a name value, plus a state object that has things like the current value. Naturally there's an onChange handler we need to invoke with any updated values, but you might wonder why I need to pass an onBlur handler.
 
-That's to help some of the field's state. You can see the validation error info attached to the field's state.meta object, which you can render however you'd like, but there's also input state like `isTouched` and `isDirty`. Check the [the docs](https://tanstack.com/form/latest/docs/framework/react/guides/basic-concepts#field-state) for a full accounting of all these various state values, but `isTouched` indicates whether the user has ever focused, and blured your input, and the onBlur callabck is what makes this work.
+That's to help some of the field's state. In the code above you can see the validation error info attached to the field's state.meta object, but there's also input state like `isTouched` and `isDirty`. Check the [the docs](https://tanstack.com/form/latest/docs/framework/react/guides/basic-concepts#field-state) for a full accounting of all these various state values, but `isTouched` indicates whether the user has ever focused, and blurred your input, and the onBlur callback is what makes this work.
 
 ## Array fields
 
-Remember when we said that our data would have a metadata field that was an Array?
+Our original data had a metadata field that was an Array.
 
 ```ts
 metadata: {
@@ -191,9 +191,9 @@ metadata: {
 [];
 ```
 
-Let's see how TanStack Form manages that. First we use a Field like we have been, but we set its mode to "array." The "field" in the render prop will have a `pushValue` method, for adding an item to the array, as well as a `removeValue` method for removing one of the items, by index.
+Let's see how TanStack Form manages that. First, we use a Field like we have been, but we set its mode to "array." The "field" in the render prop will have a `pushValue` method, for adding an item to the array, as well as a `removeValue` method for removing one of the items, by index.
 
-From there, `field.state.value` inside the Field component's render function would be the array. We can loop it, and for each item, render _another_ field for each item.
+From there, `field.state.value` inside the Field component's render function would be the array itself. We can loop it, and for each item, render _another_ field for each item.
 
 Let's look at the code
 
@@ -272,13 +272,35 @@ Let's look at the code
 </form.Field>
 ```
 
-It's a lot, but with this many moving pieces hopefully having all the code in one place aids in understanding it.
+Notice the `name` on the inner field
+
+```tsx
+name={`metadata[${idx}].name`}
+```
+
+TanStack allows, and even type checks that this is a perfectly valid name value.
+
+We can add items to our metadata
+
+```tsx
+<Button variant="outline" type="button" onClick={() => field.pushValue({ name: "", value: "" })}>
+  Add Metadata
+</Button>
+```
+
+and remove them
+
+```tsx
+<Button variant="outline" type="button" onClick={() => field.removeValue(idx)}>
+  Remove
+</Button>
+```
 
 ## Referencing other field values
 
 Let's get a little contrived and pretend that, when entering a product, if the price is > 50, we require a description. Let's further pretend that whenever price has a value > 50, we immediately want to display a helpful message indicating that description will be required since the price is what it is.
 
-The naive solution won't work; we can't just do this
+The naive solution won't work; we can't just do this:
 
 ```ts
 const DescriptionFieldUseStore: FC<{ form: ProductForm }> = (props) => {
@@ -296,7 +318,7 @@ The reason is that `form.getFieldValue("price");` is not reactive. This is for p
 
 ### useStore
 
-The useStore is one option.
+The useStore hook is one option.
 
 ```ts
 import { useStore } from "@tanstack/react-form";
@@ -310,7 +332,7 @@ const price = useStore(form.store, state => state.values.price);
 
 ### Subscribe
 
-The other option is the Subscribe component. You specify the slice of the form's state you want, and you're then given a render prop with that reactive slice of the form
+The other option is the Subscribe component. You specify the slice of the form's state you want, and you're given a render function with that reactive slice of the form passed in
 
 ```tsx
 <form.Subscribe selector={(formState) => ({ price: formState.values.price })}>
@@ -328,7 +350,9 @@ Use whichever is more convenient for your particular use case.
 
 Do we have everything we need? Not really. Our `form` object was created from the `useForm` hook, and we've been using that for our Field components. Field is not a component we import; instead it's created on the fly, from the `useForm` hook, and attached to the `form` object returned therefrom. The reason is so that all our various form fields will be strongly typed, with appropriate `name`, `value`, etc values.
 
-But we may not want to put our entire form into one big React component if things grow even moderately large. Breaking up our form into smaller components is a great idea, and we could pass our `form` object as needed, as a prop. But what's the `type`? Unfortunately, Typescript reports it as
+But we may not want to put our entire form into one big React component if things grow even moderately large. Breaking up our form into smaller components is a great idea, and we could simply pass our `form` object around as needed, as a prop.
+
+But what's the _type_ of this `form` object? Unfortunately, Typescript reports it as
 
 ```ts
 const form: ReactFormExtendedApi<Product, FormValidateOrFn<Product> | undefined, FormValidateOrFn<Product> | undefined, FormAsyncValidateOrFn<Product> | undefined, FormValidateOrFn<Product> | undefined, FormAsyncValidateOrFn<Product> | undefined, FormValidateOrFn<Product> | undefined, FormAsyncValidateOrFn<Product> | undefined, FormValidateOrFn<...> | undefined, FormAsyncValidateOrFn<...> | undefined, FormAsyncValidateOrFn<...> | undefined, unknown>
@@ -352,7 +376,7 @@ export const useProductForm = (onSubmit: (value: Product) => void) => {
 
 and now we can leverage some TypeScript helpers, and inferred typing to easily get the type we're looking for.
 
-```
+```ts
 export type ProductForm = ReturnType<typeof useProductForm>;
 ```
 
@@ -380,7 +404,7 @@ Let's imagine this bit of markup
 </div>
 ```
 
-is actually more complex than it is, and that it would make sense to put it into a reusable component. You'd think this would be easy, but in practice passing the `field` object we see used above is trickier than it would seem; there's again no simple type, and there's no trick available like we saw before, when we wrapped our useForm hook call in a function, and then used TypeScript's ReturnType helper.
+is actually more complex than it is, and that it would make sense to put it into a reusable component. You'd think this would be easy, but passing the `field` object we see used above is trickier than it would seem; there's again no simple type, and there's no trick available like we saw before, when we wrapped our useForm hook call in a function, and then used TypeScript's ReturnType helper.
 
 But Form has the helpers we need. Let's take a look.
 
@@ -390,7 +414,7 @@ First we can grab some new imports
 import { createFormHook, createFormHookContexts } from "@tanstack/react-form";
 ```
 
-This part is a little weird and won't make complete sense, yet, but
+This part is a little weird and won't make complete sense, yet
 
 ```ts
 const { fieldContext, useFieldContext, formContext } = createFormHookContexts();
@@ -464,12 +488,10 @@ And now we can do everything as before, but now when we provide the markup for a
 />
 ```
 
+Going through this trouble for such a simple component is probably silly, but for a real application it can simplify a lot of things.
+
 ## Concluding thoughts
 
-In the end, a few lines of webpack config allowed us to easily load global, or scoped css, with optional sass processing in either case. Of course this is only scratching the surface of what's possible. There's no shortage of PostCSS, or other plugins you could toss into the loader list.
+TanStack form is a surprisingly pleasant form library. The api is a bit more superficially complex than you might expect, but once you understand how it works, you immediately see its power, and flexibility.
 
-Happy Coding!
-
-```
-
-```
+Happy coding!
