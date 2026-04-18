@@ -409,6 +409,10 @@ Let's imagine this bit of markup
 
 is actually more complex than it is, and that it would make sense to put it into a reusable component. You'd think this would be easy, but passing the `field` object we see used above is trickier than it would seem; there's again no simple type, and there's no trick available like we saw before, when we wrapped our useForm hook call in a function, and then used TypeScript's ReturnType helper.
 
+### One simple option
+
+If you're willing to bend a _little_ on static typing, it actually _is_ simple: there's a `AnyFieldApi` type exported from TanStack Form. This faithfully represents _any_ field object. The only catch is that the `value` is typed as `any`. How could it not? It's an umbrella type for any field. But in practice this might be _fine_.
+
 But Form has the helpers we need. Let's take a look.
 
 First we can grab some new imports
