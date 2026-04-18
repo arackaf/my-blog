@@ -4,7 +4,7 @@ date: "2026-04-12T10:00:00.000Z"
 description: An introduction to TanStack Form
 ---
 
-Forms are a notoriously annoying part of React. They seem simple at first, just create some basic state for each input, wire up your controlled inputs, and that's that. But of course you'll need to wire up validation somehow. And you'll probably want to add some niceties, like clearing validation errors as a user types into an invalid field. And you'll probably not want to dump your entire form into one component, so you'd just pass around all those state values. Or put them into context. Of you could use uncontrolled form inputs, in which case you don't need those state values, but now you'll be dealing with raw dom element objects for all your inputs.
+Forms are a notoriously annoying part of React. They seem simple at first: just create some basic state for each input, wire up your controlled inputs, and that's that. But of course you'll need to wire up validation somehow. And you'll probably want to add some niceties, like clearing validation errors as a user types into an invalid field. And you'll probably not want to dump your entire form into one component, so you'd just pass around all those state values. Or put them into context. Of you could use uncontrolled form inputs, in which case you don't need those state values, but now you'll be dealing with raw dom elements for all your inputs.
 
 Manually managing your own forms always starts simple, but quickly becomes a pain.
 
@@ -63,9 +63,9 @@ Now we can render our form.
 ></form>
 ```
 
-Our onSubmit handler prevents the native html forma behavior, and then calls `form.handleSubmit()` which invokes any validation you define, which we'll get to, and, if no validation errors, invokes the original `onSubmit` callback you passed to the useForm hook.
+Our onSubmit handler prevents the native html form behavior, and then calls `form.handleSubmit()` which invokes any validation you define, which we'll get to, and, if no validation errors, invokes the original `onSubmit` callback you passed to the useForm hook.
 
-## Defining fields
+## Managing fields
 
 Let's look at a single field defined inside of our form. We'll look at the entire Field, and then pick it apart.
 
@@ -173,6 +173,10 @@ children={(field) => (
 )}
 ```
 
+**_NOTE_**
+You don't have to use the children prop; you can also pass this function as the actual value in between `<form.Field>` and `</form.Field>`. The two are equivalent. The TanStack Form docs uses the actual children prop, but you can use whichever you prefer; they're identical.  
+**_/NOTE_**
+
 TanStack Form's Field component handles the grunt work of _calling_ the function you provide, and it _passes_ this function a parameter that has everything we need to render everything.
 
 In this code, I'm rendering a ShadCN Label, and Input. The field prop passed to my render function gives me a name value, plus a state object that has things like the current value. Naturally there's an onChange handler we need to invoke with any updated values, but you might wonder why I need to pass an onBlur handler.
@@ -184,11 +188,10 @@ That's to help some of the field's state. In the code above you can see the vali
 Our original data had a metadata field that was an Array.
 
 ```ts
-metadata: {
-  name: string;
-  value: string;
+export interface Product {
+  // ...
+  metadata: { name: string; value: string }[];
 }
-[];
 ```
 
 Let's see how TanStack Form manages that. First, we use a Field like we have been, but we set its mode to "array." The "field" in the render prop will have a `pushValue` method, for adding an item to the array, as well as a `removeValue` method for removing one of the items, by index.
