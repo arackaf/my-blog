@@ -457,7 +457,7 @@ and then
 
 Really, we could end this post here. Everything we've seen will cover the overwhelming majority of any use case you could ever imagine. But Form has some neat, advanced features that are at least worth looking at.
 
-Let's grab some new imports
+Let's start with some new imports
 
 ```ts
 import { createFormHook, createFormHookContexts } from "@tanstack/react-form";
@@ -469,7 +469,7 @@ This part is a little weird and won't make complete sense, yet
 const { fieldContext, useFieldContext, formContext } = createFormHookContexts();
 ```
 
-Now let's create the reusable form component
+Let's now create a reusable form component
 
 ```ts
 const BasicTextField: FC<{ label: string }> = (props) => {
@@ -492,7 +492,7 @@ const BasicTextField: FC<{ label: string }> = (props) => {
 };
 ```
 
-It's just a simple component, which takes a label as a prop. The real magic happens here:
+It's just a simple component, which takes a label as a prop. But notice there's no field prop, instead we have this:
 
 ```ts
 const field = useFieldContext<string>();
@@ -537,7 +537,9 @@ And now we can do everything as before, but now when we provide the markup for a
 />
 ```
 
-Going through this trouble for such a simple component is probably silly, but for a real application it can simplify a lot of things.
+This allows us to attach any custom components directly to our form, which can then access whatever field you're currently editing.
+
+For extremely large applications, something like this can come in handy, and help keep everything organized.
 
 ## Concluding thoughts
 
