@@ -407,15 +407,57 @@ Let's imagine this bit of markup
 </div>
 ```
 
-is actually more complex than it is, and that it would make sense to put it into a reusable component. You'd think this would be easy, but passing the `field` object we see used above is trickier than it would seem; there's again no simple type, and there's no trick available like we saw before, when we wrapped our useForm hook call in a function, and then used TypeScript's ReturnType helper.
+is actually more complex than it is, and that it would make sense to put it into a reusable component.
 
-### One simple option
+You have a few options.
 
-If you're willing to bend a _little_ on static typing, it actually _is_ simple: there's a `AnyFieldApi` type exported from TanStack Form. This faithfully represents _any_ field object. The only catch is that the `value` is typed as `any`. How could it not? It's an umbrella type for any field. But in practice this might be _fine_.
+### The AnyFieldApi type
 
-But Form has the helpers we need. Let's take a look.
+There's a nice `AnyFieldApi` type exported from TanStack Form. This faithfully represents _any_ field object. The only catch is that the `value` is typed as `any`. How could it not? It's an umbrella type for any field. But in practice this might be _fine_.
 
-First we can grab some new imports
+But you can define any components you want, and pass your field in as `AnyFieldApi`, and then just type the `value` prop as needed.
+
+```tsx
+const SimpleTextField: FC<{ label: string; field: AnyFieldApi }> = props => {
+  const { label, field } = props;
+
+  return (
+    <div className="flex flex-col gap-1">
+      <Label htmlFor={field.name}>{label}</Label>
+      <Input
+        id={field.name}
+        name={field.name}
+        value={field.state.value}
+        onBlur={field.handleBlur}
+        onChange={event => field.handleChange(event.target.value)}
+      />
+      {!field.state.meta.isValid && <p className="text-red-500">{field.state.meta.errors.join(", ")}</p>}
+    </div>
+  );
+};
+```
+
+and then
+
+```tsx
+<form.Field
+  name="skuNumber"
+  validators={{
+    onSubmit: ({ value }) => {
+      if (!value) {
+        return "SKU is required";
+      }
+    },
+  }}
+  children={field => <SimpleTextField label="SKU Number" field={field} />}
+/>
+```
+
+### FieldComponents and useFieldContext
+
+Really, we could end this post here. Everything we've seen will cover the overwhelming majority of any use case you could ever imagine. But Form has some neat, advanced features that are at least worth looking at.
+
+Let's grab some new imports
 
 ```ts
 import { createFormHook, createFormHookContexts } from "@tanstack/react-form";
