@@ -4,7 +4,7 @@ date: "2026-04-12T10:00:00.000Z"
 description: An introduction to TanStack Form
 ---
 
-Forms are a notoriously annoying part of React. They seem simple at first: just create some basic state for each input, wire up your controlled inputs, and that's that. But of course you'll need to wire up validation somehow. And you'll probably want to add some niceties, like clearing validation errors as a user types into an invalid field. And you'll probably not want to dump your entire form into one component, so you'd just pass around all those state values. Or put them into context. Of you could use uncontrolled form inputs, in which case you don't need those state values, but now you'll be dealing with raw dom elements for all your inputs.
+Forms are a notoriously annoying part of React. They seem simple at first: just create some basic state for each input, wire up your controlled inputs, and that's that. But of course you'll need validation. And you'll probably want to add some niceties, like clearing validation errors as a user types into an invalid field. And you'll probably not want to dump your entire form into one component, so you'd just pass around all those state values. Or put them into context. Of you could use uncontrolled form inputs, in which case you don't need those state values, but now you'll be dealing with raw dom elements for all your inputs.
 
 Manually managing your own forms always starts simple, but quickly becomes a pain.
 
@@ -63,7 +63,9 @@ Now we can render our form.
 ></form>
 ```
 
-Our onSubmit handler prevents the native html form behavior, and then calls `form.handleSubmit()` which invokes any validation you define, which we'll get to, and, if no validation errors, invokes the original `onSubmit` callback you passed to the useForm hook.
+(the form rendered above is the form variable we just created from the `useForm` hook call, not a generic html form).
+
+Our onSubmit handler prevents the native html form behavior, and then calls `form.handleSubmit()` which invokes any validation you define, which we'll get to, and, if no validation errors are found, invokes the original `onSubmit` callback you passed to the useForm hook.
 
 ## Managing fields
 
@@ -98,7 +100,7 @@ Let's look at a single field defined inside of our form. We'll look at the entir
 />
 ```
 
-Let's start at the very top. We have to specify which piece of data our form field is entering data for, and that's what the `name` prop is for.
+Let's start at the very top. We have to specify which piece of data our form field is managing, and that's what the `name` prop is for.
 
 ```tsx
 name = "name";
@@ -146,7 +148,7 @@ validators={{
 }}
 ```
 
-defines our validation. Form allows you to specify where and even _when_ validation occurs. I like having these errors show up only after the user tries to submit the form, but you can specify onChange, onBlur, or even some other, more advanced options. See the [docs](https://tanstack.com/form/latest/docs/framework/react/guides/validation) for more info.
+defines our validation. Form allows you to specify where validation occurs. I like having these errors show up only after the user tries to submit the form, but you can specify onChange, onBlur, or even some other, more advanced options. See the [docs](https://tanstack.com/form/latest/docs/framework/react/guides/validation) for more info.
 
 ### Rendering the actual form input
 
@@ -281,7 +283,7 @@ Notice the `name` on the inner field
 name={`metadata[${idx}].name`}
 ```
 
-TanStack allows, and even type checks that this is a perfectly valid name value.
+TanStack allows, and even type checks that this is a perfectly valid name.
 
 We can add items to our metadata
 
@@ -492,13 +494,13 @@ const BasicTextField: FC<{ label: string }> = (props) => {
 };
 ```
 
-It's just a simple component, which takes a label as a prop. But notice there's no field prop, instead we have this:
+It's just a simple component, which takes a label as a prop. But notice there's no field prop; instead we have this
 
 ```ts
 const field = useFieldContext<string>();
 ```
 
-This says, just grab whatever the current field is, in this form. And since we can't rely on inferred typing, since we don't have direct access to the type, we have to pass a generic arg to let TS know that this is in fact a string field.
+This says, "grab whatever the current field is, in this form." And since we can't rely on inferred typing, since we don't have direct access to the type, we have to pass a generic arg to let TS know that this is in fact a string field.
 
 Now we can tell TanStack about our custom form component, and get back a new hook to create our form with
 
@@ -521,7 +523,7 @@ export const useProductForm = (onSubmit: (value: Product) => void) => {
 };
 ```
 
-And now we can do everything as before, but now when we provide the markup for a field, we have a new option
+And now we can do everything as before, but when we provide the markup for a field, we have a new option
 
 ```ts
 <form.AppField
@@ -539,7 +541,9 @@ And now we can do everything as before, but now when we provide the markup for a
 
 This allows us to attach any custom components directly to our form, which can then access whatever field you're currently editing.
 
-For extremely large applications, something like this can come in handy, and help keep everything organized.
+Form also supports reusing groups of components, at the form level. For example, if you had a call to `<form.Subscribe>` and wanted to reuse that entire structure, there are utilities for that (`formComponents`). It's a variation on the theme we already saw, so check [the docs](https://tanstack.com/form/latest/docs/framework/react/guides/form-composition) if you're curious.
+
+For extremely large applications, these features can come in handy, and help keep everything organized.
 
 ## Concluding thoughts
 
