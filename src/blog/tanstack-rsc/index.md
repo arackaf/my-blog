@@ -6,7 +6,7 @@ description: "TanStack's new RSC feature: what it is, and how to use it"
 
 This post is about React Server Components (or RSC) in TanStack Start. The implementation is radically different, and in my opinion better than the RSC implementation you've likely seen in Next.js's app directory.
 
-This post will not be a direct 1:1 comparrison. Instead, I'll introduce this feature from first principles, as it exists in TanStack.
+This post will not be a direct 1:1 comparison. Instead, I'll introduce this feature from first principles, as it exists in TanStack.
 
 ## What are React Server Components
 
@@ -100,7 +100,7 @@ export const ApplicationShellNonRSC: FC<PropsWithChildren<ApplicationShellProps>
 };
 ```
 
-Notice that we pass that same _promise_ with our user data over to `UserHeaderMenu`, which itself is wraped in a Suspense tag. Here's that component
+Notice that we pass that same _promise_ with our user data over to `UserHeaderMenu`, which itself is wrapped in a Suspense tag. Here's that component
 
 ```tsx
 const UserHeaderMenu: FC<{ user: Promise<{ name: string; avatar: string }> }> = props => {
@@ -338,7 +338,7 @@ async function UserHeaderMenu(props: { HeaderContent: FC<{ name: string; avatar:
 }
 ```
 
-Since we're in an RSC we don't have to use the `use` pseudo-hook. We can just `await` our data however we want, and while those data are pending, the Suspende boundary's fallback will render without blocking the rest of the content, as before. Then, a second later, our data will be ready, and our avatar will show.
+Since we're in an RSC we don't have to use the `use` pseudo-hook. We can just `await` our data however we want, and while those data are pending, the Suspense boundary's fallback will render without blocking the rest of the content, as before. Then, a second later, our data will be ready, and our avatar will show.
 
 This works, and produces the same experience as we saw originally, with the client-rendered version; except now as an RSC.
 
