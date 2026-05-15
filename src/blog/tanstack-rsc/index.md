@@ -10,13 +10,13 @@ This post will not be a direct 1:1 comparison. Instead, I'll introduce this feat
 
 ## What are React Server Components
 
-Server Components are normal React components with one key feature: they run on the server, and only on the server. This leads to a few key differences.
+Server Components are normal React components with one key feature: they run on the server, _and only_ on the server. This leads to a few key differences.
 
-RSCs can be async, and can request data directly from the component. It can `await`, well, anything that yields data. That could be a fetch to a 3rd party api, or it could be a direct call to your database. Since RSC only runs on the server, you don't have to worry about your browser hopelessly failing to establish a TCP connection to your Postgres box, nor do you have to worry about secrets like connection strings being exposed to end users.
+RSCs can be async, and can request data directly, from within the component. It can `await`, well, anything that yields data. That could be a fetch to a 3rd party api, or it could be a direct call to your database. Since RSCs only run on the server, you don't have to worry about your browser hopelessly failing to establish a TCP connection to your Postgres box, nor do you have to worry about secrets like connection strings being exposed to end users.
 
-The other key difference with RSC is hidden in plain sight from what we've discussed already: since these components only ever execute on the server, their code will not ever be shipped to the client. RSCs simply send down the final markup that was rendered, without the code that created it being pushed to your client bundles.
+The other key difference with RSC is hidden in plain sight from what we've discussed already: since these components only ever execute on the server, their code will never be shipped to the client. RSCs simply send down the final markup that was rendered, without the code that created it being pushed to your client bundles.
 
-Since RSCs only exist on the server, they cannot have any state, or user-facing interactivity. They cannot use hooks like useState, or have event handlers like onClick. If you need to _integrate_ interactive content like that with RSC you of course can, and we'll go over how. But the RSCs themselves are React components that exist to run on the Server, and generate static content that's shipped to the client (possibly with client components intermixed within).
+Since RSCs only exist on the server, they cannot have any state, or user-facing interactivity. They cannot use hooks like useState, or have event handlers like onClick. If you need to _integrate_ interactive content like that with RSC you of course can, and we'll go over how. But the RSCs themselves are React components that exist to run on the Server, and generate static content that's shipped to the client (possibly with client components intermixed).
 
 ## What RSC is not
 
@@ -26,7 +26,7 @@ RSC is also not a way to server render content. TanStack Start (and Next.js for 
 
 ## Where RSC shines
 
-By rendering only on the server, your client bundles are spared the cost of all the code needed to render your content. That means component trees that are large and expensive, with minimal client-side interactivity are a prime candidate for RSC.
+By rendering only on the server, your client bundles are spared the cost of all the code needed to render your content. That means component trees that are large and expensive, with minimal client-side interactivity are a prime candidate.
 
 The original [blog post announcement](https://tanstack.com/blog/react-server-components) for TanStack's RSCs discussed using them for content with code samples. By moving the code to parse, style and format displayed code to the server, those libraries were removed from client-side bundles saving non-trivial amounts of space.
 
@@ -40,7 +40,7 @@ The repo for what we'll be building [is here](https://github.com/arackaf/tanstac
 
 ![Base ui](/tanstack-rsc/img1.jpg)
 
-If the icons in the side panel don't make much sense, it's because they're randomly chosen in a way that guarantees that the entirety of the lucide-react icon package cannot be tree shaken. This is how we're simulating a large component tree that's not needed on the client.
+If the icons in the side panel don't make much sense, it's because they're randomly chosen in a way that guarantees the entirety of the lucide-react icon package cannot be tree shaken. This is how we're simulating a large component tree that's not needed on the client.
 
 In the header, the avatar is clickable, and opens a side panel, driven by ShadCN.
 
@@ -123,7 +123,7 @@ When the data are ready, the promise resolves, and our content shows our full ui
 
 As I said above, I've used some trickery to force the entirety of the Lucide React package to be bundled up, to simulate a deeply nested component hierarchy.
 
-One a production build, a total of 308kb of JS is sent down.
+On a production build, a total of 308kb of JS is sent down.
 
 ## Rendering with RSC
 
@@ -225,11 +225,11 @@ Passing props to RSCs is a bit different than passing props to a normal React co
 return renderServerComponent(<ApplicationShellEmptyRSC />);
 ```
 
-(or soon, `createCompositeComponent`) our component has _already rendered_. It's done. It rendered _on the server_ and the thing we're holding, returned from our server function and renderServerComponent (or createCompositeComponent) is, conceptually, the final markup for the RSC.
+(or soon, `createCompositeComponent`) our component has _already rendered_. It's done. It rendered _on the server_ and the thing we're holding, returned from our server function and `renderServerComponent` (or `createCompositeComponent`) is, conceptually, the final markup for the RSC.
 
-We'll be rendering it in our component tree, but again, and this cannot be overstated, the RSC itself has _already rendered_.
+We'll be putting it in our component tree, but again, and this cannot be overstated, the RSC itself has _already rendered_.
 
-That means, if you think you can just pass some data into the RSC, and use that data to adjust the content that's rendered, you fundamentally do not understand how RSCs work: again, by the time you attempt to render it in your component tree, the RSC component has _already rendered_ on the server, and produced markup.
+That means, if you think you can just pass some data into the RSC, and use that data to adjust the content that's rendered, you fundamentally do not understand how RSCs work: again, by the time you attempt to display it in your component tree, the RSC component has _already rendered_ on the server, and produced markup. This makes any attempt to pass props from the client, to the RSC to influence said markup a non-sequitur
 
 ### So how can we pass props?
 
@@ -327,7 +327,7 @@ Notice this piece.
 </Suspense>
 ```
 
-We're rendering another component, `UserHeaderMenu` within a Suspense tag, and passing through the HeaderContent prop, which again, is a React component that takes in a name, and avatar prop. Let's see it, next
+We're rendering another component, `UserHeaderMenu` within a Suspense tag, and passing through the HeaderContent prop, which again, is a React client component that takes in a name, and avatar prop. Let's see it, next
 
 ```tsx
 async function UserHeaderMenu(props: { HeaderContent: FC<{ name: string; avatar: string }> }) {
@@ -343,7 +343,7 @@ async function UserHeaderMenu(props: { HeaderContent: FC<{ name: string; avatar:
 
 Since we're in an RSC we don't have to use the `use` pseudo-hook. We can just `await` our data however we want, and while those data are pending, the Suspense boundary's fallback will render without blocking the rest of the content, as before. Then, a second later, our data will be ready, and our avatar will show.
 
-This works, and produces the same experience as we saw originally, with the client-rendered version; except now as an RSC.
+This works, and produces the same experience we saw originally, with the client-rendered version; except now as an RSC.
 
 ## The total savings with RSC
 
