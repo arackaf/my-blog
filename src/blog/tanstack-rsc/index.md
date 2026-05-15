@@ -196,7 +196,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body className="font-sans antialiased wrap-anywhere selection:bg-[rgba(79,184,178,0.24)]">{appShell}</body>
+      <body className="font-sans antialiased wrap-anywhere selection:bg-[rgba(79,184,178,0.24)]">
+        {/* render the RSC */}
+        {appShell}
+      </body>
     </html>
   );
 }
@@ -254,7 +257,7 @@ const getAppShell = createServerFn({
 
 We're using `createCompositeComponent` which allows us to declare props. We're using the `PropsWithChildren` generic helper, which implicitly declares a children prop of type `ReactNode`, and we're adding a `HeaderContent` prop which is a component.
 
-One neat thing about TanStack's RSC implementation is that props passed like this are _automatically_ client components; you don't have to add `"use client"` to the file, although it's fine if you do.
+One neat thing about TanStack's RSC implementation is that props passed like this are _automatically_ client components; you don't have to add `"use client"` to the file, although it's fine if you do. Note that this applies to components you _pass_ to props. Content you _render_ as `children` can include RSC content if you'd like. You'd render other RSC content exactly like we did above, with `{appShell}`.
 
 As before, we load our RSC in our loader
 
