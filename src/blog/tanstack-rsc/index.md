@@ -16,13 +16,13 @@ RSCs can be async, and can request data directly from the component. It can `awa
 
 The other key difference with RSC is hidden in plain sight from what we've discussed already: since these components only ever execute on the server, their code will not ever be shipped to the client. RSCs simply send down the final markup that was rendered, without the code that created it being pushed to your client bundles.
 
-Since RSCs only exist on the server, they cannot have any state, or user-facing interactivity. They cannot use hooks like useState, or have event handlers like onClick. If you need to _integrate_ content like with with RSC you of course can, and we'll go over how. But the RSCs themselves are React components that exist to run on the Server, and generate static content that's shipped to the client (possibly with client components intermixed within).
+Since RSCs only exist on the server, they cannot have any state, or user-facing interactivity. They cannot use hooks like useState, or have event handlers like onClick. If you need to _integrate_ interactive content like that with RSC you of course can, and we'll go over how. But the RSCs themselves are React components that exist to run on the Server, and generate static content that's shipped to the client (possibly with client components intermixed within).
 
 ## What RSC is not
 
 Don't be mistaken, RSC is _not_ a solution to load data more conveniently. TanStack Start already ships extremely simple, streamlined data-loading options. You have nested, isomorphic loaders for every level in your routing hierarchy. These loaders run on the server for your initial render, and then client-side thereafter. This enables the deep integration with react-query TanStack Start offers, along with fine-grained data invalidation. I wrote all about this in a [previous introduction to TanStack Start](https://frontendmasters.com/blog/introducing-tanstack-start/).
 
-RSC is also not a way to server render content. TanStack Start (and Next.js for that matter), already server render your initial navigation, and always have. Your normal, old-school components always render on the server, and then re-render on the client, wiring up event handlers and effects in a process known as "hydration."
+RSC is also not a way to server render content. TanStack Start (and Next.js for that matter), _already_ server renders your initial navigation, and always has. Your normal, old-school components always render on the server, and then re-render on the client, wiring up event handlers and effects in a process known as "hydration." RSCs also, of course render on the server; but they _only_ render on the server.
 
 ## Where RSC shines
 
