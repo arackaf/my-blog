@@ -4,15 +4,15 @@ date: "2026-05-14T10:00:00.000Z"
 description: "TanStack's new RSC feature: what it is, and how to use it"
 ---
 
-This is a post about TanStack Start's implementation of React Server Components, or RSC. The implementation is radically different, and in my opinion better than the RSC implementation you likely saw in Next.js's app directory.
+This post is about React Server Components (or RSC) in TanStack Start. The implementation is radically different, and in my opinion better than the RSC implementation you've likely seen in Next.js's app directory.
 
-This post will not be a direct 1:1 comparrison. Instead, I'll introduce this feature from first principles, as it related to TanStack.
+This post will not be a direct 1:1 comparrison. Instead, I'll introduce this feature from first principles, as it exists in TanStack.
 
 ## What are React Server Components
 
-Server Components are normal React components with one big difference: they run on the server, and only on the server. This leads to a few key differences.
+Server Components are normal React components with one key feature: they run on the server, and only on the server. This leads to a few key differences.
 
-RSCs can be async, and can request data directly from the component. It can `await`, well, anything that yields data. That would be a fetch to a 3rd party api, or it could be a direct call to your database. Since RSC only runs on the server, you don't have to worry about your browser hopelessly failing to establish a TCP connection to your Postgres box, nor do you have to worry about secrets like connection strings being exposed to end users.
+RSCs can be async, and can request data directly from the component. It can `await`, well, anything that yields data. That could be a fetch to a 3rd party api, or it could be a direct call to your database. Since RSC only runs on the server, you don't have to worry about your browser hopelessly failing to establish a TCP connection to your Postgres box, nor do you have to worry about secrets like connection strings being exposed to end users.
 
 The other key difference with RSC is hidden in plain sight from what we've discussed already: since these components only ever execute on the server, their code will not ever be shipped to the client. RSCs simply send down the final markup that was rendered, without the code that created it being pushed to your client bundles.
 
@@ -20,7 +20,7 @@ Since RSCs only exist on the server, they cannot have any state, or user-facing 
 
 ## What RSC is not
 
-Don't be mistaken, RSC are _not_ a solution to load data more conveniently. TanStack Start already ships extremely simple, and streamlined data loading options. You have nested, isomorphic loaders for every level in your routing hierarchy. Moreover, these loaders will run on the server for your initial render, and then client-side thereafter. Enables the deep integration with react-query TanStack Start offers, along with fine-grained data invalidation. I wrote all about this in a [previous introduction to TanStack Start](https://frontendmasters.com/blog/introducing-tanstack-start/).
+Don't be mistaken, RSC is _not_ a solution to load data more conveniently. TanStack Start already ships extremely simple, streamlined data-loading options. You have nested, isomorphic loaders for every level in your routing hierarchy. These loaders run on the server for your initial render, and then client-side thereafter. This enables the deep integration with react-query TanStack Start offers, along with fine-grained data invalidation. I wrote all about this in a [previous introduction to TanStack Start](https://frontendmasters.com/blog/introducing-tanstack-start/).
 
 RSC is also not a way to server render content. TanStack Start (and Next.js for that matter), already server render your initial navigation, and always have. Your normal, old-school components always render on the server, and then re-render on the client, wiring up event handlers and effects in a process known as "hydration."
 
@@ -28,7 +28,7 @@ RSC is also not a way to server render content. TanStack Start (and Next.js for 
 
 By rendering only on the server, your client bundles are spared the cost of all the code needed to render your content. That means component trees that are large and expensive, with minimal client-side interactivity are a prime candidate for RSC.
 
-The original [blog post announcement](https://tanstack.com/blog/react-server-components) for TanStack's RSCs discussed using them for content with code samples. By moving the code to parse, style and format code to the server, those libraries were removed from client-side bundles saving non-trivial amounts of space.
+The original [blog post announcement](https://tanstack.com/blog/react-server-components) for TanStack's RSCs discussed using them for content with code samples. By moving the code to parse, style and format displayed code to the server, those libraries were removed from client-side bundles saving non-trivial amounts of space.
 
 For this post we'll simulate another good use case: content that's mostly non-interactive, with lots of conditional imports and conditional rendering. Imagine an application shell, or layout, that can look lots of different ways depending on who's viewing it: non-authenticated users; authenticated users; admin users; or even just authenticated users with varying permissions, which affect the content they're shown.
 
@@ -36,11 +36,11 @@ To keep things simple we'll build a dirt simple application layout, but use some
 
 ## Getting started
 
-The repo for what we'll be building [is here](https://github.com/arackaf/tanstack-start-rsc-blog-post). It's essentially empty web application, with a skeleton layout that looks like this
+The repo for what we'll be building [is here](https://github.com/arackaf/tanstack-start-rsc-blog-post). It's essentially an empty web application, with a skeleton layout that looks like this
 
 ![Base ui](/tanstack-rsc/img1.jpg)
 
-If the icons in the side panel don't make much sense, it's because they're randomly chosen in a way that guarantees that the entirety of the lucide-react icon package cannot be tree shaken.
+If the icons in the side panel don't make much sense, it's because they're randomly chosen in a way that guarantees that the entirety of the lucide-react icon package cannot be tree shaken. This is how we're simulating a large component tree that's not needed on the client.
 
 In the header, the avatar is clickable, and opens a side panel, driven by ShadCN.
 
@@ -50,7 +50,7 @@ In the header, the avatar is clickable, and opens a side panel, driven by ShadCN
 
 Building out this UI with normal, non-RSC components is a familiar process for anyone who's seen TanStack.
 
-We of course render our application shell from our \_\_root component, which of course handles the root layout. To simulate loading our logged in user, we'll add a loader to this same root layout.
+We of course render our application shell from our \_\_root component, which handles the root layout. To simulate loading our logged in user, we'll add a loader to this same root layout.
 
 ```ts
 loader: async () => {
@@ -155,7 +155,7 @@ export const ApplicationShellEmptyRSC: FC<ApplicationShellProps> = () => {
 };
 ```
 
-Our heading component is gone, as is any children. But other than this, it's just a plain React component. It's not even, yet, async, which means we could render it normally if we wanted.
+To be clear, this component is useless. It does not display our header, nor does it display the actual, currently rendered page (via children). But it will let us see how to render an RSC that takes no props.
 
 Let's see how to render it as an RSC.
 
@@ -222,11 +222,11 @@ Passing props to RSCs is a bit different than passing props to a normal React co
 return renderServerComponent(<ApplicationShellEmptyRSC />);
 ```
 
-(or soon, `createCompositeComponent`) our component has _already rendered_. It's done. It rendered _on the server_ and the thing we're holding, returned from our server function and renderServerComponent (or createCompositeComponent) is, conceptually, the final markup for the server function.
+(or soon, `createCompositeComponent`) our component has _already rendered_. It's done. It rendered _on the server_ and the thing we're holding, returned from our server function and renderServerComponent (or createCompositeComponent) is, conceptually, the final markup for the RSC.
 
-We'll be rendering it in our component tree, but again, and this cannot be overstated, the component tree itself has _already rendered_.
+We'll be rendering it in our component tree, but again, and this cannot be overstated, the RSC itself has _already rendered_.
 
-That means, if you think you can just pass some data into the RSC, and use that data to adjust the content that's rendered, you fundamentally do not understand how RSCs work: one last time, by the time you attempt to render it in your component tree, the RSC component has _already rendered_ on the server, and produced markup.
+That means, if you think you can just pass some data into the RSC, and use that data to adjust the content that's rendered, you fundamentally do not understand how RSCs work: again, by the time you attempt to render it in your component tree, the RSC component has _already rendered_ on the server, and produced markup.
 
 ### So how can we pass props?
 
@@ -354,6 +354,6 @@ This is a tool like any other, and like any other tool, you need to know when to
 
 ## Concluding thoughts
 
-TanStack's implementation of RSC is what I wanted all along, without ever knowing it. Data fetching in TanStack is already simple; RSC exists to provide a more performant rendering idiom, where things don't exist on the client, when they don't need to, and when existing on the client would be expensive.
+TanStack's implementation of RSC is what I wanted all along, without ever knowing it. Data fetching in TanStack is already simple; RSC exists to provide a more performant rendering idiom, where things don't exist on the client when they don't need to, and when existing on the client would be expensive.
 
 Happy Coding!
