@@ -12,8 +12,17 @@ import { ExternalPost, externalPosts } from "@/util/outsidePosts";
 import { ExternalLinkIcon } from "@/components/svg/external";
 
 const getAllPosts = createServerFn()
-  .middleware([staticFunctionMiddleware])
+  // .middleware([staticFunctionMiddleware])
   .handler(async () => {
+    return [
+      {
+        markdownContent: "",
+        title: "Swift - Encoding and decoding `Any`",
+        date: "2022-07-12T10:00:00.000Z",
+        description: "How to encode and decode json with concrete types, which include dynamic pieces typed as `Any`",
+        slug: "swift-codable-any",
+      },
+    ];
     const postContentLookup = getAllBlogPosts();
 
     const blogPosts = Object.entries(postContentLookup).map(([slug, content]) => {
@@ -28,6 +37,7 @@ const getAllPosts = createServerFn()
       .concat(externalPosts as any)
       // sort posts by date in descending order
       .sort((post1, post2) => (post1.date > post2.date ? -1 : 1));
+    console.log(allPosts.find(p => !!p.slug));
     return allPosts;
   });
 

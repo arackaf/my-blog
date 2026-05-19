@@ -9,7 +9,7 @@ import { staticFunctionMiddleware } from "@tanstack/start-static-server-function
 import { useEffect } from "react";
 
 const getPostContent = createServerFn()
-  .middleware([staticFunctionMiddleware])
+  // .middleware([staticFunctionMiddleware])
   .inputValidator((data: { slug: string }) => data)
   .handler(async ({ data }) => {
     const postContentLookup = getAllBlogPosts();
