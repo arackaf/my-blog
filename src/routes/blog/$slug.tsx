@@ -3,11 +3,13 @@ import PostBody from "@/components/post-body";
 import { BackArrow } from "@/components/svg/backArrow";
 import { getAllBlogPosts, getPostMetadataFromContents } from "@/util/blog-posts";
 import markdownToHtml from "@/util/markdownToHtml";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+import { staticFunctionMiddleware } from "@tanstack/start-static-server-functions";
 import { useEffect } from "react";
 
-export const getPostContent = createServerFn()
+const getPostContent = createServerFn()
+  .middleware([staticFunctionMiddleware])
   .inputValidator((data: { slug: string }) => data)
   .handler(async ({ data }) => {
     const postContentLookup = getAllBlogPosts();
@@ -62,10 +64,10 @@ function RouteComponent() {
   return (
     <div className="post">
       <h4>
-        <a href="/" className="back-link">
+        <Link to="/" className="back-link">
           <BackArrow height="18" />
           <span>Adam's Blog</span>
-        </a>
+        </Link>
       </h4>
 
       <h1>{title}</h1>

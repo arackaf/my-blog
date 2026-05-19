@@ -2,31 +2,34 @@ import { DateFormatter } from "@/components/date-formatter";
 import { GithubIcon } from "@/components/svg/githubIcon";
 import { TwitterIcon } from "@/components/svg/twitterIcon";
 import { getAllBlogPosts, getPostMetadataFromContents, Post, PostMetadata } from "@/util/blog-posts";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+import { staticFunctionMiddleware } from "@tanstack/start-static-server-functions";
 // @ts-ignore
 import { FC, PropsWithChildren } from "react";
 
 import { ExternalPost, externalPosts } from "@/util/outsidePosts";
 import { ExternalLinkIcon } from "@/components/svg/external";
 
-const getAllPosts = createServerFn().handler(async () => {
-  const postContentLookup = getAllBlogPosts();
+const getAllPosts = createServerFn()
+  .middleware([staticFunctionMiddleware])
+  .handler(async () => {
+    const postContentLookup = getAllBlogPosts();
 
-  const blogPosts = Object.entries(postContentLookup).map(([slug, content]) => {
-    return {
-      ...getPostMetadataFromContents(slug, content),
-      // we don't want all the blog posts' content sent to the client
-      markdownContent: "",
-    };
+    const blogPosts = Object.entries(postContentLookup).map(([slug, content]) => {
+      return {
+        ...getPostMetadataFromContents(slug, content),
+        // we don't want all the blog posts' content sent to the client
+        markdownContent: "",
+      };
+    });
+
+    const allPosts: (PostMetadata | ExternalPost)[] = blogPosts
+      .concat(externalPosts as any)
+      // sort posts by date in descending order
+      .sort((post1, post2) => (post1.date > post2.date ? -1 : 1));
+    return allPosts;
   });
-
-  const allPosts: (PostMetadata | ExternalPost)[] = blogPosts
-    .concat(externalPosts as any)
-    // sort posts by date in descending order
-    .sort((post1, post2) => (post1.date > post2.date ? -1 : 1));
-  return allPosts;
-});
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -38,6 +41,7 @@ export const Route = createFileRoute("/")({
   }),
   loader: async () => {
     const allPosts = await getAllPosts();
+    console.log({ postsValid: Array.isArray(allPosts) });
     return {
       posts: allPosts,
     };
@@ -104,7 +108,9 @@ function App() {
                   <ExternalLinkIcon className="ml-2 mb-0.5 inline w-4 h-4" />
                 </a>
               ) : (
-                <a href={`/blog/${(post as Post).slug}`}>{post.title}</a>
+                <Link to="/blog/$slug" params={{ slug: (post as PostMetadata).slug }}>
+                  <span>{post.title}</span>
+                </Link>
               )}
             </h1>
             <small className="text-sm italic">
