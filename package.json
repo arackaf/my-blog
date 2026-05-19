@@ -8,7 +8,7 @@
     "serve": "vite preview",
     "start": "node .output/server/index.mjs",
     "test": "vitest run",
-    "update-tanstack": "npm i @tanstack/react-devtools@latest && npm i @tanstack/react-router@latest && npm i @tanstack/react-router-devtools@latest && npm i @tanstack/react-router-ssr-query@latest && npm i @tanstack/react-start@latest && npm i @tanstack/router-plugin@latest"
+    "update-tanstack": "npm i @tanstack/react-start@latest && npm i @tanstack/start-static-server-functions@latest && npm i @tanstack/react-devtools@latest && npm i @tanstack/react-router@latest && npm i @tanstack/react-router-devtools@latest && npm i @tanstack/react-router-ssr-query@latest && npm i @tanstack/router-plugin@latest"
   },
   "dependencies": {
     "@shikijs/markdown-it": "^3.13.0",
@@ -19,6 +19,7 @@
     "@tanstack/react-router-ssr-query": "^1.167.0",
     "@tanstack/react-start": "^1.168.6",
     "@tanstack/router-plugin": "^1.168.6",
+    "@tanstack/start-static-server-functions": "^1.167.4",
     "date-fns": "^4.1.0",
     "gray-matter": "4.0.3",
     "lucide-react": "^0.544.0",
