@@ -1,7 +1,7 @@
 import { DateFormatter } from "@/components/date-formatter";
 import { GithubIcon } from "@/components/svg/githubIcon";
 import { TwitterIcon } from "@/components/svg/twitterIcon";
-import { getAllBlogPosts, getPostMetadataFromContents, Post, PostMetadata } from "@/util/blog-posts";
+import { getAllBlogPosts, getPostMetadataFromContents, PostMetadata } from "@/util/blog-posts";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { staticFunctionMiddleware } from "@tanstack/start-static-server-functions";
