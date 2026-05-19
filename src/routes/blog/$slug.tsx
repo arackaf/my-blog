@@ -28,7 +28,8 @@ const getPostContent = createServerFn()
 
 export const Route = createFileRoute("/blog/$slug")({
   loader: async ({ params }) => {
-    return getPostContent({ data: { slug: params.slug } });
+    const postContent = await getPostContent({ data: { slug: params.slug } });
+    return { postContent };
   },
   head: ({ params }) => {
     return {
@@ -43,7 +44,8 @@ export const Route = createFileRoute("/blog/$slug")({
 });
 
 function RouteComponent() {
-  const { post, content } = Route.useLoaderData();
+  const { postContent } = Route.useLoaderData();
+  const { post, content } = postContent;
   const { title, date } = post;
 
   useEffect(() => {
