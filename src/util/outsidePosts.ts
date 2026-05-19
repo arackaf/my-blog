@@ -62,19 +62,19 @@ export const externalPosts: ExternalPost[] = [
   },
   {
     title: "CSS Counters in Action",
-    date: "2025-10-9T10:00:00.000Z",
+    date: "2025-10-09T10:00:00.000Z",
     description: "Introduction to CSS Counters",
     url: "https://frontendmasters.com/blog/css-counters-in-action/",
   },
   {
     title: "Advanced PostgreSQL Indexing: Multi-Key Queries and Performance Optimization",
-    date: "2025-09-3T10:00:00.000Z",
+    date: "2025-09-03T10:00:00.000Z",
     description: "Advanced query tuning and indexing tricks with Postgres",
     url: "https://frontendmasters.com/blog/advanced-postgresql-indexing/",
   },
   {
     title: "Introduction to Postgres Indexes",
-    date: "2025-09-1T10:00:00.000Z",
+    date: "2025-09-01T10:00:00.000Z",
     description: "Introduction to Postgres indexing",
     url: "https://frontendmasters.com/blog/intro-to-postgres-indexes/",
   },
