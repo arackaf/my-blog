@@ -7,6 +7,78 @@ export type ExternalPost = {
 
 export const externalPosts: ExternalPost[] = [
   {
+    title: "React Server Components in TanStack",
+    date: "2026-05-18T10:00:00.000Z",
+    description: "React Server Components in TanStack",
+    url: "https://frontendmasters.com/blog/react-server-components-in-tanstack/",
+  },
+  {
+    title: "Introducing TanStack Form",
+    date: "2026-05-01T10:00:00.000Z",
+    description: "Introduction to TanStack Form",
+    url: "https://frontendmasters.com/blog/introducing-tanstack-form/",
+  },
+  {
+    title: "Building a Blog in TanStack (Part 2 of 2)",
+    date: "2026-04-20T10:00:00.000Z",
+    description: "Generating a static web site with TanStack Start",
+    url: "https://frontendmasters.com/blog/building-a-blog-in-tanstack-part-2-of-2/",
+  },
+  {
+    title: "Building a Blog in TanStack (Part 1 of 2)",
+    date: "2026-04-17T10:00:00.000Z",
+    description: "Generating a static web site with TanStack Start",
+    url: "https://frontendmasters.com/blog/building-a-blog-in-tanstack-part-1-of-2/",
+  },
+  {
+    title: "Fun with TypeScript Generics",
+    date: "2026-02-13T10:00:00.000Z",
+    description: "Digging into TypeScript generics with a fun use case",
+    url: "https://frontendmasters.com/blog/fun-with-typescript-generics/",
+  },
+  {
+    title: "Single Flight Mutations in TanStack Start: Part 2",
+    date: "2026-01-28T10:00:00.000Z",
+    description: "Implementing single flight mutations with TanStack Start Middleware",
+    url: "https://frontendmasters.com/blog/single-flight-mutations-in-tanstack-start-part-2/",
+  },
+  {
+    title: "Single Flight Mutations in TanStack Start: Part 1",
+    date: "2026-01-23T10:00:00.000Z",
+    description: "Introduction to single flight mutations",
+    url: "https://frontendmasters.com/blog/single-flight-mutations-in-tanstack-start-part-1/",
+  },
+  {
+    title: "The Weird Parts of position: sticky",
+    date: "2025-11-05T10:00:00.000Z",
+    description: "Cutting through some of the confusing parts of position sticky",
+    url: "https://frontendmasters.com/blog/the-weird-parts-of-position-sticky/",
+  },
+  {
+    title: "Introducing TanStack Start Middleware",
+    date: "2025-10-24T10:00:00.000Z",
+    description: "Introduction to TanStack Start Middleware",
+    url: "https://frontendmasters.com/blog/introducing-tanstack-start-middleware/",
+  },
+  {
+    title: "CSS Counters in Action",
+    date: "2025-10-9T10:00:00.000Z",
+    description: "Introduction to CSS Counters",
+    url: "https://frontendmasters.com/blog/css-counters-in-action/",
+  },
+  {
+    title: "Advanced PostgreSQL Indexing: Multi-Key Queries and Performance Optimization",
+    date: "2025-09-3T10:00:00.000Z",
+    description: "Advanced query tuning and indexing tricks with Postgres",
+    url: "https://frontendmasters.com/blog/advanced-postgresql-indexing/",
+  },
+  {
+    title: "Introduction to Postgres Indexes",
+    date: "2025-09-1T10:00:00.000Z",
+    description: "Introduction to Postgres indexing",
+    url: "https://frontendmasters.com/blog/intro-to-postgres-indexes/",
+  },
+  {
     title: "Introducing Zustand",
     date: "2025-07-21T10:00:00.000Z",
     description: "A quick introduction to Zustand, a simple, fun and effective state management library for React",
@@ -124,7 +196,7 @@ export const externalPosts: ExternalPost[] = [
   {
     title: "Using Web Components With Next (or Any SSR Framework)",
     date: "2022-10-05T10:00:00.000Z",
-    description: "A guide to using web components in application metaframeworks like Next",
+    description: "A guide to using web components in application meta-frameworks like Next",
     url: "https://css-tricks.com/using-web-components-with-next-or-any-ssr-framework/",
   },
   {
