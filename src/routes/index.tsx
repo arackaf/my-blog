@@ -1,45 +1,22 @@
 import { DateFormatter } from "@/components/date-formatter";
 import { GithubIcon } from "@/components/svg/githubIcon";
 import { TwitterIcon } from "@/components/svg/twitterIcon";
-import { getAllBlogPosts, getPostMetadataFromContents, PostMetadata } from "@/util/blog-posts";
+
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { staticFunctionMiddleware } from "@tanstack/start-static-server-functions";
-// @ts-ignore
 import { FC, PropsWithChildren } from "react";
 
-import { ExternalPost, externalPosts } from "@/util/outsidePosts";
-import { ExternalLinkIcon } from "@/components/svg/external";
-
-const getAllPosts = createServerFn()
-  // .middleware([staticFunctionMiddleware])
-  .handler(async () => {
-    return [
-      {
-        markdownContent: "",
-        title: "Swift - Encoding and decoding `Any`",
-        date: "2022-07-12T10:00:00.000Z",
-        description: "How to encode and decode json with concrete types, which include dynamic pieces typed as `Any`",
-        slug: "swift-codable-any",
-      },
-    ];
-    const postContentLookup = getAllBlogPosts();
-
-    const blogPosts = Object.entries(postContentLookup).map(([slug, content]) => {
-      return {
-        ...getPostMetadataFromContents(slug, content),
-        // we don't want all the blog posts' content sent to the client
-        markdownContent: "",
-      };
-    });
-
-    const allPosts: (PostMetadata | ExternalPost)[] = blogPosts
-      .concat(externalPosts as any)
-      // sort posts by date in descending order
-      .sort((post1, post2) => (post1.date > post2.date ? -1 : 1));
-    console.log(allPosts.find(p => !!p.slug));
-    return allPosts;
-  });
+const getAllPosts = createServerFn().handler(async () => {
+  return [
+    {
+      markdownContent: "",
+      title: "Swift - Encoding and decoding `Any`",
+      date: "2022-07-12T10:00:00.000Z",
+      description: "How to encode and decode json with concrete types, which include dynamic pieces typed as `Any`",
+      slug: "swift-codable-any",
+    },
+  ];
+});
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -112,20 +89,12 @@ function App() {
         {posts.map(post => (
           <div key={post.title} className="blog-list-item mb-8">
             <h1 className="leading-none text-2xl font-bold">
-              {"slug" in post ? (
-                <Link to="/blog/$slug" params={{ slug: post.slug }}>
-                  <span>{post.title}</span>
-                </Link>
-              ) : (
-                <a href={post.url}>
-                  <span>{post.title}</span>
-                  <ExternalLinkIcon className="ml-2 mb-0.5 inline w-4 h-4" />
-                </a>
-              )}
+              <Link to="/blog/$slug" params={{ slug: post.slug }}>
+                <span>{post.title}</span>
+              </Link>
             </h1>
             <small className="text-sm italic">
               <DateFormatter dateString={post.date}></DateFormatter>
-              {"url" in post && post.url ? <span> on {post.url.indexOf("css-tricks.com") >= 0 ? "css-tricks.com" : "Frontend Masters"}</span> : ""}
             </small>
             <p className="mt-1.5">{post.description}</p>
           </div>

@@ -1,33 +1,25 @@
 import { DateFormatter } from "@/components/date-formatter";
 import PostBody from "@/components/post-body";
 import { BackArrow } from "@/components/svg/backArrow";
-import { getAllBlogPosts, getPostMetadataFromContents } from "@/util/blog-posts";
-import markdownToHtml from "@/util/markdownToHtml";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { staticFunctionMiddleware } from "@tanstack/start-static-server-functions";
-import { useEffect } from "react";
 
-const getPostContent = createServerFn()
-  // .middleware([staticFunctionMiddleware])
-  .inputValidator((data: { slug: string }) => data)
-  .handler(async ({ data }) => {
-    return {
-      post: {
-        markdownContent: "",
-        title: "Swift - Encoding and decoding `Any`",
-        date: "2022-07-12T10:00:00.000Z",
-        description: "How to encode and decode json with concrete types, which include dynamic pieces typed as `Any`",
-        slug: "swift-codable-any",
-      },
-      content: "<p>Hello World</p>",
-    };
-  });
+const getPostContent = createServerFn().handler(async () => {
+  return {
+    post: {
+      markdownContent: "",
+      title: "Swift - Encoding and decoding `Any`",
+      date: "2022-07-12T10:00:00.000Z",
+      description: "How to encode and decode json with concrete types, which include dynamic pieces typed as `Any`",
+      slug: "swift-codable-any",
+    },
+    content: "<p>Hello World</p>",
+  };
+});
 
 export const Route = createFileRoute("/blog/$slug")({
-  loader: async ({ params }) => {
-    const postContent = await getPostContent({ data: { slug: params.slug } });
-    console.log({ postContent });
+  loader: async () => {
+    const postContent = await getPostContent();
     return { postContent };
   },
   head: ({ params }) => {
@@ -46,21 +38,6 @@ function RouteComponent() {
   const { postContent } = Route.useLoaderData();
   const { post, content } = postContent;
   const { title, date } = post;
-
-  useEffect(() => {
-    for (const img of document.querySelectorAll("img")) {
-      if (img.parentElement?.tagName === "A") {
-        continue;
-      }
-
-      const anchor = document.createElement("a");
-      anchor.href = img.src.replace(/\-sized\./, ".");
-      anchor.target = "_blank";
-
-      img.parentElement?.insertBefore(anchor, img);
-      anchor.appendChild(img);
-    }
-  }, []);
 
   return (
     <div className="post">
