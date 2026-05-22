@@ -1,6 +1,3 @@
-import { DateFormatter } from "@/components/date-formatter";
-import PostBody from "@/components/post-body";
-import { BackArrow } from "@/components/svg/backArrow";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -35,17 +32,14 @@ function RouteComponent() {
     <div className="post">
       <h4>
         <Link to="/" className="back-link">
-          <BackArrow height="18" />
           <span>Adam's Blog</span>
         </Link>
       </h4>
 
       <h1>{title}</h1>
-      <div className="post-date mb-4">
-        <DateFormatter dateString={date} />
-      </div>
+      <div className="post-date mb-4">{date}</div>
 
-      <PostBody content={content} />
+      {content}
     </div>
   );
 }
