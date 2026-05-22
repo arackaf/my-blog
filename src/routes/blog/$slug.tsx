@@ -22,15 +22,7 @@ export const Route = createFileRoute("/blog/$slug")({
     const postContent = await getPostContent();
     return { postContent };
   },
-  head: ({ params }) => {
-    return {
-      meta: [
-        {
-          title: `${params.slug} | Adam Rackis's blog`,
-        },
-      ],
-    };
-  },
+
   component: RouteComponent,
 });
 
