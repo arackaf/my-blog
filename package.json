@@ -11,18 +11,16 @@
     "update-tanstack": "npm i @tanstack/react-start@latest && npm i @tanstack/start-static-server-functions@latest && npm i @tanstack/react-devtools@latest && npm i @tanstack/react-router@latest && npm i @tanstack/react-router-devtools@latest && npm i @tanstack/react-router-ssr-query@latest && npm i @tanstack/router-plugin@latest"
   },
   "dependencies": {
-    "@shikijs/markdown-it": "^3.13.0",
-    "@tailwindcss/vite": "^4.0.6",
+    "@tailwindcss/vite": "^4.3.0",
     "@tanstack/react-devtools": "^0.10.5",
     "@tanstack/react-router": "^1.170.7",
     "@tanstack/react-router-devtools": "^1.167.0",
     "@tanstack/react-router-ssr-query": "^1.167.0",
     "@tanstack/react-start": "^1.168.10",
     "@tanstack/router-plugin": "^1.168.10",
+    "@vitejs/plugin-react": "^6.0.2",
     "date-fns": "^4.1.0",
-    "gray-matter": "4.0.3",
     "lucide-react": "^0.544.0",
-    "markdown-it": "^14.1.0",
     "next-blurhash-previews": "^0.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -33,8 +31,7 @@
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
-    "@vitejs/plugin-react": "^5.0.4",
     "typescript": "^5.7.2",
-    "vite": "^7.1.7"
+    "vite": "^8.0.14"
   }
 }
