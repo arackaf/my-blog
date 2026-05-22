@@ -14,13 +14,6 @@ const getAllPosts = createServerFn().handler(async () => {
 });
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      {
-        title: "Adam Rackis's personal site and blog",
-      },
-    ],
-  }),
   loader: async () => {
     const allPosts = await getAllPosts();
     console.log({ postsValid: Array.isArray(allPosts) });
