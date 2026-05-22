@@ -1,7 +1,5 @@
 import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router";
 
-import Meta from "@/components/Meta";
-
 export const Route = createRootRoute({
   head: () => ({
     links: [],
@@ -17,8 +15,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <Meta />
-
         <main className="flex flex-col max-w-[708px] mx-auto px-4">
           <article>
             <section>
