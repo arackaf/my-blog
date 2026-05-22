@@ -12,23 +12,22 @@ const getPostContent = createServerFn()
   // .middleware([staticFunctionMiddleware])
   .inputValidator((data: { slug: string }) => data)
   .handler(async ({ data }) => {
-    const postContentLookup = getAllBlogPosts();
-
-    if (!postContentLookup[data.slug]) {
-      throw new Error(`Post not found: ${data.slug}`);
-    }
-
-    const post = {
-      ...getPostMetadataFromContents(data.slug, postContentLookup[data.slug]),
+    return {
+      post: {
+        markdownContent: "",
+        title: "Swift - Encoding and decoding `Any`",
+        date: "2022-07-12T10:00:00.000Z",
+        description: "How to encode and decode json with concrete types, which include dynamic pieces typed as `Any`",
+        slug: "swift-codable-any",
+      },
+      content: "<p>Hello World</p>",
     };
-    const content = await markdownToHtml(post.markdownContent);
-
-    return { post: { ...post, markdownContent: "" }, content };
   });
 
 export const Route = createFileRoute("/blog/$slug")({
   loader: async ({ params }) => {
     const postContent = await getPostContent({ data: { slug: params.slug } });
+    console.log({ postContent });
     return { postContent };
   },
   head: ({ params }) => {
