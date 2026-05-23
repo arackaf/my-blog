@@ -13,7 +13,6 @@
   "dependencies": {
     "@shikijs/markdown-it": "^3.13.0",
     "@tailwindcss/vite": "^4.0.6",
-    "@tanstack/react-devtools": "^0.10.5",
     "@tanstack/react-router": "^1.170.4",
     "@tanstack/react-router-devtools": "^1.167.0",
     "@tanstack/react-router-ssr-query": "^1.167.0",
