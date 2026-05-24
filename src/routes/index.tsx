@@ -103,9 +103,9 @@ function App() {
           <div key={post.title} className="blog-list-item mb-8">
             <h1 className="leading-none text-2xl font-bold">
               {"slug" in post ? (
-                <a href={`/blog/${post.slug}`}>
+                <Link to="/blog/$slug" params={{ slug: post.slug }}>
                   <span>{post.title}</span>
-                </a>
+                </Link>
               ) : (
                 <a href={post.url}>
                   <span>{post.title}</span>
