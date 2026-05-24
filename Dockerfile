@@ -28,7 +28,7 @@ RUN npm ci --include=dev
 COPY . .
 
 # Build application
-RUN npm run build
+RUN npm run generate-static-site
 
 # Remove development dependencies
 RUN npm prune --omit=dev
@@ -42,4 +42,4 @@ COPY --from=build /app /app
 
 # Start the server by default, this can be overwritten at runtime
 EXPOSE 3000
-CMD [ "npm", "start" ]
+CMD [ "node", "static-server.js" ]

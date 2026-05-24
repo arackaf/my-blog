@@ -8,7 +8,8 @@
     "serve": "vite preview",
     "start": "node .output/server/index.mjs",
     "test": "vitest run",
-    "update-tanstack": "npm i @tanstack/react-start@latest && npm i @tanstack/start-static-server-functions@latest && npm i @tanstack/react-devtools@latest && npm i @tanstack/react-router@latest && npm i @tanstack/react-router-devtools@latest && npm i @tanstack/react-router-ssr-query@latest && npm i @tanstack/router-plugin@latest"
+    "update-tanstack": "npm i @tanstack/react-start@latest && npm i @tanstack/start-static-server-functions@latest && npm i @tanstack/react-devtools@latest && npm i @tanstack/react-router@latest && npm i @tanstack/react-router-devtools@latest && npm i @tanstack/react-router-ssr-query@latest && npm i @tanstack/router-plugin@latest",
+    "generate-static-site": "npm run build && rm -rf static-site && mkdir -p static-site && cp -r .output/. static-site"
   },
   "dependencies": {
     "@shikijs/markdown-it": "^3.13.0",
@@ -20,6 +21,7 @@
     "@tanstack/router-plugin": "^1.168.6",
     "@tanstack/start-static-server-functions": "^1.167.4",
     "date-fns": "^4.1.0",
+    "express": "^5.1.0",
     "gray-matter": "4.0.3",
     "lucide-react": "^0.544.0",
     "markdown-it": "^14.1.0",
