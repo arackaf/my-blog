@@ -83,6 +83,10 @@ export const startInstance = createStart(() => ({
 }));
 ```
 
+Existing user when placed together == 7ms
+
+Existing user when placed on opposite coast == 80ms
+
 ## Concluding thoughts
 
 In the end, a few lines of webpack config allowed us to easily load global, or scoped css, with optional sass processing in either case. Of course this is only scratching the surface of what's possible. There's no shortage of PostCSS, or other plugins you could toss into the loader list.
