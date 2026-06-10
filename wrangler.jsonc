@@ -1,9 +1,7 @@
 {
   "name": "my-blog",
   "compatibility_date": "2026-05-25",
-  "assets": {
-    "directory": "./.output/public",
-  },
+  "pages_build_output_dir": "./.output/public",
   "observability": {
     "enabled": true,
   },
