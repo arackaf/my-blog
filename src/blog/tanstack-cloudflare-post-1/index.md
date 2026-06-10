@@ -28,7 +28,7 @@ But why tolerate any performance hit if you don't have to. Cloudflare's low late
 
 Historically Cloudflare workers, since they ran on V8 isolates, had a limited runtime; they did not support many Node api's. That's since changed with the node_compatibility flag, which we'll be seeing.
 
-There's one other tradeoff though: Cloudflare workers have strict rules whereby requests have to be competely independant. Cloudflare workers, like AWS Lambda, do stay alive between, and are shared amongst different requests. But each request has to clean itself up _completely_. We'll look at a common, frustrating example of this in part 2, when we talk about setting up database connections.
+There's one other tradeoff though: Cloudflare workers have strict rules whereby requests have to be completely independent. Cloudflare workers, like AWS Lambda, do stay alive between, and are shared amongst different requests. But each request has to clean itself up _completely_. We'll look at a common, frustrating example of this in part 2, when we talk about setting up database connections.
 
 ## Our first Cloudflare app
 
