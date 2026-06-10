@@ -17,7 +17,7 @@ const config = defineConfig({
         enabled: true,
       },
     }),
-    nitro({ node: true }),
+    nitro({ cloudflare: {} }),
     viteReact(),
   ],
 });
