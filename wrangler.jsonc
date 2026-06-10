@@ -4,4 +4,7 @@
   "assets": {
     "directory": "./.output/public",
   },
+  "observability": {
+    "enabled": true,
+  },
 }

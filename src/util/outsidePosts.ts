@@ -7,9 +7,9 @@ export type ExternalPost = {
 
 export const externalPosts: ExternalPost[] = [
   {
-    title: "React Server Components in TanStack",
+    title: "React Server Components in TanStack Start",
     date: "2026-05-18T10:00:00.000Z",
-    description: "React Server Components in TanStack",
+    description: "High level overview of React Server Components in TanStack Start",
     url: "https://frontendmasters.com/blog/react-server-components-in-tanstack/",
   },
   {
