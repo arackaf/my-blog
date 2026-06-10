@@ -65,4 +65,50 @@ If you ever get Cloudflare errors about lockfiles being out of sync, just `rm -r
 
 ## Maturing our setup
 
+Clicking some buttons in the Cloudflare dashboard is simple and easy, but really our app needs a wrangler file. Wrangler is the cli tool Cloudflare ships to manage all aspects of your app, usually through a wrangler.jsonc file, which is ultimately (if present) the source of truth for your application.
+
+## Creating our wrangler.jsonc file
+
+Rather than manually create the file and start filling in values, let's let Cloudflare create this file for us.
+
+We'll do this by running `npx wrangler deploy`
+
+![Alt text](/tanstack-cloudflare-post-1/img4.jpg)
+
+As we can see, this does indeed create our wrangler file, and populate it with correct values.
+
+![Alt text](/tanstack-cloudflare-post-1/img5.jpg)
+
+`name` is what we'd expect, and what Cloudflare already inferred when we set this repo up manually.
+
+The compatibility date is to prevent regressions from any changes made to the Cloudflare platform at a date later than what's listed here; this feature avoids breaking changes happening _after_ this date.
+
+`observability` allows any logging we do to show up in our Cloudflare logs. If anyone at Cloudflare is reading this, please consider making this true by default!
+
+`main` tells Cloudflare how to execute our app, and wonderfully, it inferred that we had a TanStack app, and put the correct value in, here.
+
+Lastly, `"compatibility_flags": ["nodejs_compat"]` adds Node compatibility to our Cloudflare worker, which of course allows many of TanStack Start's features to work.
+
+But most impressively, it also adjusted some of our scripts to be more appropriate for Cloudflare, and even installed some new packages, in particular, the Cloudflare Vite plugin.
+
+![Alt text](/tanstack-cloudflare-post-1/img6.jpg)
+
+And it even _adjusted our Vite config_ to remove our Nitro plugin (the agnostic deployment package for TanStack) and replaced it with the Cloudflare one.
+
+![Alt text](/tanstack-cloudflare-post-1/img7.jpg)
+
+## Setting secrets and generating types
+
+Before we wrap up, and move on to part 2, where we'll cover some important, but subtly tricky things like managing database connections, let's cover something simple: managing secrets. This will also let us see Cloudflare's neat typegen functionality.
+
+To set a secret, use the command
+
+```
+npx wrangler secret put SECRET_NAME
+```
+
+Wrangler will prompt you for a value, and this will be set in production, on your Cloudflare workers this app deploys to.
+
+![Alt text](/tanstack-cloudflare-post-1/img7.jpg)
+
 Happy Coding!
