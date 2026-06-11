@@ -4,7 +4,7 @@ date: "2026-06-06T10:00:00.000Z"
 description: Tips and tricks to deploy TanStack Start onto Cloudflare
 ---
 
-This is a two-part post about Cloudflare, and using its Workers feature to ship web applications. In part 1, we'll introduce workers, their advantages, and tradeoffs. Then in part 2 we'll take a closer look at application implementation, and some of the surprising (but manageable) things you have to do to keep Cloudflare happy.
+This is a two-part post about Cloudflare, and using its Workers feature to ship web applications. In part 1 we'll introduce workers, their advantages and tradeoffs. Then in part 2 we'll take a closer look at application implementation, and some of the surprising (but manageable) things you have to do to keep Cloudflare happy.
 
 ## What are Cloudflare workers?
 
@@ -18,9 +18,9 @@ While 100ms may not seem like a huge amount of time, think of it as a handicap y
 
 Cloudflare workers routinely spin up in single-digit ms time; they have extremely low latency.
 
-## How much do cold starts even matter?
+## How much do cold starts matter?
 
-I want to be crystal clear: cold starts are not a huge deal. Lambda functions stay alive for some period of time after serving a request, and are re-used for other requests. Do not think that every request has to be served by a fresh Lambda, which itself has to cold start. Applications with steady traffic will likely see very few cold starts; however, spiking traffic will necessarily result in new functions spinning up, and cold starting.
+I want to be crystal clear: cold starts are not as big of a deal as you might be thinking. Lambda functions stay alive for some period of time after serving a request, and are re-used for other requests. Do not think that every request has to be served by a fresh Lambda, which itself has to cold start. Applications with steady traffic will likely see very few cold starts; however, spiking traffic will necessarily result in new functions spinning up, and cold starting.
 
 But why tolerate any performance hit if you don't have to. Cloudflare's low latency make them an extremely compelling application host.
 
@@ -28,7 +28,7 @@ But why tolerate any performance hit if you don't have to. Cloudflare's low late
 
 Historically Cloudflare workers, since they ran on V8 isolates, had a limited runtime; they did not support many Node api's. That's since changed with the node_compatibility flag, which we'll be seeing.
 
-There's one other tradeoff though: Cloudflare workers have strict rules whereby requests have to be completely independent. Cloudflare workers, like AWS Lambda, do stay alive between, and are shared amongst different requests. But each request has to clean itself up _completely_. We'll look at a common, frustrating example of this in part 2, when we talk about setting up database connections.
+There's one other tradeoff though: Cloudflare workers have strict rules whereby requests have to be completely independent. Cloudflare workers, like AWS Lambda, do stay alive between, and are shared amongst different requests. But with Cloudflare workers, each request has to clean itself up _completely_. We'll look at a common, frustrating example of this in part 2, when we talk about setting up database connections.
 
 ## Our first Cloudflare app
 
@@ -91,7 +91,7 @@ The compatibility date is to prevent regressions from any changes made to the Cl
 
 Lastly, `"compatibility_flags": ["nodejs_compat"]` adds Node compatibility to our Cloudflare worker, which of course allows many of TanStack Start's features to work.
 
-But most impressively, it also adjusted some of our scripts to be more appropriate for Cloudflare, and even installed some new packages, in particular, the Cloudflare Vite plugin.
+But most impressively, it also adjusted some of our scripts to be more appropriate for Cloudflare, and even installed some new packages, the Cloudflare Vite plugin in particular.
 
 ![Alt text](/tanstack-cloudflare-post-1/img6.jpg)
 
@@ -115,7 +115,7 @@ To set a secret, use the command
 npx wrangler secret put SECRET_NAME
 ```
 
-Wrangler will prompt you for a value, and this will be set in production, on your Cloudflare workers this app deploys to.
+Wrangler will prompt you for a value, and this will be set in production, on the Cloudflare workers this app deploys to.
 
 ![Alt text](/tanstack-cloudflare-post-1/img8.jpg)
 
