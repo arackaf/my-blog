@@ -16,17 +16,17 @@ Why does that matter? Lightweight is the key point. They are _extremely_ fast to
 
 While 100ms may not seem like a huge amount of time, think of it as a handicap your web app has to wait before the normal rendering pipeline even starts.
 
-Cloudflare workers routinely spin up in single-digit ms time; they have extremely low latency.
+Cloudflare workers routinely spin up in single-digit milliseconds; they have extremely low latency.
 
 ## How much do cold starts matter?
 
 I want to be crystal clear: cold starts are not as big of a deal as you might be thinking. Lambda functions stay alive for some period of time after serving a request, and are re-used for other requests. Do not think that every request has to be served by a fresh Lambda, which itself has to cold start. Applications with steady traffic will likely see very few cold starts; however, spiking traffic will necessarily result in new functions spinning up, and cold starting.
 
-But why tolerate any performance hit if you don't have to. Cloudflare's low latency make them an extremely compelling application host.
+But why tolerate any performance hit if you don't have to. Cloudflare's low latency makes them an extremely compelling application host.
 
 ## What's the catch?
 
-Historically Cloudflare workers, since they ran on V8 isolates, had a limited runtime; they did not support many Node api's. That's since changed with the node_compatibility flag, which we'll be seeing.
+Historically Cloudflare workers, since they ran on V8 isolates, had a limited runtime; they did not support many Node APIs. That's since changed with the node_compatibility flag, which we'll be seeing.
 
 There's one other tradeoff though: Cloudflare workers have strict rules whereby requests have to be completely independent. Cloudflare workers, like AWS Lambda, do stay alive between, and are shared amongst different requests. But with Cloudflare workers, each request has to clean itself up _completely_. We'll look at a common, frustrating example of this in part 2, when we talk about setting up database connections.
 
@@ -67,7 +67,7 @@ If you ever get Cloudflare errors about lockfiles being out of sync, just `rm -r
 
 ## Maturing our setup
 
-Clicking some buttons in the Cloudflare dashboard is simple and easy, but really our app needs a wrangler file. Wrangler is the cli tool Cloudflare ships to manage all aspects of your app, usually through a wrangler.jsonc file, which is ultimately (if present) the source of truth for your application.
+Clicking some buttons in the Cloudflare dashboard is simple and easy, but really our app needs a wrangler file. Wrangler is the CLI tool Cloudflare ships to manage all aspects of your app, usually through a wrangler.jsonc file, which is ultimately (if present) the source of truth for your application.
 
 ## Creating our wrangler.jsonc file
 
@@ -136,7 +136,7 @@ To use our secrets, we have two options. We can simply do `process.env.SECRET_1`
 import { env } from "cloudflare:workers";
 ```
 
-At first this import will error out, since no such module exists. But cloudflare ships with a typegen command: `"wrangler types"`. In fact this was set up as an npm script `"cf-typegen": "wrangler types"`
+At first this import will error out, since no such module exists. But Cloudflare ships with a typegen command: `"wrangler types"`. In fact this was set up as an npm script `"cf-typegen": "wrangler types"`
 
 Honestly `npx wrangler types` is easier for me to remember than `cf-typegen` but you can use either, or configure a different npm script.
 
@@ -144,7 +144,7 @@ However you run it, you'll wind up with a `worker-configuration.d.ts` file gener
 
 ![Alt text](/tanstack-cloudflare-post-1/img9.jpg)
 
-The entire file runs over 15,000 lines, but the very top contains our secrets.
+The entire file runs to over 15,000 lines, but the very top contains our secrets.
 
 And now we can grab our secrets right off of our `env` object, in a strongly typed manner.
 
