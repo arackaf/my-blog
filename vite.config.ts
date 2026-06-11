@@ -17,7 +17,7 @@ const config = defineConfig({
         enabled: true,
       },
     }),
-    nitro({ config: { preset: "node-server" } }),
+    nitro({ node: true }),
     viteReact(),
   ],
 });
