@@ -26,9 +26,9 @@ But why tolerate any performance hit if you don't have to. Cloudflare's low late
 
 ## What's the catch?
 
-Historically Cloudflare workers, since they ran on V8 isolates, had a limited runtime; they did not support many Node APIs. That's since changed with the node_compatibility flag, which we'll be seeing.
+Historically Cloudflare workers, since they ran on V8 isolates, had a limited runtime; they did not support many Node APIs. That's since changed with the `node_compat` flag, which we'll be seeing.
 
-There's one other tradeoff though: Cloudflare workers have strict rules whereby requests have to be completely independent. Cloudflare workers, like AWS Lambda, do stay alive between, and are shared amongst different requests. But with Cloudflare workers, each request has to clean itself up _completely_. We'll look at a common, frustrating example of this in part 2, when we talk about setting up database connections.
+There's one other tradeoff though: Cloudflare workers have strict rules whereby requests have to be completely independent. Cloudflare workers, like AWS Lambda, do stay alive between, and are reused across different requests. But with Cloudflare workers, each request has to clean itself up _completely_. We'll look at a common, frustrating example of this in part 2, when we talk about setting up database connections.
 
 ## Our first Cloudflare app
 
@@ -126,7 +126,7 @@ SECRET_1='local secret1'
 SECRET_2='local secret2'
 ```
 
-For security reasons, wrangler will pull from here, locally, not your production secrets which exist only on the Cloudflare workers.
+For security reasons, your local dev environment pull from here, locally, not your production secrets which exist only on the Cloudflare workers.
 
 ## Using secrets
 
@@ -152,6 +152,6 @@ And now we can grab our secrets right off of our `env` object, in a strongly typ
 
 ## On to part 2
 
-We've barely scratched the surface of Cloudflare. Very few apps can function without a database. In part 2 we'll see how to set that up, and some of the special considerations Cloudflare's platform requires.
+We've barely scratched the surface of Cloudflare. Many production apps will require a database to function. In part 2 we'll see how to set that up, and some of the special considerations Cloudflare's platform requires.
 
 Let's go!
