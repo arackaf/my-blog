@@ -4,23 +4,21 @@ date: "2026-06-06T10:00:00.000Z"
 description: Tips and tricks to deploy TanStack Start onto Cloudflare
 ---
 
-In part 1
+Welcome to part 2 of this post on Cloudflare. In part 1 we covered the absolute basics. We deployed a web app to Cloudflare, we saw how our wrangler file works, we set up some secrets, and we saw Cloudflare generate some typings for things like secrets.
 
-## Create a Wrangler file
+In this part we'll set up a database. We'll look at Hyperdrive and why it's needed, and we'll look at some possibly counterintuitive ways in which we need to set up our database object (or any I/O object).
 
-Let's run
+## Preliminaries
 
-```
-npx wrangler deploy
-```
+I love to use Drizzle for all my data access. It's an outstanding, unique ORM that's essentially designed to be a thin TypeScript layer atop SQL. I've written about it [here](https://master.dev/blog/introducing-drizzle/) and [here](https://master.dev/blog/drizzle-database-migrations/).
 
-Drizzle
+I'll be using Postgres for my db access, so we'll install some things
 
 ```
 npm i drizzle-orm@rc drizzle-kit@rc pg @types/pg
 ```
 
-drizzle.config.ts
+add a drizzle.config.ts file
 
 ```ts
 import { defineConfig } from "drizzle-kit";
@@ -41,6 +39,10 @@ and then run
 ```
 npx drizzle-kit pull
 ```
+
+That will generate our Drizzle schema. We won't cover any of that. See the Drizzle posts above if you're curious, but really you can query your data however you want; for the purposes of this post it makes no difference which, if any ORM you use.
+
+So for now let's attempt to
 
 Fails with error
 
