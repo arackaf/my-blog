@@ -6,7 +6,7 @@ description: Tips and tricks to deploy TanStack Start onto Cloudflare
 
 Welcome to part 2 of this post on Cloudflare. In part 1 we covered the absolute basics. We deployed a web app to Cloudflare, we saw how our wrangler file works, we set up some secrets, and we saw Cloudflare generate some typings for things like secrets.
 
-In this part we'll set up a database. We'll look at Hyperdrive and why it's needed, and we'll look at some possibly counterintuitive ways in which we need to set up our database object (or any I/O object).
+In this part we'll set up a database. We'll look at Hyperdrive and why it's needed, and we'll look at some possibly counterintuitive ways in which we need to set up our database object (or any I/O object). We'll use TanStack Start specifically, here, but these principles apply to any web framework, even though some of the implementation details might differ a bit.
 
 ## Preliminaries
 
@@ -106,7 +106,69 @@ You'll be greeted with a few options for how to proceed. For this post, I'll be 
 
 ![Clourflare error](/tanstack-cloudflare-post-1/img3a.jpg)
 
-Follow the prompts, authenticate if needed, select your database, and you should be greeted with a new Wrangler entry.
+Follow the prompts, authenticate if needed, select your database, and most importantly, be sure to fill your database name; you almost certainly do not want the default value of the `postgres`.
+
+![Clourflare error](/tanstack-cloudflare-post-1/img3b.jpg)
+
+Once complete, you should be greeted with a new Wrangler entry.
+
+![Clourflare error](/tanstack-cloudflare-post-1/img4.jpg)
+
+That's what mine looks like, and no, there's nothing secret or private about those data. In fact, you'll need it in your Wrangler file, and commited to git if you want Cloudflare's GitHub integration to work.
+
+Copy that into your Wrangler file
+
+```json
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "fitness-tracker",
+  "compatibility_date": "2025-09-02",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "@tanstack/react-start/server-entry",
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "dd0103f82a11410b91c8fb5752050a21"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  },
+  "upload_source_maps": true
+}
+```
+
+and now update your typings via `npx wrangler types`.
+
+### Connect to Hyperdrive
+
+And now, via your same `env` object, you can connect to your database through Hyperdrive
+
+```ts
+const pool = new Pool({
+  connectionString: env.HYPERDRIVE.connectionString,
+});
+```
+
+But there's one more thing to do. When you attempt to run your app, you'll likely see this error
+
+![Clourflare error](/tanstack-cloudflare-post-1/img5.jpg)
+
+Just add a connection string to your dev database with that key to your .env file
+
+```
+CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE='postgresql://docker:docker@localhost:5432/your_db'
+```
+
+## Fixing per-request cleanup
+
+Our database connections will be much snappier now. But Cloudflare will still be erroring out since our database object is created, and exported from a module. That means it will continue to live between requests.
+
+Let's see how to fix that.
+
+What we need is a fresh database connection _per request_. And it turns out TanStack Start has a feature just for that: [global request middleware](https://tanstack.com/start/latest/docs/framework/react/guide/middleware#global-middleware)
+
+The focus of this post is Cloudflare, so we'll breeze through the code; check the docs for more info.
 
 ```ts
 // src/start.ts
@@ -143,12 +205,36 @@ export const startInstance = createStart(() => ({
 }));
 ```
 
-Existing user when placed together == 7ms
+This middleware will run once _per request_, which is exactly what we want. We create our db object, and then add it to context
 
-Existing user when placed on opposite coast == 80ms
+```ts
+return next({
+  context: {
+    db,
+  },
+});
+```
+
+And now you can access the `db` object from any server functions, or server routes (api routes) via the context object that's passed in.
+
+![Clourflare error](/tanstack-cloudflare-post-1/img6.jpg)
+
+## Odds and ends
+
+If you're connecting to a database that's hosted in a particular region, you'll almost always want your web app served from the same region. Putting the workers serving your app closer to your users might ostensibly make sense, but that only serves to make it further from your database, and your app will likely need to make _multiple_ requests to your database in the process of serving a request.
+
+My PlanetScale DB is in aws's us-east-1 region, and so I can pin my Cloudflare app to the same region with this entry in my Wrangler file.
+
+```json
+"placement": {
+  "region": "aws:us-east-1",
+},
+```
+
+It can make a large different I saw the latency in running a very simple query against a small table explode from about 7ms when placed in the same region as my db, up over 10X (about 80ms) when placed on the United States West Coast.
 
 ## Concluding thoughts
 
-In the end, a few lines of webpack config allowed us to easily load global, or scoped css, with optional sass processing in either case. Of course this is only scratching the surface of what's possible. There's no shortage of PostCSS, or other plugins you could toss into the loader list.
+I absolutely love Cloudflare's development platform. Workers are an outstanding, low-latency way to host your web application. I hope this post has provided the tools needed to help get your first app up and running on there.
 
 Happy Coding!
