@@ -63,9 +63,50 @@ Again, this has nothing to do with Drizzle. Export a connection to your database
 
 Remember, Cloudflare workers spin up very quickly, on demand, as needed, in order to serve a request. As these (potentially numerous) workers come into existence, each of them establishing a connection to your database poses two problems.
 
-The first is performance. Opening a fresh db connection is not the fastest thing in the world.
+The first is performance. Opening a fresh db connection is a relatively slow operation. We don't want that happening every time a worker spins up. This is not a concern limited to Cloudflare; any cloud function solution would have the same problem. A web application sitting atop AWS Lambda would not want to exacerbate existing cold starts by adding TCP database connection overhead; and of course low-latency Cloudflare workers would not want to _create_ cold start characteristics in this way.
 
-Fails with error
+The second is the sheer _number of_ connections that would be stood up in this way. Again, this applies to any platform that works via cloud function. As your app grows in traffic, the number of cloud functions (Cloudflare workers, AWS Lambda, etc) would grow to a large number, as would the number of connections open on your database. And databases always have some limit to the number of connections that can be open at any given time.
+
+This is of course a solved problem. Solutions like PgBouncer pool pre-warmed connections, and act as a proxy to your database. Your applicaton connects to PgBouncer, and PgBouncer provides an open connection. Cloudflare provides its own version of this called Hyperdrive, which we'll look at shortly.
+
+### Issue 2: Per request cleanup
+
+The second issue with the code we saw above
+
+```ts
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+
+const pool = new Pool({
+  connectionString: process.env.POSTGRES!,
+});
+
+export const db = drizzle({ client: pool });
+```
+
+is that it violates Cloudflare's rule that each request needs to completely clean up after itself. You cannot have I/O objects left open like this in between requests. If you do, and attempt to run your application, you'll be greeted with an error that looks like this
+
+![Clourflare error](/tanstack-cloudflare-post-1/img1.jpg)
+
+Let's solve both of these problems
+
+## Hyperdrive
+
+No matter _how_ we create our database object in code, we don't want to connect directly to our source db; we want to connect to a pre-warmed connection pool. Clourflare provides one for us called Hyperdrive. To get started, go to the Cloudlfare dashboard, and under Storage and databases, find the option for "Postgres & MySQL (Hyperdrive)"
+
+![Clourflare error](/tanstack-cloudflare-post-1/img2.jpg)
+
+Amusingly, the Hyperdrive in the menu option may be truncated with how they display it.
+
+Hit the connect to database button
+
+![Clourflare error](/tanstack-cloudflare-post-1/img3.jpg)
+
+You'll be greeted with a few options for how to proceed. For this post, I'll be using PlanetScale.
+
+![Clourflare error](/tanstack-cloudflare-post-1/img3a.jpg)
+
+Follow the prompts, authenticate if needed, select your database, and you should be greeted with a new Wrangler entry.
 
 ```ts
 // src/start.ts

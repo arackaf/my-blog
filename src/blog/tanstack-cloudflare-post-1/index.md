@@ -40,27 +40,27 @@ First go to [https://dash.cloudflare.com/](https://dash.cloudflare.com/) (and cr
 
 In the side nav on the left under Build, Compute, you should see a Workers & Pages option. Go there, then hit the Create Application button
 
-![Alt text](/tanstack-cloudflare-post-1/img1_pre.jpg)
+![Create application](/tanstack-cloudflare-post-1/img1_pre.jpg)
 
 We'll want to use GitHub
 
-![Alt text](/tanstack-cloudflare-post-1/img1.jpg)
+![Github integration](/tanstack-cloudflare-post-1/img1.jpg)
 
 and then choose our app
 
-![Alt text](/tanstack-cloudflare-post-1/img2.jpg)
+![Repo selection](/tanstack-cloudflare-post-1/img2.jpg)
 
 and the default settings should be fine.
 
-![Alt text](/tanstack-cloudflare-post-1/img3.jpg)
+![App settings](/tanstack-cloudflare-post-1/img3.jpg)
 
 Once done, you should have a url to view your app
 
-![Alt text](/tanstack-cloudflare-post-1/img3_a.jpg)
+![App created](/tanstack-cloudflare-post-1/img3_a.jpg)
 
 Which, since it's just the default scaffolded TanStack app, will be fairly boring.
 
-![Alt text](/tanstack-cloudflare-post-1/img3_b.jpg)
+![App renders](/tanstack-cloudflare-post-1/img3_b.jpg)
 
 **NOTE**
 If you ever get Cloudflare errors about lockfiles being out of sync, just `rm -rf node_modules`, delete your lockfile and re-run `npm i` (or whatever package manager you're using).
@@ -75,11 +75,11 @@ Rather than manually create the file and start filling in values, let's let Clou
 
 We'll do this by running `npx wrangler deploy`
 
-![Alt text](/tanstack-cloudflare-post-1/img4.jpg)
+![Wrangler deploy](/tanstack-cloudflare-post-1/img4.jpg)
 
 As we can see, this does indeed create our wrangler file, and populate it with correct values.
 
-![Alt text](/tanstack-cloudflare-post-1/img5.jpg)
+![Wrangler file created](/tanstack-cloudflare-post-1/img5.jpg)
 
 `name` is what we'd expect, and what Cloudflare already inferred when we set this repo up manually.
 
@@ -93,11 +93,11 @@ Lastly, `"compatibility_flags": ["nodejs_compat"]` adds Node compatibility to ou
 
 But most impressively, it also adjusted some of our scripts to be more appropriate for Cloudflare, and even installed some new packages, the Cloudflare Vite plugin in particular.
 
-![Alt text](/tanstack-cloudflare-post-1/img6.jpg)
+![Vite plugin added](/tanstack-cloudflare-post-1/img6.jpg)
 
 And it even _adjusted our Vite config_ to remove our Nitro plugin (the agnostic deployment package for TanStack) and replaced it with the Cloudflare one.
 
-![Alt text](/tanstack-cloudflare-post-1/img7.jpg)
+![Vite config changed](/tanstack-cloudflare-post-1/img7.jpg)
 
 ### We're up and running
 
@@ -117,7 +117,7 @@ npx wrangler secret put SECRET_NAME
 
 Wrangler will prompt you for a value, and this will be set in production, on the Cloudflare workers this app deploys to.
 
-![Alt text](/tanstack-cloudflare-post-1/img8.jpg)
+![Setting a secret](/tanstack-cloudflare-post-1/img8.jpg)
 
 Now let's add those values to your local .env file
 
@@ -142,13 +142,13 @@ Honestly `npx wrangler types` is easier for me to remember than `cf-typegen` but
 
 However you run it, you'll wind up with a `worker-configuration.d.ts` file generated, which looks like this, in part
 
-![Alt text](/tanstack-cloudflare-post-1/img9.jpg)
+![Typings created](/tanstack-cloudflare-post-1/img9.jpg)
 
 The entire file runs to over 15,000 lines, but the very top contains our secrets.
 
 And now we can grab our secrets right off of our `env` object, in a strongly typed manner.
 
-![Alt text](/tanstack-cloudflare-post-1/img10.jpg)
+![Accessing secrets](/tanstack-cloudflare-post-1/img10.jpg)
 
 ## On to part 2
 
