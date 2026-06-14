@@ -42,7 +42,28 @@ npx drizzle-kit pull
 
 That will generate our Drizzle schema. We won't cover any of that. See the Drizzle posts above if you're curious, but really you can query your data however you want; for the purposes of this post it makes no difference which, if any ORM you use.
 
-So for now let's attempt to
+## The wrong way (for Clourflare)
+
+For now, let's do something fairly common, that usually works well enough. We'll add a `db.ts` module, with this content
+
+```ts
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+
+const pool = new Pool({
+  connectionString: process.env.POSTGRES!,
+});
+
+export const db = drizzle({ client: pool });
+```
+
+Again, this has nothing to do with Drizzle. Export a connection to your database however you'd like. The issues will be the same.
+
+### Issue 1: Performance
+
+Remember, Cloudflare workers spin up very quickly, on demand, as needed, in order to serve a request. As these (potentially numerous) workers come into existence, each of them establishing a connection to your database poses two problems.
+
+The first is performance. Opening a fresh db connection is not the fastest thing in the world.
 
 Fails with error
 
