@@ -1,7 +1,7 @@
 ---
-title: Introduction to Cloudflare workers, with TanStack Start
+title: Cloudflare workers and Hyperdrive with TanStack Start
 date: "2026-06-06T10:00:00.000Z"
-description: Tips and tricks to deploy TanStack Start onto Cloudflare
+description: Tips and tricks to deploy TanStack Start onto Cloudflare, including database development
 ---
 
 Welcome to part 2 of this post on Cloudflare. In part 1 we covered the absolute basics. We deployed a web app to Cloudflare, saw how our wrangler file works, set up some secrets, and we saw Cloudflare generate typings to keep TypeScript happy.

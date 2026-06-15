@@ -1,5 +1,5 @@
 ---
-title: Introduction to Cloudflare workers, with TanStack Start
+title: Introduction to Cloudflare workers
 date: "2026-06-06T10:00:00.000Z"
 description: Tips and tricks to deploy TanStack Start onto Cloudflare
 ---
