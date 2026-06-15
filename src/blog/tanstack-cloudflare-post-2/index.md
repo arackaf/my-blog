@@ -4,15 +4,15 @@ date: "2026-06-06T10:00:00.000Z"
 description: Tips and tricks to deploy TanStack Start onto Cloudflare
 ---
 
-Welcome to part 2 of this post on Cloudflare. In part 1 we covered the absolute basics. We deployed a web app to Cloudflare, we saw how our wrangler file works, we set up some secrets, and we saw Cloudflare generate some typings for things like secrets.
+Welcome to part 2 of this post on Cloudflare. In part 1 we covered the absolute basics. We deployed a web app to Cloudflare, saw how our wrangler file works, set up some secrets, and we saw Cloudflare generate some typings to keep TypeScript happy.
 
-In this part we'll set up a database. We'll look at Hyperdrive and why it's needed, and we'll look at some possibly counterintuitive ways in which we need to set up our database object (or any I/O object). We'll use TanStack Start specifically, here, but these principles apply to any web framework, even though some of the implementation details might differ a bit.
+In this part we'll set up a database. We'll look at Hyperdrive and why it's needed, as well as some possibly counterintuitive ways in which we need to set up our database object (or any I/O object). We'll use TanStack Start specifically, here, but these principles apply to any web framework, even though some of the implementation details might differ a bit.
 
 ## Preliminaries
 
-I love to use Drizzle for all my data access. It's an outstanding, unique ORM that's essentially designed to be a thin TypeScript layer atop SQL. I've written about it [here](https://master.dev/blog/introducing-drizzle/) and [here](https://master.dev/blog/drizzle-database-migrations/).
+I love Drizzle and use it for all my projects. It's an outstanding, unique ORM that's essentially a thin TypeScript layer atop SQL. I've written about it [here](https://master.dev/blog/introducing-drizzle/) and [here](https://master.dev/blog/drizzle-database-migrations/).
 
-I'll be using Postgres for my db access, so we'll install some things
+I'll be using Postgres, so we'll also install some utilities
 
 ```
 npm i drizzle-orm@rc drizzle-kit@rc pg @types/pg
@@ -40,11 +40,11 @@ and then run
 npx drizzle-kit pull
 ```
 
-That will generate our Drizzle schema. We won't cover any of that. See the Drizzle posts above if you're curious, but really you can query your data however you want; for the purposes of this post it makes no difference which, if any ORM you use.
+That will generate our Drizzle schema. We won't cover those specifics here. See the Drizzle posts above if you're curious, but really you can query your data however you want; for the purposes of this post it makes no difference which, if any ORM you use.
 
 ## The wrong way (for Clourflare)
 
-For now, let's do something fairly common, that usually works well enough. We'll add a `db.ts` module, with this content
+For now, let's do something fairly common, that usually works well enough. We'll add a `db.ts` module, with this code
 
 ```ts
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -61,11 +61,11 @@ Again, this has nothing to do with Drizzle. Export a connection to your database
 
 ### Issue 1: Performance
 
-Remember, Cloudflare workers spin up very quickly, on demand, as needed, in order to serve a request. As these (potentially numerous) workers come into existence, each of them establishing a connection to your database poses two problems.
+Remember, Cloudflare workers spin up very quickly, on demand, as needed to serve requests. As these (potentially numerous) workers come into existence, each of them establishing a connection to your database poses two problems.
 
 The first is performance. Opening a fresh db connection is a relatively slow operation. We don't want that happening every time a worker spins up. This is not a concern limited to Cloudflare; any cloud function solution would have the same problem. A web application sitting atop AWS Lambda would not want to exacerbate existing cold starts by adding TCP database connection overhead; and of course low-latency Cloudflare workers would not want to _create_ cold start characteristics in this way.
 
-The second is the sheer _number of_ connections that would be stood up in this way. Again, this applies to any platform that works via cloud function. As your app grows in traffic, the number of cloud functions (Cloudflare workers, AWS Lambda, etc) would grow to a large number, as would the number of connections open on your database. And databases always have some limit to the number of connections that can be open at any given time.
+The second is the sheer _number of_ connections that would be stood up in this way. Again, this applies to any platform that works via cloud function. As your app grows in traffic, the number of cloud functions (Cloudflare workers, AWS Lambda, etc) would grow to a large number, as would the number of connections open on your database. And databases always have some limit to the number of connections that are supported.
 
 This is of course a solved problem. Solutions like PgBouncer pool pre-warmed connections, and act as a proxy to your database. Your applicaton connects to PgBouncer, and PgBouncer provides an open connection. Cloudflare provides its own version of this called Hyperdrive, which we'll look at shortly.
 
@@ -215,13 +215,13 @@ return next({
 });
 ```
 
-And now you can access the `db` object from any server functions, or server routes (api routes) via the context object that's passed in.
+And now you can access the `db` object from any server functions, or server routes (api routes) via the `context` object that's passed in.
 
 ![Clourflare error](/tanstack-cloudflare-post-1/img6.jpg)
 
 ## Odds and ends
 
-If you're connecting to a database that's hosted in a particular region, you'll almost always want your web app served from the same region. Putting the workers serving your app closer to your users might ostensibly make sense, but that only serves to make it further from your database, and your app will likely need to make _multiple_ requests to your database in the process of serving a request.
+If you're connecting to a database that's hosted in a particular region, you'll almost always want your web app served from the same region. Putting the workers serving your app closer to your users might ostensibly make sense, but that only serves to make the workers further from your database, increasing latency of your queries and updates, and your app will likely need to make _multiple_ requests to your database in the process of serving a request.
 
 My PlanetScale DB is in aws's us-east-1 region, and so I can pin my Cloudflare app to the same region with this entry in my Wrangler file.
 
@@ -231,7 +231,7 @@ My PlanetScale DB is in aws's us-east-1 region, and so I can pin my Cloudflare a
 },
 ```
 
-It can make a large different I saw the latency in running a very simple query against a small table explode from about 7ms when placed in the same region as my db, up over 10X (about 80ms) when placed on the United States West Coast.
+It can make a large difference. I saw the latency in running a very simple query against a small table explode from about 7ms when placed in the same region as my db, up to over 10X (about 80ms) when placed on the United States West Coast.
 
 ## Concluding thoughts
 
