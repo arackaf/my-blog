@@ -42,7 +42,7 @@ npx drizzle-kit pull
 
 That will generate our Drizzle schema. We won't cover those specifics here. See the Drizzle posts above if you're curious, but really you can query your data however you want; for the purposes of this post it makes no difference which, if any ORM you use.
 
-## The wrong way (for Clourflare)
+## The wrong way (for Cloudflare)
 
 For now, let's do something fairly common, that usually works well enough. We'll add a `db.ts` module, with this code
 
@@ -67,7 +67,7 @@ The first is performance. Opening a fresh db connection is a relatively slow ope
 
 The second is the sheer _number of_ connections that would be stood up in this way. Again, this applies to any platform that works via cloud function. As your app grows in traffic, the number of cloud functions (Cloudflare workers, AWS Lambda, etc) would grow to a large number, as would the number of connections open on your database. And databases always have some limit to the number of connections that are supported.
 
-This is of course a solved problem. Solutions like PgBouncer pool pre-warmed connections, and act as a proxy to your database. Your applicaton connects to PgBouncer, and PgBouncer provides an open connection. Cloudflare provides its own version of this called Hyperdrive, which we'll look at shortly.
+This is of course a solved problem. Solutions like PgBouncer pool pre-warmed connections, and act as a proxy to your database. Your application connects to PgBouncer, and PgBouncer provides an open connection. Cloudflare provides its own version of this called Hyperdrive, which we'll look at shortly.
 
 ### Issue 2: Per request cleanup
 
@@ -86,35 +86,35 @@ export const db = drizzle({ client: pool });
 
 is that it violates Cloudflare's rule that each request needs to completely clean up after itself. You cannot have I/O objects left open like this in between requests. If you do, and attempt to run your application, you'll be greeted with an error that looks like this
 
-![Clourflare error](/tanstack-cloudflare-post-1/img1.jpg)
+![Cloudflare error](/tanstack-cloudflare-post-1/img1.jpg)
 
 Let's solve both of these problems
 
 ## Hyperdrive
 
-No matter _how_ we create our database object in code, we don't want to connect directly to our source db; we want to connect to a pre-warmed connection pool. Clourflare provides one for us called Hyperdrive. To get started, go to the Cloudlfare dashboard, and under Storage and databases, find the option for "Postgres & MySQL (Hyperdrive)"
+No matter _how_ we create our database object in code, we don't want to connect directly to our source db; we want to connect to a pre-warmed connection pool. Cloudflare provides one for us called Hyperdrive. To get started, go to the Cloudflare dashboard, and under Storage and databases, find the option for "Postgres & MySQL (Hyperdrive)"
 
-![Clourflare error](/tanstack-cloudflare-post-1/img2.jpg)
+![Cloudflare error](/tanstack-cloudflare-post-1/img2.jpg)
 
 Amusingly, the Hyperdrive in the menu option may be truncated with how they display it.
 
 Hit the connect to database button
 
-![Clourflare error](/tanstack-cloudflare-post-1/img3.jpg)
+![Cloudflare error](/tanstack-cloudflare-post-1/img3.jpg)
 
 You'll be greeted with a few options for how to proceed. For this post, I'll be using PlanetScale.
 
-![Clourflare error](/tanstack-cloudflare-post-1/img3a.jpg)
+![Cloudflare error](/tanstack-cloudflare-post-1/img3a.jpg)
 
 Follow the prompts, authenticate if needed, select your database, and most importantly, be sure to fill your database name; you almost certainly do not want the default value of the `postgres`.
 
-![Clourflare error](/tanstack-cloudflare-post-1/img3b.jpg)
+![Cloudflare error](/tanstack-cloudflare-post-1/img3b.jpg)
 
 Once complete, you should be greeted with a new Wrangler entry.
 
-![Clourflare error](/tanstack-cloudflare-post-1/img4.jpg)
+![Cloudflare error](/tanstack-cloudflare-post-1/img4.jpg)
 
-That's what mine looks like, and no, there's nothing secret or private about those data. In fact, you'll need it in your Wrangler file, and commited to git if you want Cloudflare's GitHub integration to work.
+That's what mine looks like, and no, there's nothing secret or private about those data. In fact, you'll need it in your Wrangler file, and committed to git if you want Cloudflare's GitHub integration to work.
 
 Copy that into your Wrangler file
 
@@ -152,7 +152,7 @@ const pool = new Pool({
 
 But there's one more thing to do. When you attempt to run your app, you'll likely see this error
 
-![Clourflare error](/tanstack-cloudflare-post-1/img5.jpg)
+![Cloudflare error](/tanstack-cloudflare-post-1/img5.jpg)
 
 Just add a connection string to your dev database with that key to your .env file
 
@@ -217,7 +217,7 @@ return next({
 
 And now you can access the `db` object from any server functions, or server routes (api routes) via the `context` object that's passed in.
 
-![Clourflare error](/tanstack-cloudflare-post-1/img6.jpg)
+![Cloudflare error](/tanstack-cloudflare-post-1/img6.jpg)
 
 ## Odds and ends
 
