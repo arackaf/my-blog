@@ -84,7 +84,7 @@ const pool = new Pool({
 export const db = drizzle({ client: pool });
 ```
 
-is that it violates Cloudflare's rule that each request needs to completely clean up after itself. You cannot have I/O objects left open like this in between requests. If you do, and attempt to run your application, you'll be greeted with an error that looks like this
+is that it violates Cloudflare's rule on what is allowed to persist between requests. Long-lived I/O resources such as Node.js connection pools do not fit the Workers execution model and can trigger runtime errors like this
 
 ![Cloudflare error](/tanstack-cloudflare-post-2/img1.jpg)
 
@@ -106,7 +106,7 @@ You'll be greeted with a few options for how to proceed. For this post, I'll be 
 
 ![Cloudflare error](/tanstack-cloudflare-post-2/img3a.jpg)
 
-Follow the prompts, authenticate if needed, select your database, and most importantly, be sure to fill your database name; you almost certainly do not want the default value of the `postgres`.
+Follow the prompts, authenticate if needed, select your database, and most importantly, be sure to fill in your database name; you almost certainly do not want the default value of the `postgres`.
 
 ![Cloudflare error](/tanstack-cloudflare-post-2/img3b.jpg)
 
@@ -168,6 +168,9 @@ Let's see how to fix that.
 
 What we need is a fresh database connection _per request_. And it turns out TanStack Start has a feature just for that: [global request middleware](https://tanstack.com/start/latest/docs/framework/react/guide/middleware#global-middleware)
 
+**NOTE**
+I'm using the word "connection" loosely here. We're creating a conceptual "connection" to our database per request, but we're really connecting through Hyperdrive, which is pooling and re-using actual database TCP connections between requests. The goal is not to literally create a fresh TCP connection to our db for each request, it's to avoid long-lived I/O resources between requests.
+
 The focus of this post is Cloudflare, so we'll breeze through the code; check the docs for more info.
 
 ```ts
@@ -223,7 +226,7 @@ And now you can access the `db` object from any server functions, or server rout
 
 If you're connecting to a database that's hosted in a particular region, you'll almost always want your web app served from the same region. Putting the workers serving your app closer to your users might seem appealing, but that only serves to make the workers further from your database, increasing latency of your queries and updates, and your app will likely need to make _multiple_ requests to your database in the process of serving a request.
 
-My PlanetScale DB is in aws's us-east-1 region, and so I can pin my Cloudflare app to the same region with this entry in my Wrangler file.
+My PlanetScale DB is in AWS's us-east-1 region, and so I can pin my Cloudflare app to the same region with this entry in my Wrangler file.
 
 ```json
 "placement": {
