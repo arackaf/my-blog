@@ -18,6 +18,8 @@ While 100ms may not seem like a huge amount of time, think of it as a handicap y
 
 Cloudflare workers routinely spin up in single-digit milliseconds; they have extremely low latency.
 
+If you'd like to learn more about how Cloudflare implemented this, there are some blog posts [here](https://blog.cloudflare.com/eliminating-cold-starts-with-cloudflare-workers/) and [here](https://blog.cloudflare.com/eliminating-cold-starts-2-shard-and-conquer/)
+
 ## How much do cold starts matter?
 
 I want to be crystal clear: cold starts are not as big of a deal as you might be thinking. Lambda functions stay alive for some period of time after serving a request, and are re-used for other requests. Do not think that every request has to be served by a fresh Lambda, which itself has to cold start. Applications with steady traffic will likely see very few cold starts; however, spiking traffic will necessarily result in new functions spinning up, and cold starting.
