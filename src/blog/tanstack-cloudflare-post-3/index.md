@@ -1,10 +1,10 @@
 ---
 title: Cloudflare workers and Hyperdrive with SvelteKit
-date: "2026-06-10T10:00:00.000Z"
+date: "2026-06-11T10:00:00.000Z"
 description: Tips and tricks to deploy SvelteKit apps to Cloudflare
 ---
 
-This is a post about shipping a Cloudflare application via Cloudflare workers. I've written about Cloudflare previously [here](todo) where we introduced workers, and then [here](todo) where we showed some practical development considerations for getting things to work in TanStack Start, when deployed via Cloudflare workers.
+This is a post about basic application setup for Cloudflare workers. I've written about Cloudflare previously [here](todo) where we introduced workers, and then [here](todo) where we showed some practical development considerations for getting things to work in TanStack Start, when deployed via Cloudflare workers.
 
 This post will be similar to the latter, except we'll be taking a look at SvelteKit.
 
@@ -36,7 +36,7 @@ Find our app under Workers
 
 ![Repo selection](/tanstack-cloudflare-post-3/img1.jpg)
 
-Go to the build section, and connect it to our repo
+Go to the build section
 
 ![Connect to GitHub](/tanstack-cloudflare-post-3/img2.jpg)
 
@@ -104,7 +104,7 @@ Next, we'll delete the `.svelte-kit` folder, and attempt to deploy again. We sho
 ✘ [ERROR] Types at worker-configuration.d.ts are out of date. Run `wrangler types` to regenerate.
 ```
 
-If you think it's silly to forcibly delete the `.svelte-kit` folder just to create this error, note that this is the error you'd see _ever_ time you pushed any changes and replied on your GitHub integration to handle the deployment (since the .svelte-kit folder is created by the `vite build` command, and would therefore not exist on the Cloudflare build servers).
+If you think it's silly to forcibly delete the `.svelte-kit` folder just to create this error, note that this is the error you'd see _every_ time you pushed any changes and replied on your GitHub integration to handle the deployment (since the .svelte-kit folder is created by the `vite build` command, and would therefore not exist on the Cloudflare build servers).
 
 Basically, the root problem is that our `main` application entry point specified in wrangler is
 
@@ -118,7 +118,7 @@ which gets generated via `vite build`. But _before_ that can run our `build` scr
 wrangler types --check
 ```
 
-which verifies our typings. But `.svelte-kit/cloudflare/_worker.js` not yet existing is what causes this error; it's a timing. There are two potential solutions, both simple. Either just swap the order
+which verifies our typings. But `.svelte-kit/cloudflare/_worker.js` not yet existing is what causes this error; it's a timing issue. There are two potential solutions, both simple. Either just swap the order
 
 ```
 "build": "vite build && wrangler types --check",
@@ -130,7 +130,7 @@ or just get rid of the check
 "build": "vite build",
 ```
 
-Since, if your typings are not correct you'll see TS errors pretty quickly.
+If your typings are not correct you'll see TS errors pretty quickly, so the check was never all the valuable to begin with.
 
 And that's that. Note that if you got _this_ error instead (or ever do get it)
 
@@ -138,7 +138,7 @@ And that's that. Note that if you got _this_ error instead (or ever do get it)
 npm error `npm ci` can only install packages when your package.json and package-lock.json or npm-shrinkwrap.json are in sync. Please update your lock file with `npm install` before continuing.
 ```
 
-Just `rm -rf node_modules`, and delete your lockfile, then re-run npm i
+Just `rm -rf node_modules`, delete your lockfile, then re-run npm i
 
 ## Getting started with SvelteKit via Cloudflare
 
@@ -150,7 +150,7 @@ import { env } from "cloudflare:workers";
 
 With SvelteKit, this env object is injected into a `platform` object that shows up in server contexts. In fact, when we first ran `npx wranger deploy` that command adjusted our typings for this.
 
-![Repo selection](/tanstack-cloudflare-post-1/img4.jpg)
+![Repo selection](/tanstack-cloudflare-post-3/img4.jpg)
 
 As we can see, `env` now exists in the platform object. This is what is passed into server loaders (ie, +page.server.ts for a route).
 
@@ -195,17 +195,23 @@ Unfortunately it seems it is, currently at least, very, very easy to get this er
 Error: Could not get the request store. In environments without `AsyncLocalStorage`, the request store (used by e.g. remote functions) must be accessed synchronously, not after an `await`. If it was accessed synchronously then this is an internal error.
 ```
 
-Remote functions are still in the experimental phase, so hopefully that gets ironed out before being fully released
+In spite of the error, Cloudflare workers _do_ have `AsyncLocalStorage` if you have the node compat flag set, which `npx wrangler deploy` did in fact set.
+
+```
+"compatibility_flags": ["nodejs_compat"],
+```
+
+Remote functions are still in the experimental phase, so hopefully that gets ironed out before being fully released.
 
 ## Databases and Hyperdrive
 
 We won't cover Hyperdrive from first principles again. See my [last post](https://todo) on Cloudflare for that.
 
-In short, Cloudflare workers spin up quickly, on demand, to satisfy the requests they receive. That makes them a poor candidate for opening a fresh TCP connection to your database for each request, since doing so would be slow, and would risk overloading your db with more connections that it can support.
+In short, Cloudflare workers spin up quickly, on demand, to satisfy the requests they receive. That makes them a poor candidate for opening a fresh TCP connection to your database for each request, since doing so would be slow, and would risk overloading your db with more connections than it can support.
 
-We also can't just expose as top-level `db` object that's exported from a module for reasons we'll see shortly.
+We also can't just expose a top-level `db` object that's exported from a module for reasons we'll see shortly.
 
-Hyperdrive solves these problems by giving you a pre-warmed connection pool to connect to. So for SvelteKit we'll add the Hyperdrive entry to our wrangler file
+Hyperdrive solves these problems by giving you a pre-warmed connection pool to connect to. Let's add a valid Hyperdrive entry to our wrangler file (see my previous post for details on connecting to, and setting up Hyperdrive)
 
 ```
   "hyperdrive": [
@@ -219,7 +225,7 @@ Hyperdrive solves these problems by giving you a pre-warmed connection pool to c
 
 ## Managing database connections
 
-As with TanStack, the same Cloudflare rules apply. We cannot keep a long-running I/O object open between requests. Doing so would cause errors with Cloudflare.
+As with TanStack, the same Cloudflare rules apply. We cannot keep a long-running I/O object open between requests. Doing so would cause errors with Cloudflare; that's why we can't just `export` a live `db` object from a TypeScript module that contains a database conection when we use Cloudflare workers.
 
 With TanStack Start we solved this with global request middleware, which ran once per request, and allowed us to open a database connection (via Hyperdrive), and put that db object on context, which is present in all server-only contexts.
 
