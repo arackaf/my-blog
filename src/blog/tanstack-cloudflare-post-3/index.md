@@ -82,6 +82,20 @@ Let's add .env file and add a secret to it
 SECRET_1=hello
 ```
 
+then add this section to wrangler.jsonc
+
+```json
+  "secrets": {
+    "required": ["SECRET_1"],
+  },
+```
+
+and then of course set the secret on Cloudflare
+
+```
+npx wrangler secret put SECRET_1
+```
+
 Now let's re-run `npx wrangler types` to update our typings to account for the new secret.
 
 Next, we'll delete the `.svelte-kit` folder, and attempt to deploy again. We should see the following error
@@ -104,11 +118,19 @@ which gets generated via `vite build`. But _before_ that can run our `build` scr
 wrangler types --check
 ```
 
-which verifies our typings. But `.svelte-kit/cloudflare/_worker.js` not yet existing is what causes this error; it's a timing. The solution is simple: just swap the order
+which verifies our typings. But `.svelte-kit/cloudflare/_worker.js` not yet existing is what causes this error; it's a timing. There are two potential solutions, both simple. Either just swap the order
 
 ```
 "build": "vite build && wrangler types --check",
 ```
+
+or just get rid of the check
+
+```
+"build": "vite build",
+```
+
+Since, if your typings are not correct you'll see TS errors pretty quickly.
 
 And that's that. Note that if you got _this_ error instead (or ever do get it)
 
