@@ -1,243 +1,264 @@
 ---
-title: Cloudflare workers and Hyperdrive with TanStack Start
-date: "2026-06-06T10:00:00.000Z"
-description: Tips and tricks to deploy TanStack Start onto Cloudflare, including database development
+title: Cloudflare workers and Hyperdrive with SvelteKit
+date: "2026-06-10T10:00:00.000Z"
+description: Tips and tricks to deploy SvelteKit apps to Cloudflare
 ---
 
-Welcome to part 2 of this post on Cloudflare. In part 1 we covered the absolute basics. We deployed a web app to Cloudflare, saw how our wrangler file works, set up some secrets, and we saw Cloudflare generate typings to keep TypeScript happy.
+This is a post about shipping a Cloudflare application via Cloudflare workers. I've written about Cloudflare previously [here](todo) where we introduced workers, and then [here](todo) where we showed some practical development considerations for getting things to work in TanStack Start, when deployed via Cloudflare workers.
 
-In this part we'll set up a database. We'll look at Hyperdrive and why it's needed, as well as some possibly counterintuitive ways in which we need to set up our database object (or any I/O object). We'll use TanStack Start specifically, here, but these principles apply to any web framework, even though some of the implementation details might differ a bit.
+This post will be similar to the latter, except we'll be taking a look at SvelteKit.
 
-## Preliminaries
+## Getting started
 
-I love Drizzle and use it for all my projects. It's an outstanding, unique ORM that's essentially a thin TypeScript layer atop SQL. I've written about it [here](https://master.dev/blog/introducing-drizzle/) and [here](https://master.dev/blog/drizzle-database-migrations/).
-
-I'll be using Postgres, so we'll also install some utilities
+Let's scaffold an essentially empty, starting point SvelteKit application
 
 ```
-npm i drizzle-orm@rc drizzle-kit@rc pg @types/pg
+npx sv create my-app
 ```
 
-add a drizzle.config.ts file
+## Enabling Cloudflare
+
+As before, let's get the basic Cloudflare infrastructure set up
+
+```
+npx wrangler deploy
+```
+
+As with TanStack, this does indeed install some new dependencies, and set up the Cloudflare plugin.
+
+![Repo selection](/tanstack-cloudflare-post-3/img0.jpg)
+
+## Connecting GitHub
+
+To enable easy deployments, let's connect Githib to our new app. We'll go to our [cloudflare dashboard](https://dash.cloudflare.com/)
+
+Find our app under Workers
+
+![Repo selection](/tanstack-cloudflare-post-3/img1.jpg)
+
+Go to the build section, and connect it to our repo
+
+![Connect to GitHub](/tanstack-cloudflare-post-3/img2.jpg)
+
+And then choose the right repo
+
+![Connect to GitHub](/tanstack-cloudflare-post-3/img3.jpg)
+
+## Fixing the build task
+
+Unfortunately, as of this writing in June 2026, there's one small problem with the scaffolding `npx wrangler deploy` set up for us. Let's take a look, and see how to tweak.
+
+Our new `build` script looks like this
+
+```
+"build": "wrangler types --check && vite build"
+```
+
+When we initially run it, we'll get this error.
+
+```
+✘ [ERROR] Types file not found at worker-configuration.d.ts.
+```
+
+That's easily fixed with a simple
+
+```
+npx wrangler types
+```
+
+Which generates the missing file. Now the file exists and we can deploy our application
+
+```
+npm run deploy
+```
+
+And it works!
+
+But there's still a problem.
+
+Let's add .env file and add a secret to it
+
+```
+SECRET_1=hello
+```
+
+Now let's re-run `npx wrangler types` to update our typings to account for the new secret.
+
+Next, we'll delete the `.svelte-kit` folder, and attempt to deploy again. We should see the following error
+
+```
+✘ [ERROR] Types at worker-configuration.d.ts are out of date. Run `wrangler types` to regenerate.
+```
+
+If you think it's silly to forcibly delete the `.svelte-kit` folder just to create this error, note that this is the error you'd see _ever_ time you pushed any changes and replied on your GitHub integration to handle the deployment (since the .svelte-kit folder is created by the `vite build` command, and would therefore not exist on the Cloudflare build servers).
+
+Basically, the root problem is that our `main` application entry point specified in wrangler is
+
+```
+"main": ".svelte-kit/cloudflare/_worker.js",
+```
+
+which gets generated via `vite build`. But _before_ that can run our `build` script runs
+
+```
+wrangler types --check
+```
+
+which verifies our typings. But `.svelte-kit/cloudflare/_worker.js` not yet existing is what causes this error; it's a timing. The solution is simple: just swap the order
+
+```
+"build": "vite build && wrangler types --check",
+```
+
+And that's that. Note that if you got _this_ error instead (or ever do get it)
+
+```
+npm error `npm ci` can only install packages when your package.json and package-lock.json or npm-shrinkwrap.json are in sync. Please update your lock file with `npm install` before continuing.
+```
+
+Just `rm -rf node_modules`, and delete your lockfile, then re-run npm i
+
+## Getting started with SvelteKit via Cloudflare
+
+We saw in my [prior post](https://todo.todo) that Cloudflare manages the things we need, from secrets to Hyperdrive connection strings on the `env` object. SvelteKit is no different, although the means of accessing this object changes a bit. With TanStack we simply imported our env directly via a special import
 
 ```ts
-import { defineConfig } from "drizzle-kit";
+import { env } from "cloudflare:workers";
+```
 
-const connectionString = process.env.POSTGRES!;
+With SvelteKit, this env object is injected into a `platform` object that shows up in server contexts. In fact, when we first ran `npx wranger deploy` that command adjusted our typings for this.
 
-export default defineConfig({
-  dialect: "postgresql",
-  dbCredentials: {
-    url: connectionString,
-  },
-  out: "./src/drizzle",
+![Repo selection](/tanstack-cloudflare-post-1/img4.jpg)
+
+As we can see, `env` now exists in the platform object. This is what is passed into server loaders (ie, +page.server.ts for a route).
+
+```ts
+import type { PageServerLoad } from "./$types";
+
+export const load: PageServerLoad = async ({ platform, locals }) => {
+  return {
+    value: platform?.env.SECRET_1,
+  };
+};
+```
+
+as well as any other server-only locations, like api routes.
+
+Note that this does _not_ work for universal loaders, since those also run on the client, and SvelteKit cannot expose the things on this Cloudflare env object on the client.
+
+## Remote Functions
+
+In theory, to access the Cloudflare `env` object from a remote function, you'd simply import `getRequestEvent`
+
+```ts
+import { getRequestEvent, query } from "$app/server";
+```
+
+and then call it as needed
+
+```ts
+export const getPosts = query(async () => {
+  const evt = getRequestEvent();
+  const val = evt.platform?.env.SECRET_1;
+
+  return [
+    /* ... */
+  ];
 });
 ```
 
-and then run
+Unfortunately it seems it is, currently at least, very, very easy to get this error when attempting to use Remote Functions with the Cloudflare adapter. In fact this error seems almost unavoidable
 
 ```
-npx drizzle-kit pull
+Error: Could not get the request store. In environments without `AsyncLocalStorage`, the request store (used by e.g. remote functions) must be accessed synchronously, not after an `await`. If it was accessed synchronously then this is an internal error.
 ```
 
-That will generate our Drizzle schema. We won't cover those specifics here. See the Drizzle posts above if you're curious, but really you can query your data however you want; for the purposes of this post it makes no difference which, if any ORM you use.
+Remote functions are still in the experimental phase, so hopefully that gets ironed out before being fully released
 
-## The wrong way (for Cloudflare)
+## Databases and Hyperdrive
 
-For now, let's do something fairly common, that usually works well enough. We'll add a `db.ts` module, with this code
+We won't cover Hyperdrive from first principles again. See my [last post](https://todo) on Cloudflare for that.
 
-```ts
-import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
+In short, Cloudflare workers spin up quickly, on demand, to satisfy the requests they receive. That makes them a poor candidate for opening a fresh TCP connection to your database for each request, since doing so would be slow, and would risk overloading your db with more connections that it can support.
 
-const pool = new Pool({
-  connectionString: process.env.POSTGRES!,
-});
+We also can't just expose as top-level `db` object that's exported from a module for reasons we'll see shortly.
 
-export const db = drizzle({ client: pool });
+Hyperdrive solves these problems by giving you a pre-warmed connection pool to connect to. So for SvelteKit we'll add the Hyperdrive entry to our wrangler file
+
 ```
-
-Again, this has nothing to do with Drizzle. Export a connection to your database however you'd like. The issues will be the same.
-
-### Issue 1: Performance
-
-Remember, Cloudflare workers spin up very quickly, on demand, as needed to serve requests. As these (potentially numerous) workers come into existence, each of them establishing a connection to your database poses two problems.
-
-The first is performance. Opening a fresh db connection is a relatively slow operation. We don't want that happening every time a worker spins up. This is not a concern limited to Cloudflare; any cloud function solution would have the same problem. A web application sitting atop AWS Lambda would not want to exacerbate existing cold starts by adding TCP database connection overhead; and of course low-latency Cloudflare workers would not want to _create_ cold start characteristics in this way.
-
-The second is the sheer _number of_ connections that would be stood up in this way. Again, this applies to any platform that works via cloud functions. As your app grows in traffic, the number of cloud functions (Cloudflare workers, AWS Lambda, etc) would grow to a large number, as would the number of connections open on your database. And databases always have some limit to the number of connections that are supported.
-
-This is of course a solved problem. Solutions like PgBouncer pool pre-warmed connections, and act as a proxy to your database. Your application connects to PgBouncer, and PgBouncer provides an open connection. Cloudflare provides its own version of this called Hyperdrive, which we'll look at shortly.
-
-### Issue 2: Per request cleanup
-
-The second issue with the code we saw above
-
-```ts
-import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
-
-const pool = new Pool({
-  connectionString: process.env.POSTGRES!,
-});
-
-export const db = drizzle({ client: pool });
-```
-
-is that it violates Cloudflare's rule on what is allowed to persist between requests. Long-lived I/O resources such as Node.js connection pools do not fit the Workers execution model and can trigger runtime errors like this
-
-![Cloudflare error](/tanstack-cloudflare-post-2/img1.jpg)
-
-Let's solve both of these problems
-
-## Hyperdrive
-
-No matter _how_ we create our database object in code, we don't want to connect directly to our source db; we want to connect to a pre-warmed connection pool. Cloudflare provides one for us called Hyperdrive. To get started, go to the Cloudflare dashboard, and under Storage and databases, find the option for "Postgres & MySQL (Hyperdrive)"
-
-![Cloudflare error](/tanstack-cloudflare-post-2/img2.jpg)
-
-Amusingly, the Hyperdrive in the menu option may be truncated with how they display it.
-
-Hit the connect to database button
-
-![Cloudflare error](/tanstack-cloudflare-post-2/img3.jpg)
-
-You'll be greeted with a few options for how to proceed. For this post, I'll be using PlanetScale.
-
-![Cloudflare error](/tanstack-cloudflare-post-2/img3a.jpg)
-
-Follow the prompts, authenticate if needed, select your database, and most importantly, be sure to fill in your database name; you almost certainly do not want the default value of the `postgres`.
-
-![Cloudflare error](/tanstack-cloudflare-post-2/img3b.jpg)
-
-Once complete, you should be greeted with a new Wrangler entry.
-
-![Cloudflare error](/tanstack-cloudflare-post-2/img4.jpg)
-
-That's what mine looks like, and no, there's nothing secret or private about those data. In fact, you'll need it in your Wrangler file, and committed to git if you want Cloudflare's GitHub integration to work.
-
-Copy that into your Wrangler file
-
-```json
-{
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "fitness-tracker",
-  "compatibility_date": "2025-09-02",
-  "compatibility_flags": ["nodejs_compat"],
-  "main": "@tanstack/react-start/server-entry",
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
-      "id": "dd0103f82a11410b91c8fb5752050a21"
-    }
+      "id": "cabc3adcf4c44c03b55e2d17aaef7d99",
+      "localConnectionString": "postgresql://docker:docker@localhost:5432/my_library",
+    },
   ],
-  "observability": {
-    "enabled": true
-  },
-  "upload_source_maps": true
+```
+
+## Managing database connections
+
+As with TanStack, the same Cloudflare rules apply. We cannot keep a long-running I/O object open between requests. Doing so would cause errors with Cloudflare.
+
+With TanStack Start we solved this with global request middleware, which ran once per request, and allowed us to open a database connection (via Hyperdrive), and put that db object on context, which is present in all server-only contexts.
+
+With SvelteKit we can do similarly with a server hook. If we add a `src/hooks.server.js` file, the `handle` function exported therefrom is invoked once _per request_, which makes it a perfect place to set up our db connection.
+
+```ts
+export async function handle({ event, resolve }) {
+  const pool = new Pool({
+    connectionString: event.platform!.env.HYPERDRIVE.connectionString,
+  });
+  const db = getDb(pool);
+
+  if (event.url.pathname.includes("/.well-known/appspecific/com.chrome.devtools")) {
+    return new Response(null, { status: 204 }); // Return empty response with 204 No Content
+  }
+
+  event.locals.db = db;
+
+  const response = await resolve(event);
+  return response;
 }
 ```
 
-and now update your typings via `npx wrangler types`.
-
-### Connect to Hyperdrive
-
-And now, via your same `env` object, you can connect to your database through Hyperdrive
+As you can see, we added our `db` object to the `event.locals` object. This is a standard feature with SvelteKit; in fact there's already a `Locals` interface in the `src/app.d.ts` to hold any of these things we manually add.
 
 ```ts
-const pool = new Pool({
-  connectionString: env.HYPERDRIVE.connectionString,
-});
-```
+import type { DB } from "./data/db";
 
-But there's one more thing to do. When you attempt to run your app, you'll likely see this error
+declare global {
+  namespace App {
+    interface Platform {
+      env: Env;
+      ctx: ExecutionContext;
+      caches: CacheStorage;
+      cf?: IncomingRequestCfProperties;
+    }
 
-![Cloudflare error](/tanstack-cloudflare-post-2/img5.jpg)
-
-Just add a connection string to your dev database with that key to your .env file
-
-```
-CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE='postgresql://docker:docker@localhost:5432/your_db'
-```
-
-## Fixing per-request cleanup
-
-Our database connections will be much snappier now. But Cloudflare will still be erroring out since our database object is created, and exported from a module. That means it will continue to live between requests.
-
-Let's see how to fix that.
-
-What we need is a fresh database connection _per request_. And it turns out TanStack Start has a feature just for that: [global request middleware](https://tanstack.com/start/latest/docs/framework/react/guide/middleware#global-middleware)
-
-**NOTE**
-I'm using the word "connection" loosely here. We're creating a conceptual "connection" to our database per request, but we're really connecting through Hyperdrive, which is pooling and re-using actual database TCP connections between requests. The goal is not to literally create a fresh TCP connection to our db for each request, it's to avoid long-lived I/O resources between requests.
-
-The focus of this post is Cloudflare, so we'll breeze through the code; check the docs for more info.
-
-```ts
-// src/start.ts
-import { Pool } from "pg";
-import { createCsrfMiddleware, createMiddleware, createStart } from "@tanstack/react-start";
-import { getDb } from "./data/db";
-
-const globalContextMiddleware = createMiddleware().server(async ({ next }) => {
-  try {
-    const pool = new Pool({
-      connectionString: process.env.POSTGRES!,
-    });
-
-    const db = getDb(pool);
-
-    return next({
-      context: {
-        db,
-      },
-    });
-  } catch (error) {
-    console.log({ msg: "Error in root context middleware", error });
-    throw error;
+    // interface Error {}
+    interface Locals {
+      db: DB;
+    }
+    // interface PageData {}
+    // interface PageState {}
   }
-});
-
-const csrfMiddleware = createCsrfMiddleware({
-  filter: ctx => ctx.handlerType === "serverFn",
-});
-
-export const startInstance = createStart(() => ({
-  requestMiddleware: [csrfMiddleware, globalContextMiddleware],
-  functionMiddleware: [],
-}));
+}
 ```
 
-This middleware will run once _per request_, which is exactly what we want. We create our db object, and then add it to context
+And now, in server-only contexts like Server loaders, we can access our db object
 
 ```ts
-return next({
-  context: {
-    db,
-  },
-});
+export const load: PageServerLoad = async ({ platform, locals }) => {
+  const users = await locals.db.select().from(user).limit(10);
+
+  return {
+    users,
+  };
+};
 ```
-
-And now you can access the `db` object from any server functions, or server routes (api routes) via the `context` object that's passed in.
-
-![Cloudflare error](/tanstack-cloudflare-post-2/img6.jpg)
-
-## Odds and ends
-
-If you're connecting to a database that's hosted in a particular region, you'll almost always want your web app served from the same region. Putting the workers serving your app closer to your users might seem appealing, but that only serves to make the workers further from your database, increasing latency of your queries and updates, and your app will likely need to make _multiple_ requests to your database in the process of serving a request.
-
-My PlanetScale DB is in AWS's us-east-1 region, and so I can pin my Cloudflare app to the same region with this entry in my Wrangler file.
-
-```json
-"placement": {
-  "region": "aws:us-east-1",
-},
-```
-
-It can make a large difference. I saw the latency in running a very simple query against a small table explode from about 7ms when placed in the same region as my db, up to over 10X (about 80ms) when placed on the United States West Coast.
 
 ## Concluding thoughts
 
-I absolutely love Cloudflare's development platform. Workers are an outstanding, low-latency way to host your web application. I hope this post has provided the tools needed to help get your first app up and running on there.
+I'm extremely excited about web development with Cloudflare's platform. Workers are an outstanding, low-latency way to host your web application. The SvelteKit integration isn't as seamless as it seams. But really the only problems we saw were a simple build script that needed a tweak, and the experimental feature Remote Functions not quite working on Cloudflare, yet.
 
 Happy Coding!
