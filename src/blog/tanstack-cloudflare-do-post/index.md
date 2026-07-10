@@ -1,6 +1,6 @@
 ---
 title: Durable Objects on Cloudflare
-date: "2026-07-1T10:00:00.000Z"
+date: "2026-07-10T10:00:00.000Z"
 description: Introduction to Cloudflare's durable objects
 ---
 
@@ -26,8 +26,99 @@ While they're active they can keep state cached in memory for fast access, with 
 
 We'll get into the specifics, but durable objects ship with Web Socket support _built in_. You can set up multiple socket connections, post and receive messages, and so on. Ok let's see some code!
 
+## Our use case
+
+For this blog post we'll set up a durable object to hold the shopping cart for a given user. The user's cart contents will follow them around to any browser on any device (so long as they're logged in). Sure, you could do the same thing with Postgres, but our durable object will come with some other nice features: anytime a user adds an item to the cart, we'll use that web socket feature we just mentioned to broadcast to all devices that the cart was changes, and that the app should refresh.
+
+Plus, our durable object will be able to store the carts contents cached in memory while active, avoiding what would have been a roundtrip to whatever database may be powering your web app.
+
+Let's get started!
+
+## Setting up a Durable Object
+
+As with most of my posts we'll be using TanStack Start. The repo for everything [is here](https://github.com/arackaf/cloudflare-do-blog-post) in case I don't explain, or show anything clearly.
+
+### Create the object
+
+A durable object is created from a JavaScript class with the appropriate base class.
+
+```ts
+import { DurableObject } from "cloudflare:workers";
+
+export class CartDO extends DurableObject {}
+```
+
+We'll add methods to it in a bit.
+
+### Custom Server entrypoint
+
+We need to make sure our Durable Object is exported in our application bundle. The recommended way of doing that is with a custom server entrypoint. We'll create a src/server.ts file with these contents
+
+```ts
+import handler from "@tanstack/react-start/server-entry";
+
+export default {
+  fetch: handler.fetch,
+};
+```
+
+That essentially does nothing, and simply re-creates what TanStack Start does out of the box, by default. The point of that is so we can _export_ our Durable Object from this same entrypoint. We do that with a standard old JavaScript export.
+
+```ts
+import handler from "@tanstack/react-start/server-entry";
+
+// Export Durable Objects
+export { CartDO } from "./durable-obj/Cart";
+
+export default {
+  fetch: handler.fetch,
+};
+```
+
+And now we change the `main` field in our wrangler file from the default of
+
+```json
+"main": "@tanstack/react-start/server-entry",
+```
+
+to
+
+```json
+"main": "src/server.ts",
+```
+
+### More wrangler additions
+
+That custom server entrypoint was a one-time change that _allows us_ to then start adding in Cloudflare goodies (like durable objects). But it's also where you'd set up things like queues or cron schedules. Check [Cloudflare\'s docs](https://developers.cloudflare.com/workers/framework-guides/web-apps/tanstack-start/?utm_source=chatgpt.com#custom-entrypoints) for more info.
+
+So now we'll add a `durable_objects` section with a binding to the DO we added above
+
+```json
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "CART_DO",
+        "class_name": "CartDO",
+      },
+    ],
+  },
+```
+
+and then, somewhat annoyingly, we need to add a migration for it as well
+
+```json
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["CartDO"],
+    },
+  ],
+```
+
 ## Concluding thoughts
 
-I'm extremely excited about web development with Cloudflare's platform. Workers are an outstanding, low-latency way to host your web application. The SvelteKit integration isn't as seamless as it seams. But really the only problems we saw were a simple build script that needed a tweak, and the experimental feature Remote Functions not quite working on Cloudflare, yet.
+Cloudflare is a delight to develop with. Workers are already a fantastic primitive to ship web applications on top of. With durable objects, a whole host of additional use cases get unlocked beautifully.
+
+Hopefully this post has given you the tools necessary to take advantage.
 
 Happy Coding!
