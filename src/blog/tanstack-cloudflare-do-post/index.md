@@ -319,6 +319,8 @@ openWebSocket().then(socket => {
 
 and of course once we have our socket, we can call `.send` on it as desired.
 
+If you'd like to see the full code as of this initial setup, checkout the tag initial-setup in the repo.
+
 ## Wiring up SQLite
 
 ## Concluding thoughts
