@@ -323,6 +323,128 @@ If you'd like to see the full code as of this initial setup, checkout the tag in
 
 ## Wiring up SQLite
 
+The only missing piece is SQLite from within our Durable Object. To interact with our SQLite db we access the `ctx` object that exists on our object, as a result of inheriting from the DurableObject base class.
+
+`ctx.storage.sql` will give us an object with an `exec` method which we can use to execute SQL commands. In our constructor we can set up our table
+
+```ts
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+
+    ctx.blockConcurrencyWhile(async () => {
+      ctx.storage.sql.exec(`
+        CREATE TABLE IF NOT EXISTS cart_items (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          description TEXT NOT NULL,
+          price REAL NOT NULL,
+          category TEXT NOT NULL,
+          image TEXT NOT NULL,
+          quantity INTEGER NOT NULL DEFAULT 1
+        )
+      `);
+    });
+  }
+```
+
+That table should suffice for a simplified blog post.
+
+`ctx.blockConcurrencyWhile` ensures no other requests are served by this individual durable object until the code inside has completed. It's highly, highly unlikely a single user's durable object would immediately fire a second request while SQLite is still working on creating a single table. Plus, this `exec` method is synchronous, so normal JavaScript run-to-completion semantics, plus durable objects being single-threaded would already ensure no other requests were served until this code finished.
+
+But to make things idiot proof, you should wrap your database migrations in `ctx.blockConcurrencyWhile`. A single await anywhere in your migration logic would in theory open yourself to race conditions that could be served with your db in an inconsistent state.
+
+### Running Queries
+
+From here we can implement our `getCart()` method
+
+```ts
+  getCart(): CartContents {
+    const rows = this.ctx.storage.sql
+      .exec<CartItemRow>(
+        `
+        SELECT
+          id,
+          name,
+          description,
+          price,
+          category,
+          image,
+          quantity
+        FROM cart_items
+        ORDER BY name
+      `,
+      )
+      .toArray();
+
+    const items: CartItem[] = rows.map((row) => ({
+      ...row,
+      lineTotal: row.price * row.quantity,
+    }));
+
+    return {
+      items,
+      totalItems: rows.reduce((sum, row) => sum + row.quantity, 0),
+      totalPrice: rows.reduce((sum, row) => sum + row.price * row.quantity, 0),
+    };
+  }
+```
+
+our addItem method
+
+```ts
+async addItem(item: Product) {
+  this.ctx.storage.sql.exec(
+    `
+      INSERT INTO cart_items (
+        id,
+        name,
+        description,
+        price,
+        category,
+        image,
+        quantity
+      )
+      VALUES (?, ?, ?, ?, ?, ?, 1)
+
+      ON CONFLICT(id) DO UPDATE SET quantity = quantity + 1
+    `,
+    item.id,
+    item.name,
+    item.description,
+    item.price,
+    item.category,
+    item.image,
+  );
+
+  this.#sendCartUpdatedEvent();
+}
+```
+
+and having a clearCart method is pretty handy
+
+```ts
+async clearCart() {
+  this.ctx.storage.sql.exec(`DELETE FROM cart_items`);
+  this.#sendCartUpdatedEvent();
+}
+```
+
+## Wrapping up
+
+We've already seen all the big pieces here: how to set up web socket connections; how to send and receives web socket messages; how to set up and manage our SQLite db; and how to grab, and call methods on our durable object from our TanStack app.
+
+From here it's just a matter of connecting everything. I won't show all the myriad small pieces; this post is way too long, and the rest is all just connecting everything. But you can check out the repo to see everything working together.
+
+To show that it does, here's a gif of the browser tabs all syncing their carts correctly
+
+![Create application](/tanstack-cloudflare-do-post/carts-syncing.gif)
+
+## What about unauthenticated users
+
+We faked authentication for this app to show how each user would grab its own Durable Object. But what about a real eCommerce site where you're much more likely to just buy things without logging in.
+
+One likely solution would be to set a cookie with some manner of UUID for the user, and use that as their temporary userId, and use that to sync their shopping cart between tabs. Sure, it won't work across devices, but that's more than fine for typical usage, and better than some actual websites I've shopped from—I'm looking at you, Bonobos.
+
 ## Concluding thoughts
 
 Cloudflare is a delight to develop with. Workers are already a fantastic primitive to ship web applications on top of. With durable objects, a whole host of additional use cases get unlocked beautifully.
