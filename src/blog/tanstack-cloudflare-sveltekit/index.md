@@ -4,29 +4,81 @@ date: "2026-07-12T10:00:00.000Z"
 description: Tips and tricks to deploy SvelteKit apps to Cloudflare
 ---
 
-This is a post about basic application setup for Cloudflare workers. I've written about Cloudflare previously [here](todo) where we introduced workers, and then [here](todo) where we showed some practical development considerations for getting things to work in TanStack Start, when deployed via Cloudflare workers.
+This is a post about web application setup for Cloudflare workers on SvelteKit. I've written about Cloudflare previously [here](https://master.dev/blog/introduction-to-cloudflare-workers-for-web-apps/) where we introduced workers, and then [here](https://master.dev/blog/cloudflare-workers-and-hyperdrive-with-tanstack-start/) where we showed some of the one-off development considerations needed for getting things to work in TanStack Start, when deployed via Cloudflare workers.
 
 This post will be similar to the latter, except we'll be taking a look at SvelteKit.
 
+I've found the Cloudflare / SvelteKit integration to be not quite as seamless as TanStack, but it's still outstanding, and nonetheless doesn't take much effort to get up and running.
+
+## What are Cloudflare Workers
+
+Cloudflare workers are conceptually similar to AWS Lambda functions. They're cloud functions which spin up on demand, as much as or as little as your application's traffic demands at any given moment in time. Except Cloudflare Workers have very, very low latency. The "cold starts" Lambda is known to have is virtually non-existent with Workers.
+
+## What's the catch?
+
+Not much, really. There was a time when Cloudflare Workers had a runtime that a relatively small subset of Node, but those days are over. Cloudflare Workers now have a Node compat mode that solves those problems.
+
+The main limitation with Workers is that they have some special rules that require you to clean up after yourself in ways other runtimes don't. Namely, you cannot have any long-running I/O objects surviving between requests. In particular, you cannot simply have a module export a `db` object that connects to your database. Each request must spin that connection up fresh. We'll see how to do that in TanStack.
+
+## Introducing Hyperdrive
+
+Spinning up a fresh database connection was always a bad idea from _any_ cloud function runtime, like AWS Lambda. These functions spin up as needed, and during perios of bursting traffic, the number of Lambda functions being created could easily overwhelm your database.
+
+But with Workers requiring a fresh connection _per request_ this is even more dangerous. To say nothing of the fact that, we'd hardly want to ruin Workers' low latency feature by requiring them to perform the time consuming operation of establishing a fresh TCP connection to our database.
+
+To solve all these problems Cloudflare has a tool called Hyperdrive, which keeps a pool of pre-warmed connections to our database open. Our Workers then connect to Hyperdrive, quickly, and have immediate access to these pre-warmed connections.
+
 ## Getting started
 
-Let's scaffold an essentially empty, starting point SvelteKit application
+Let's scaffold an essentially empty, starting point SvelteKit application. We'll go to the directory we want our app, and then a simple
 
 ```
-npx sv create my-app
+npx sv create .
 ```
+
+should create it.
 
 ## Enabling Cloudflare
 
-As before, let's get the basic Cloudflare infrastructure set up
+Let's get basic Cloudflare infrastructure set up for our project.
 
 ```
 npx wrangler deploy
 ```
 
-As with TanStack, this does indeed install some new dependencies, and set up the Cloudflare plugin.
+We'll be asked a few questions, to which the defaults should be fine.
 
-![Repo selection](/tanstack-cloudflare-sveltekit/img0.jpg)
+![Repo selection](/tanstack-cloudflare-sveltekit/img0a.jpg)
+
+This will install some new dependencies, and set up the Cloudflare plugin.
+
+![Repo selection](/tanstack-cloudflare-sveltekit/img0a.jpg)
+
+Very nice!
+
+## One problem
+
+Well, if we open out Cloudflare dashboard we will _not_ see this new app present, and if we look in our terminal we'll see why.
+
+```
+[build] ✘ [ERROR] Types file not found at worker-configuration.d.ts.
+[build]
+[build]
+[build]
+[build] 🪵  Logs were written to "/Users/arackis/Library/Preferences/.wrangler/logs/wrangler-2026-07-12_23-14-01_652.log"
+[build]
+✘ [ERROR] Error: Command failed with exit code 1: npm run build
+
+  ✘ [ERROR] Types file not found at
+  worker-configuration.d.ts.
+
+
+  🪵  Logs were written to
+  "/Users/arackis/Library/Preferences/.wrangler/logs/wrangler-2026-07-12_23-14-01_652.log"
+
+  > sveltekit-temp@0.0.1 build
+  > wrangler types --check && vite build
+```
 
 ## Connecting GitHub
 
