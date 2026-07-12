@@ -26,7 +26,7 @@ npx wrangler deploy
 
 As with TanStack, this does indeed install some new dependencies, and set up the Cloudflare plugin.
 
-![Repo selection](/tanstack-cloudflare-post-3/img0.jpg)
+![Repo selection](/tanstack-cloudflare-sveltekit/img0.jpg)
 
 ## Connecting GitHub
 
@@ -34,15 +34,15 @@ To enable easy deployments, let's connect Githib to our new app. We'll go to our
 
 Find our app under Workers
 
-![Repo selection](/tanstack-cloudflare-post-3/img1.jpg)
+![Repo selection](/tanstack-cloudflare-sveltekit/img1.jpg)
 
 Go to the build section
 
-![Connect to GitHub](/tanstack-cloudflare-post-3/img2.jpg)
+![Connect to GitHub](/tanstack-cloudflare-sveltekit/img2.jpg)
 
 And then choose the right repo
 
-![Connect to GitHub](/tanstack-cloudflare-post-3/img3.jpg)
+![Connect to GitHub](/tanstack-cloudflare-sveltekit/img3.jpg)
 
 ## Fixing the build task
 
@@ -150,7 +150,7 @@ import { env } from "cloudflare:workers";
 
 With SvelteKit, this env object is injected into a `platform` object that shows up in server contexts. In fact, when we first ran `npx wranger deploy` that command adjusted our typings for this.
 
-![Repo selection](/tanstack-cloudflare-post-3/img4.jpg)
+![Repo selection](/tanstack-cloudflare-sveltekit/img4.jpg)
 
 As we can see, `env` now exists in the platform object. This is what is passed into server loaders (ie, +page.server.ts for a route).
 
