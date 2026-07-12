@@ -4,13 +4,13 @@ date: "2026-07-10T10:00:00.000Z"
 description: Introduction to Cloudflare's durable objects
 ---
 
-This is a post about one of Cloudflare's coolest features: Durable Objects. This post will introduce what they are, how they work, and walk through a reasonably realistic use case for them.
+This is a post on one of Cloudflare's coolest features: Durable Objects. We'll introduce what they are, how they work, and walk through a reasonably realistic use case for them.
 
 ## Cloudflare Workers review
 
-I've written about Cloudflare workers previously with an introduction to them [here](https://master.dev/blog/introduction-to-cloudflare-workers-for-web-apps/), along with a post about some of the slightly unorthodox things you have to do to use a database with them [here](https://master.dev/blog/cloudflare-workers-and-hyperdrive-with-tanstack-start/).
+I've written about Cloudflare workers previously with an introduction to them [here](https://master.dev/blog/introduction-to-cloudflare-workers-for-web-apps/), and a post about some of the slightly unorthodox things you have to do to use a database with them [here](https://master.dev/blog/cloudflare-workers-and-hyperdrive-with-tanstack-start/).
 
-We won't rehash all of that here, but as a brief summary, Cloudflare workers are like AWS Lambda functions, except they have much, much lower latency. There are significant differences between those technologies, to be clear. But the high-level elevator pitch is that workers sping up extremely quickly, with virtually no "cold start" to satisfy requests against your web application. And these works spin up as much as needed, giving you built-in horizontal scaling, no matter how spiky your traffic is at any given time.
+We won't rehash all of that here, but as a brief summary, Cloudflare workers are like AWS Lambda functions, except they have much, much lower latency. There are significant differences between those technologies, to be clear. But the high-level elevator pitch is that workers spin up extremely quickly, with virtually no "cold start" to satisfy requests against your web application. And these works spin up as much as needed, giving you built-in horizontal scaling, no matter how spiky your traffic is at any given time.
 
 ## What's missing
 
@@ -18,17 +18,19 @@ State. Anonymous Cloudflare workers that can spin up, serve your request, and di
 
 ## What are Durable Objects
 
-Durable objects are Cloudflare's answer to this. Durable objects are a special kind of Worker: they come with persistent storage (either SQLite, or Cloudflare's own key-value storage), and are themselves, well, durable. They go idle when not being used, but when requests against them start up again, they come back to life, with access to their persistent storage.
+Durable objects are Cloudflare's answer to this. Durable objects are stateful worker instances which come with their own persistent storage (either SQLite, or Cloudflare's own key-value storage). Durable Objects are, well, durable. They go idle when not being used, but when requests against them start up again, they come back to life, with access to their persistent storage.
 
-While they're active they can keep state cached in memory for fast access, with the source of truth of course being their persistent storage (SQLite or KV storage).
+Cloudflare guarantees that each Durable Object instance is active in only one location at a time, which means that while they're active they can keep state cached in memory for fast access, with the source of truth being their persistent storage (SQLite or KV storage).
 
 ## With Web Socket Support
 
-We'll get into the specifics, but durable objects ship with Web Socket support _built in_. You can set up multiple socket connections, post and receive messages, and so on. Ok let's see some code!
+We'll get into the specifics, but durable objects ship with Web Socket support _built in_. You can set up multiple socket connections, post and receive messages, and so on.
+
+Ok, let's see some code!
 
 ## Our use case
 
-For this blog post we'll set up a durable object to hold the shopping cart for a given user. The user's cart contents will follow them around to any browser on any device (so long as they're logged in). Sure, you could do the same thing with Postgres, but our durable object will come with some other nice features: anytime a user adds an item to the cart, we'll use that web socket feature we just mentioned to broadcast to all devices that the cart was changes, and that the cart contents should refresh.
+For this post we'll set up a durable object to hold the shopping cart for an hypothetical eCommercse site. We'll create one Durable Object instance for each object. The user's cart contents will follow them around to any browser on any device (so long as they're logged in). Sure, you could do the same thing with Postgres, but our durable object will come with some other nice features: anytime a user adds an item to the cart, we'll use that web socket feature we just mentioned to broadcast to all devices that the cart was changes, and that the cart contents should refresh.
 
 Plus, our durable object will be able to store the carts contents cached in memory while active, avoiding what would have been a roundtrip to whatever database may be powering your web app.
 
@@ -119,13 +121,13 @@ and then, somewhat annoyingly, we need to add a migration for it as well
 
 To avoid dumping too much code all at once let's sketch out a minimal version of our Shopping Cart Durable Object, just to see how everything works, and fits together. Let's create the following methods:
 
-getCart() to retrive cart contents. We'll hard code static data for now, and wire up SQLite in a moment.
+`getCart()` to retrive cart contents. We'll hard code static data for now, and wire up SQLite in a moment.
 
-addItem() to add an item to the cart, and then broadcast a web socket message that the cart has updated, so any and all browser tabs this user has open will update. Again, we'll hard code the former, for now, before setting up SQLite in a moment.
+`addItem()` to add an item to the cart, and then broadcast a web socket message that the cart has updated, so any browser tabs this user has open will update. Again, we'll hard code the former, for now, before setting up SQLite in a moment.
 
 Then we'll need a method to set up a web socket connection.
 
-And even though, for this use case, we won't need to be sending web sockets from the browser, up to the DO (only the reverse), we'll set that up too so we can see how it works.
+And even though, for this use case, we won't need to be sending web socket messages from the browser, up to the DO (only the reverse), we'll set that up too so we can see how it works.
 
 With that, here's our initial sketch of our durable object
 
@@ -190,7 +192,7 @@ and then call `socket.send`. Simple and humble.
 
 The fetch method may seem surprising, but that's how we set up a new web socket subscriber against our Durable Object. We check the headers to ensure it is indeed a web socket setup, and error out if not; we're free to accept, and reply to any manner of fetch requests if we wanted, of course, but none apply for this use case.
 
-Cloudflare gives us the primitives for this built in
+Cloudflare gives us the primitives for this
 
 ```ts
 const pair = new WebSocketPair();
@@ -202,11 +204,11 @@ this.ctx.acceptWebSocket(server);
 
 `WebSocketPair` is a Cloudflare runtime global. We set up the connection, and then call `this.ctx.acceptWebSocket(server);`
 
-Lastly, `webSocketMessage` is the message we use to _receive_ web socket messages from the client.
+Lastly, `webSocketMessage` is the method we use to _receive_ web socket messages from the client.
 
 ## Using our Durable Object
 
-How do we consume those Durable Objects methods from our app?
+How do we consume those Durable Object methods from our app?
 
 First let's write a helper function to get an instance of our DO
 
@@ -225,7 +227,7 @@ export const getCartForCurrentUser = async () => {
 };
 ```
 
-We want one Durable Object per user, to hold that user's cart conents. So we grab our user—this isn't a post on auth so user credentials are just hard-coded—then grab our `env` object, and grab our `CART_DO` object from there. Remember, `CART_DO` was wired up in Wrangler here
+For our use case we want one Durable Object per user, to hold that user's cart conents. So we grab our user—this isn't a post on auth so user credentials are just hard-coded—grab our `env` object, and grab our `CART_DO` object from there. Remember, `CART_DO` was wired up in Wrangler here
 
 ```json
 "durable_objects": {
@@ -238,7 +240,7 @@ We want one Durable Object per user, to hold that user's cart conents. So we gra
 },
 ```
 
-`CART_DO.idFromName` allows us to retrieve a globally unique, internal id for the durable object we want from whatever string identifier we want, and then `CART_DO.get` takes that internal id and gets us the actual, live proxy to interact with the DO with.
+`CART_DO.idFromName` allows us to retrieve a globally unique, internal id for the durable object instance we want from a string identifier, and then `CART_DO.get` takes that internal id and gets us the actual, live proxy to interact with the DO instance.
 
 We do this interaction from the server, which means we'll need some server functions. Here are two for the `getCart` / `addItems` calls
 
@@ -259,7 +261,7 @@ Get the cart object, and call the methods. Simple.
 
 ### Setting up the socket connection
 
-To set up the web socket connection we need to actually fetch to our DO, and we need a real http request. So we'll create a TanStack api endpoint
+To set up the WebSocket connection we need to make an HTTP request that upgrades to a WebSocket connection. So we'll create a TanStack api endpoint that receives that HTTP request, and simply forwards it to the Durable Object
 
 ```ts
 // routes/api/cart/subscribe.tsx
@@ -304,7 +306,7 @@ export function openWebSocket() {
 }
 ```
 
-which we can call from whatever, and get back our socket object
+which we can call, and get back our socket object
 
 ```ts
 openWebSocket().then(socket => {
@@ -325,7 +327,7 @@ If you'd like to see the full code as of this initial setup, checkout the tag in
 
 The only missing piece is SQLite from within our Durable Object. To interact with our SQLite db we access the `ctx` object that exists on our object, as a result of inheriting from the DurableObject base class.
 
-`ctx.storage.sql` will give us an object with an `exec` method which we can use to execute SQL commands. In our constructor we can set up our table
+`ctx.storage.sql` gives us an object with an `exec` method which we can use to execute SQL commands. In our constructor we'll set up our table
 
 ```ts
   constructor(ctx: DurableObjectState, env: Env) {
@@ -347,11 +349,11 @@ The only missing piece is SQLite from within our Durable Object. To interact wit
   }
 ```
 
-That table should suffice for a simplified blog post.
+This isn't the most resilient design, but it should suffice for a simplified blog post.
 
-`ctx.blockConcurrencyWhile` ensures no other requests are served by this individual durable object until the code inside has completed. It's highly, highly unlikely a single user's durable object would immediately fire a second request while SQLite is still working on creating a single table. Plus, this `exec` method is synchronous, so normal JavaScript run-to-completion semantics, plus durable objects being single-threaded would already ensure no other requests were served until this code finished.
+`ctx.blockConcurrencyWhile` ensures no other requests are served by this individual durable object instance until the code inside has completed.
 
-But to make things idiot proof, you should wrap your database migrations in `ctx.blockConcurrencyWhile`. A single await anywhere in your migration logic would in theory open yourself to race conditions that could be served with your db in an inconsistent state.
+In this example sql.exec() is synchronous, so nothing could interleave while it's running anyway. But we still wrap initialization in `blockConcurrencyWhile` because constructors often grow over time (loading state, awaiting storage, migrations, etc.), and this guarantees no requests are dispatched until initialization is finished.
 
 ### Running Queries
 
@@ -429,13 +431,21 @@ async clearCart() {
 }
 ```
 
+## Other details
+
+There's plenty of other small details to handle: setting up the web socket connection when the app loads, wiring up react-query to read the cart contents, invalidating the query whenever we get a socket notification that the cart changed, and of course wiring up the UI for things like adding an item, clearing the cart, etc.
+
+This post is already long, so check the repo if you're curious how I implemented those things.
+
+## Future tweaks
+
+Remember, Durable Objects are single-threaded, and only run in one location at a time. That means it would be safe for us to cache our cart in memory. Our SQLite queries are incredibly fast, but if we ever wanted we could add something like `this.cachedCartContent` (or `this.#cachedCartContents` to make it private), update it whenever we modify the cart, and return it, if present, instead of querying SQLite.
+
 ## Wrapping up
 
 We've already seen all the big pieces here: how to set up web socket connections; how to send and receives web socket messages; how to set up and manage our SQLite db; and how to grab, and call methods on our durable object from our TanStack app.
 
-From here it's just a matter of connecting everything. I won't show all the myriad small pieces; this post is way too long, and the rest is all just connecting everything. But you can check out the repo to see everything working together.
-
-To show that it does, here's a gif of the browser tabs all syncing their carts correctly
+From here it's just a matter of connecting everything. As I said, you can check the repo for those details, but to show that this does in fact work, here's a gif of the browser tabs all syncing their carts correctly
 
 ![Create application](/tanstack-cloudflare-do-post/carts-syncing.gif)
 
@@ -443,7 +453,7 @@ To show that it does, here's a gif of the browser tabs all syncing their carts c
 
 We faked authentication for this app to show how each user would grab its own Durable Object. But what about a real eCommerce site where you're much more likely to just buy things without logging in.
 
-One likely solution would be to set a cookie with some manner of UUID for the user, and use that as their temporary userId, and use that to sync their shopping cart between tabs. Sure, it won't work across devices, but that's more than fine for typical usage, and better than some actual websites I've shopped from—I'm looking at you, Bonobos.
+One likely solution would be to set a cookie with some manner of UUID for the user, use that as their temporary userId, and use that to sync their shopping cart between tabs. Sure, it won't work across devices, but that's more than fine for typical usage, and better than some actual websites I've shopped from—I'm looking at you, Bonobos.
 
 ## Concluding thoughts
 
