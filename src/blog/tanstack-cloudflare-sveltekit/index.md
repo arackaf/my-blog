@@ -1,6 +1,6 @@
 ---
 title: Cloudflare workers and Hyperdrive with SvelteKit
-date: "2026-06-11T10:00:00.000Z"
+date: "2026-07-12T10:00:00.000Z"
 description: Tips and tricks to deploy SvelteKit apps to Cloudflare
 ---
 
