@@ -80,6 +80,32 @@ Well, if we open out Cloudflare dashboard we will _not_ see this new app present
   > wrangler types --check && vite build
 ```
 
+The problem is the `build` task Cloudflare scaffolded us
+
+```
+"build": "vite build && wrangler types --check"
+```
+
+The problem is the latter piece `wrangler types --check`: this asks Wrangler to confirm that the generated typings are perfectly synced with the needs of the application. In my experience this is a fickle check that fails for reasons you may not care completely about, like some secrets not being properly declared in your Wrangler under some circumstances. To fix this error you can either run
+
+```
+npx wranger types
+```
+
+To generate the types and pass (or almost pass, see below) the build, but I'd recommend just removing the `wrangler types --check` from the build script.
+
+You'll absolutely need to run `npx wrangler types` to get typings generated for when you start using Hyperdrive, adding secrets, using Durable Objects, etc. But I wouldn't fail the build step if your types are not completely up to date, especially if those mismathces don't actually lead to TS errors.
+
+If your typings are not correct you'll see TS errors pretty quickly, so the check was never all the valuable to begin with.
+
+And that's that. Note that if you got _this_ error instead (or ever do get it)
+
+```
+npm error `npm ci` can only install packages when your package.json and package-lock.json or npm-shrinkwrap.json are in sync. Please update your lock file with `npm install` before continuing.
+```
+
+Just `rm -rf node_modules`, delete your lockfile, then re-run npm i
+
 ## Connecting GitHub
 
 To enable easy deployments, let's connect Githib to our new app. We'll go to our [cloudflare dashboard](https://dash.cloudflare.com/)
@@ -96,105 +122,9 @@ And then choose the right repo
 
 ![Connect to GitHub](/tanstack-cloudflare-sveltekit/img3.jpg)
 
-## Fixing the build task
-
-Unfortunately, as of this writing in June 2026, there's one small problem with the scaffolding `npx wrangler deploy` set up for us. Let's take a look, and see how to tweak.
-
-Our new `build` script looks like this
-
-```
-"build": "wrangler types --check && vite build"
-```
-
-When we initially run it, we'll get this error.
-
-```
-✘ [ERROR] Types file not found at worker-configuration.d.ts.
-```
-
-That's easily fixed with a simple
-
-```
-npx wrangler types
-```
-
-Which generates the missing file. Now the file exists and we can deploy our application
-
-```
-npm run deploy
-```
-
-And it works!
-
-But there's still a problem.
-
-Let's add .env file and add a secret to it
-
-```
-SECRET_1=hello
-```
-
-then add this section to wrangler.jsonc
-
-```json
-  "secrets": {
-    "required": ["SECRET_1"],
-  },
-```
-
-and then of course set the secret on Cloudflare
-
-```
-npx wrangler secret put SECRET_1
-```
-
-Now let's re-run `npx wrangler types` to update our typings to account for the new secret.
-
-Next, we'll delete the `.svelte-kit` folder, and attempt to deploy again. We should see the following error
-
-```
-✘ [ERROR] Types at worker-configuration.d.ts are out of date. Run `wrangler types` to regenerate.
-```
-
-If you think it's silly to forcibly delete the `.svelte-kit` folder just to create this error, note that this is the error you'd see _every_ time you pushed any changes and replied on your GitHub integration to handle the deployment (since the .svelte-kit folder is created by the `vite build` command, and would therefore not exist on the Cloudflare build servers).
-
-Basically, the root problem is that our `main` application entry point specified in wrangler is
-
-```
-"main": ".svelte-kit/cloudflare/_worker.js",
-```
-
-which gets generated via `vite build`. But _before_ that can run our `build` script runs
-
-```
-wrangler types --check
-```
-
-which verifies our typings. But `.svelte-kit/cloudflare/_worker.js` not yet existing is what causes this error; it's a timing issue. There are two potential solutions, both simple. Either just swap the order
-
-```
-"build": "vite build && wrangler types --check",
-```
-
-or just get rid of the check
-
-```
-"build": "vite build",
-```
-
-If your typings are not correct you'll see TS errors pretty quickly, so the check was never all the valuable to begin with.
-
-And that's that. Note that if you got _this_ error instead (or ever do get it)
-
-```
-npm error `npm ci` can only install packages when your package.json and package-lock.json or npm-shrinkwrap.json are in sync. Please update your lock file with `npm install` before continuing.
-```
-
-Just `rm -rf node_modules`, delete your lockfile, then re-run npm i
-
 ## Getting started with SvelteKit via Cloudflare
 
-We saw in my [prior post](https://todo.todo) that Cloudflare manages the things we need, from secrets to Hyperdrive connection strings on the `env` object. SvelteKit is no different, although the means of accessing this object changes a bit. With TanStack we simply imported our env directly via a special import
+Cloudflare manages the things we need, from secrets to Hyperdrive connection strings on the `env` object. With TanStack we imported our env directly, via a special import
 
 ```ts
 import { env } from "cloudflare:workers";
@@ -222,7 +152,7 @@ Note that this does _not_ work for universal loaders, since those also run on th
 
 ## Remote Functions
 
-In theory, to access the Cloudflare `env` object from a remote function, you'd simply import `getRequestEvent`
+To access the Cloudflare `env` object from a remote function, you'd simply import `getRequestEvent`
 
 ```ts
 import { getRequestEvent, query } from "$app/server";
@@ -241,38 +171,66 @@ export const getPosts = query(async () => {
 });
 ```
 
-Unfortunately it seems it is, currently at least, very, very easy to get this error when attempting to use Remote Functions with the Cloudflare adapter. In fact this error seems almost unavoidable
-
-```
-Error: Could not get the request store. In environments without `AsyncLocalStorage`, the request store (used by e.g. remote functions) must be accessed synchronously, not after an `await`. If it was accessed synchronously then this is an internal error.
-```
-
-In spite of the error, Cloudflare workers _do_ have `AsyncLocalStorage` if you have the node compat flag set, which `npx wrangler deploy` did in fact set.
-
-```
-"compatibility_flags": ["nodejs_compat"],
-```
-
-Remote functions are still in the experimental phase, so hopefully that gets ironed out before being fully released.
-
 ## Databases and Hyperdrive
 
-We won't cover Hyperdrive from first principles again. See my [last post](https://todo) on Cloudflare for that.
+Hyperdrive is Cloudflare's answer for connecting to a database from a cloud function that can spin up arbitrarily frequently, depending on your web application's traffic.
 
-In short, Cloudflare workers spin up quickly, on demand, to satisfy the requests they receive. That makes them a poor candidate for opening a fresh TCP connection to your database for each request, since doing so would be slow, and would risk overloading your db with more connections than it can support.
+Since Cloudflare workers spin up quickly, on demand, to satisfy the requests they receive, they're a poor candidate for opening a fresh TCP connection to your database for each request, since doing so would be slow, and would risk overloading your db with more connections than it can support.
 
 We also can't just expose a top-level `db` object that's exported from a module for reasons we'll see shortly.
 
-Hyperdrive solves these problems by giving you a pre-warmed connection pool to connect to. Let's add a valid Hyperdrive entry to our wrangler file (see my previous post for details on connecting to, and setting up Hyperdrive)
+Hyperdrive solves all these problems by giving you a pre-warmed connection pool to connect to.
 
-```
+### Setting up Hyperdrive
+
+Cloudflare dashboard, and under Storage and databases, find the option for "Postgres & MySQL (Hyperdrive)"
+
+![Cloudflare error](/tanstack-cloudflare-sveltekit/hyperdrive/img1.jpg)
+
+Amusingly, the Hyperdrive in the menu option may be truncated with how they display it.
+
+Hit the connect to database button
+
+![Cloudflare error](/tanstack-cloudflare-sveltekit/hyperdrive/img2.jpg)
+
+You'll be greeted with a few options for how to proceed. For this post, I'll be using PlanetScale.
+
+![Cloudflare error](/tanstack-cloudflare-sveltekit/hyperdrive/img3.jpg)
+
+Follow the prompts, authenticate if needed, select your database, and most importantly, be sure to fill in your database name; you almost certainly do not want the default value of the `postgres`.
+
+![Cloudflare error](/tanstack-cloudflare-post-2/img3b.jpg)
+
+Once complete, you should be greeted with a new Wrangler entry.
+
+![Cloudflare error](/tanstack-cloudflare-post-2/img4.jpg)
+
+That's what mine looks like, and no, there's nothing secret or private about those data. In fact, you'll need it in your Wrangler file, and committed to git if you want Cloudflare's GitHub integration to work.
+
+Copy that into your Wrangler file, and add a localConnectionString in the process, for use during local development.
+
+```json
+{
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
       "id": "cabc3adcf4c44c03b55e2d17aaef7d99",
-      "localConnectionString": "postgresql://docker:docker@localhost:5432/my_library",
-    },
-  ],
+      "localConnectionString": "postgresql://docker:docker@localhost:5432/my_library"
+    }
+  ]
+}
+```
+
+and now update your typings via `npx wrangler types`.
+
+### Connect to Hyperdrive
+
+And now, via your same `env` object, you can connect to your database through Hyperdrive
+
+```ts
+const pool = new Pool({
+  connectionString: env.HYPERDRIVE.connectionString,
+});
 ```
 
 ## Managing database connections
@@ -337,8 +295,23 @@ export const load: PageServerLoad = async ({ platform, locals }) => {
 };
 ```
 
+Similarly in Remote Functions, use the `getRequestEvent` to get the request object, on which you'll find the `locals` object, which itself has the `db` object you set up.
+
+```ts
+import { eq } from "drizzle-orm";
+import { getRequestEvent, query } from "$app/server";
+import { books as booksTable } from "$drizzle/schema";
+
+export const getBooks = query(async () => {
+  const evt = getRequestEvent();
+  const books = await evt.locals.db.select().from(booksTable).where(eq(booksTable.userId, "106394015208813116232")).limit(5);
+
+  return books;
+});
+```
+
 ## Concluding thoughts
 
-I'm extremely excited about web development with Cloudflare's platform. Workers are an outstanding, low-latency way to host your web application. The SvelteKit integration isn't as seamless as it seams. But really the only problems we saw were a simple build script that needed a tweak, and the experimental feature Remote Functions not quite working on Cloudflare, yet.
+I'm extremely excited about web development with Cloudflare's platform. Workers are an outstanding, low-latency way to host web applications. The SvelteKit integration is great, and with just a few tricks, you can be up and running quickly.
 
 Happy Coding!
