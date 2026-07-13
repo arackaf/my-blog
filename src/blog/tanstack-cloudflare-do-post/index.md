@@ -10,7 +10,7 @@ This is a post on one of Cloudflare's coolest features: Durable Objects. We'll i
 
 I've written about Cloudflare workers previously with an introduction to them [here](https://master.dev/blog/introduction-to-cloudflare-workers-for-web-apps/), and a post about some of the slightly unorthodox things you have to do to use a database with them [here](https://master.dev/blog/cloudflare-workers-and-hyperdrive-with-tanstack-start/).
 
-We won't rehash all of that here, but as a brief summary, Cloudflare workers are like AWS Lambda functions, except they have much, much lower latency. There are significant differences between those technologies, to be clear. But the high-level elevator pitch is that workers spin up extremely quickly, with virtually no "cold start" to satisfy requests against your web application. And these works spin up as much as needed, giving you built-in horizontal scaling, no matter how spiky your traffic is at any given time.
+We won't rehash all of that here, but as a brief summary, Cloudflare workers are like AWS Lambda functions, except they have much, much lower latency. There are significant differences between those technologies, to be clear. But the high-level elevator pitch is that workers spin up extremely quickly, with virtually no "cold start" to satisfy requests against your web application. And these workers spin up as much as needed, giving you built-in horizontal scaling, no matter how spiky your traffic is at any given time.
 
 ## What's missing
 
@@ -24,7 +24,7 @@ Cloudflare guarantees that each Durable Object instance is active in only one lo
 
 ## With Web Socket Support
 
-We'll get into the specifics, but durable objects ship with Web Socket support _built in_. You can set up multiple socket connections, post and receive messages, and so on.
+We'll get into the specifics, but durable objects also ship with Web Socket support _built in_. You can set up multiple socket connections, post and receive messages, and so on.
 
 Ok, let's see some code!
 
@@ -91,7 +91,7 @@ to
 
 ### More wrangler additions
 
-That custom server entrypoint was a one-time change that _allows us_ to then start adding in Cloudflare goodies (like durable objects). But it's also where you'd set up things like queues or cron schedules. Check [Cloudflare\'s docs](https://developers.cloudflare.com/workers/framework-guides/web-apps/tanstack-start/?utm_source=chatgpt.com#custom-entrypoints) for more info.
+That custom server entrypoint was a one-time change that _allows us_ to then start adding in Cloudflare goodies like durable objects (naturally), queues or cron schedules. Check [Cloudflare\'s docs](https://developers.cloudflare.com/workers/framework-guides/web-apps/tanstack-start/?utm_source=chatgpt.com#custom-entrypoints) for more info.
 
 So now we'll add a `durable_objects` section with a binding to the DO we added above
 
@@ -119,11 +119,11 @@ and then, somewhat annoyingly, we need to add a migration for it as well
 
 ## Building our Durable Object
 
-To avoid dumping too much code all at once let's sketch out a minimal version of our Shopping Cart Durable Object, just to see how everything works, and fits together. Let's create the following methods:
+To avoid dumping too much code all at once let's sketch out a minimal version of our Shopping Cart, just to see how everything works, and fits together. Let's create the following methods:
 
 `getCart()` to retrive cart contents. We'll hard code static data for now, and wire up SQLite in a moment.
 
-`addItem()` to add an item to the cart, and then broadcast a web socket message that the cart has updated, so any browser tabs this user has open will update. Again, we'll hard code the former, for now, before setting up SQLite in a moment.
+`addItem()` to add an item to the cart, and then broadcast a web socket message that the cart has updated, so any browser tabs this user has open will update. Again, we'll only do the latter for now, before setting up SQLite in a moment.
 
 Then we'll need a method to set up a web socket connection.
 
@@ -192,7 +192,7 @@ and then call `socket.send`. Simple and humble.
 
 The fetch method may seem surprising, but that's how we set up a new web socket subscriber against our Durable Object. We check the headers to ensure it is indeed a web socket setup, and error out if not; we're free to accept, and reply to any manner of fetch requests if we wanted, of course, but none apply for this use case.
 
-Cloudflare gives us the primitives for this
+Cloudflare gives us the primitives for WebSocket creation
 
 ```ts
 const pair = new WebSocketPair();
@@ -204,7 +204,7 @@ this.ctx.acceptWebSocket(server);
 
 `WebSocketPair` is a Cloudflare runtime global. We set up the connection, and then call `this.ctx.acceptWebSocket(server);`
 
-Lastly, `webSocketMessage` is the method we use to _receive_ web socket messages from the client.
+Lastly, `webSocketMessage` is the method we use to _receive_ web socket messages from the client. This is a special, reserved name for Durable Objects for this very purpose.
 
 ## Using our Durable Object
 
@@ -242,7 +242,7 @@ For our use case we want one Durable Object per user, to hold that user's cart c
 
 `CART_DO.idFromName` allows us to retrieve a globally unique, internal id for the durable object instance we want from a string identifier, and then `CART_DO.get` takes that internal id and gets us the actual, live proxy to interact with the DO instance.
 
-We do this interaction from the server, which means we'll need some server functions. Here are two for the `getCart` / `addItems` calls
+We do this interaction from the server, which means we'll need some server functions. Here are two for the `getCart` / `addItem` calls
 
 ```ts
 const addItem = createServerFn({ method: "POST" }).handler(async () => {
@@ -250,7 +250,7 @@ const addItem = createServerFn({ method: "POST" }).handler(async () => {
   await cart.addItem();
 });
 
-const getItems = createServerFn({ method: "GET" }).handler(async () => {
+const getCart = createServerFn({ method: "GET" }).handler(async () => {
   const cart = await getCartForCurrentUser();
   const result = await cart.getCart();
   return { items: result.items };
@@ -306,7 +306,7 @@ export function openWebSocket() {
 }
 ```
 
-which we can call, and get back our socket object
+which we can call from the browser, and get back our socket object
 
 ```ts
 openWebSocket().then(socket => {
@@ -443,7 +443,7 @@ Remember, Durable Objects are single-threaded, and only run in one location at a
 
 ## Wrapping up
 
-We've already seen all the big pieces here: how to set up web socket connections; how to send and receives web socket messages; how to set up and manage our SQLite db; and how to grab, and call methods on our durable object from our TanStack app.
+We've already seen all the big pieces here: how to set up web socket connections; how to send and receive web socket messages; how to set up and manage our SQLite db; and how to grab, and call methods on our durable object from our TanStack app.
 
 From here it's just a matter of connecting everything. As I said, you can check the repo for those details, but to show that this does in fact work, here's a gif of the browser tabs all syncing their carts correctly
 
