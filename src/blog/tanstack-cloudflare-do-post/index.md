@@ -1,6 +1,6 @@
 ---
 title: Durable Objects on Cloudflare
-date: "2026-07-10T10:00:00.000Z"
+date: "2026-07-12T10:00:00.000Z"
 description: Introduction to Cloudflare's durable objects
 ---
 
@@ -447,7 +447,7 @@ We've already seen all the big pieces here: how to set up web socket connections
 
 From here it's just a matter of connecting everything. As I said, you can check the repo for those details, but to show that this does in fact work, here's a gif of the browser tabs all syncing their carts correctly
 
-![Create application](/tanstack-cloudflare-do-post/carts-syncing.gif)
+![Create application](https://d193qjyckdxivp.cloudfront.net/misc/carts-syncing.gif)
 
 ## What about unauthenticated users
 

@@ -4,7 +4,7 @@ date: "2026-07-12T10:00:00.000Z"
 description: Tips and tricks to deploy SvelteKit apps to Cloudflare
 ---
 
-This is a post about web application setup for Cloudflare workers on SvelteKit. I've written about Cloudflare previously [here](https://master.dev/blog/introduction-to-cloudflare-workers-for-web-apps/) where we introduced workers, and then [here](https://master.dev/blog/cloudflare-workers-and-hyperdrive-with-tanstack-start/) where we showed some of the one-off development considerations needed for getting things to work in TanStack Start, when deployed via Cloudflare workers.
+This is a post about web application setup for Cloudflare workers on SvelteKit. I've written about Cloudflare previously [here](https://master.dev/blog/introduction-to-cloudflare-workers-for-web-apps/) where we introduced workers, and then [here](https://master.dev/blog/cloudflare-workers-and-hyperdrive-with-tanstack-start/) where we showed some of the one-off development considerations needed for getting Workers to work in TanStack Start.
 
 This post will be similar to the latter, except we'll be taking a look at SvelteKit.
 
@@ -12,11 +12,11 @@ I've found the Cloudflare / SvelteKit integration to be not quite as seamless as
 
 ## What are Cloudflare Workers
 
-Cloudflare workers are conceptually similar to AWS Lambda functions. They're cloud functions which spin up on demand, as much as or as little as your application's traffic demands at any given moment in time. Except Cloudflare Workers have very, very low latency. The "cold starts" Lambda is known to have is virtually non-existent with Workers.
+Cloudflare workers are conceptually similar to AWS Lambda functions. They're cloud functions which spin up on demand, as much as or as little as your application's traffic demands at any given moment in time. Except Cloudflare Workers have very, very low latency. The "cold starts" Lambda is known to have are virtually non-existent with Workers.
 
 ## What's the catch?
 
-Not much, really. There was a time when Cloudflare Workers had a runtime that a relatively small subset of Node, but those days are over. Cloudflare Workers now have a Node compat mode that solves those problems.
+Not much, really. There was a time when Cloudflare Workers had a runtime that was a relatively small subset of Node, but those days are over. Cloudflare Workers now have a Node compat mode that solves those problems.
 
 The main limitation with Workers is that they have some special rules that require you to clean up after yourself in ways other runtimes don't. Namely, you cannot have any long-running I/O objects surviving between requests. In particular, you cannot simply have a module export a `db` object that connects to your database. Each request must spin that connection up fresh. We'll see how to do that in TanStack.
 
@@ -24,7 +24,7 @@ The main limitation with Workers is that they have some special rules that requi
 
 Spinning up a fresh database connection was always a bad idea from _any_ cloud function runtime, like AWS Lambda. These functions spin up as needed, and during perios of bursting traffic, the number of Lambda functions being created could easily overwhelm your database.
 
-But with Workers requiring a fresh connection _per request_ this is even more dangerous. To say nothing of the fact that, we'd hardly want to ruin Workers' low latency feature by requiring them to perform the time consuming operation of establishing a fresh TCP connection to our database.
+But with Workers requiring a fresh connection _per request_ this is even more dangerous. To say nothing of the fact that we'd hardly want to ruin Workers' low latency feature by requiring them to perform the time consuming operation of establishing a fresh TCP connection to our database, let alone once _per request_.
 
 To solve all these problems Cloudflare has a tool called Hyperdrive, which keeps a pool of pre-warmed connections to our database open. Our Workers then connect to Hyperdrive, quickly, and have immediate access to these pre-warmed connections.
 
@@ -48,7 +48,7 @@ npx wrangler deploy
 
 We'll be asked a few questions, to which the defaults should be fine.
 
-![Repo selection](/tanstack-cloudflare-sveltekit/img0a.jpg)
+![Repo selection](/tanstack-cloudflare-sveltekit/img0.jpg)
 
 This will install some new dependencies, and set up the Cloudflare plugin.
 
@@ -86,17 +86,17 @@ The problem is the `build` task Cloudflare scaffolded us
 "build": "vite build && wrangler types --check"
 ```
 
-The problem is the latter piece `wrangler types --check`: this asks Wrangler to confirm that the generated typings are perfectly synced with the needs of the application. In my experience this is a fickle check that fails for reasons you may not care completely about, like some secrets not being properly declared in your Wrangler under some circumstances. To fix this error you can either run
+The problem is the latter piece `wrangler types --check`. This asks Wrangler to confirm that the generated typings are perfectly synced with the needs of the application. In my experience this is a fickle check that fails for reasons you may not care about, like some secrets not being properly declared in your Wrangler under some circumstances, even if not directly accessed in code. To fix this error you can either run
 
 ```
 npx wranger types
 ```
 
-To generate the types and pass (or almost pass, see below) the build, but I'd recommend just removing the `wrangler types --check` from the build script.
+To generate the types and pass the build, but I'd recommend just removing the `wrangler types --check` from the build script.
 
 You'll absolutely need to run `npx wrangler types` to get typings generated for when you start using Hyperdrive, adding secrets, using Durable Objects, etc. But I wouldn't fail the build step if your types are not completely up to date, especially if those mismathces don't actually lead to TS errors.
 
-If your typings are not correct you'll see TS errors pretty quickly, so the check was never all the valuable to begin with.
+If your typings are not correct in a way that matters, you'll see TS errors pretty quickly, so the check was never all the valuable to begin with.
 
 And that's that. Note that if you got _this_ error instead (or ever do get it)
 
@@ -122,7 +122,9 @@ And then choose the right repo
 
 ![Connect to GitHub](/tanstack-cloudflare-sveltekit/img3.jpg)
 
-## Getting started with SvelteKit via Cloudflare
+And now pushes to Main will automatically deploy to Cloudflare.
+
+## Accessing Cloudflare goodies from SvelteKit
 
 Cloudflare manages the things we need, from secrets to Hyperdrive connection strings on the `env` object. With TanStack we imported our env directly, via a special import
 
@@ -183,7 +185,7 @@ Hyperdrive solves all these problems by giving you a pre-warmed connection pool 
 
 ### Setting up Hyperdrive
 
-Cloudflare dashboard, and under Storage and databases, find the option for "Postgres & MySQL (Hyperdrive)"
+Go to the Cloudflare dashboard, and under Storage and databases, find the option for "Postgres & MySQL (Hyperdrive)"
 
 ![Cloudflare error](/tanstack-cloudflare-sveltekit/hyperdrive/img1.jpg)
 
@@ -195,13 +197,13 @@ Hit the connect to database button
 
 You'll be greeted with a few options for how to proceed. For this post, I'll be using PlanetScale.
 
-![Cloudflare error](/tanstack-cloudflare-sveltekit/hyperdrive/img3.jpg)
+![Cloudflare error](/tanstack-cloudflare-sveltekit/hyperdrive/img3a.jpg)
 
 Follow the prompts, authenticate if needed, select your database, and most importantly, be sure to fill in your database name; you almost certainly do not want the default value of the `postgres`.
 
 ![Cloudflare error](/tanstack-cloudflare-post-2/img3b.jpg)
 
-Once complete, you should be greeted with a new Wrangler entry.
+Once complete, you should see a new Wrangler entry.
 
 ![Cloudflare error](/tanstack-cloudflare-post-2/img4.jpg)
 
@@ -295,7 +297,7 @@ export const load: PageServerLoad = async ({ platform, locals }) => {
 };
 ```
 
-Similarly in Remote Functions, use the `getRequestEvent` to get the request object, on which you'll find the `locals` object, which itself has the `db` object you set up.
+Similarly in Remote Functions, use the `getRequestEvent` to get the request object, on which you'll find the same `locals` object, with the `db` object.
 
 ```ts
 import { eq } from "drizzle-orm";
