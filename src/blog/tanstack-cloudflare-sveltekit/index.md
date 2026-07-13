@@ -16,15 +16,15 @@ Cloudflare workers are conceptually similar to AWS Lambda functions. They're clo
 
 ## What's the catch?
 
-Not much, really. There was a time when Cloudflare Workers had a runtime that was a relatively small subset of Node, but those days are over. Cloudflare Workers now have a Node compat mode that solves those problems.
+Not much, really. There was a time when Cloudflare Workers had a runtime that was a subset of Node, but those days are over. Cloudflare Workers now have a Node compat mode that solves those problems.
 
-The main limitation with Workers is that they have some special rules that require you to clean up after yourself in ways other runtimes don't. Namely, you cannot have any long-running I/O objects surviving between requests. In particular, you cannot simply have a module export a `db` object that connects to your database. Each request must spin that connection up fresh. We'll see how to do that in TanStack.
+The main limitation with Workers is that they have some special rules that require you to clean up after yourself in ways other runtimes don't. Namely, you cannot have long-running I/O objects surviving between requests. In particular, you cannot simply have a module export a `db` object that connects to your database. Each request must spin that connection up fresh. We'll see how to do that in TanStack.
 
 ## Introducing Hyperdrive
 
 Spinning up a fresh database connection was always a bad idea from _any_ cloud function runtime, like AWS Lambda. These functions spin up as needed, and during perios of bursting traffic, the number of Lambda functions being created could easily overwhelm your database.
 
-But with Workers requiring a fresh connection _per request_ this is even more dangerous. To say nothing of the fact that we'd hardly want to ruin Workers' low latency feature by requiring them to perform the time consuming operation of establishing a fresh TCP connection to our database, let alone once _per request_.
+But with Workers requiring a fresh connection _per request_ this is even more dangerous. To say nothing of the fact that we'd hardly want to ruin Workers' low latency by requiring them to perform the time consuming operation of establishing a fresh TCP connection to our database, let alone once _per request_.
 
 To solve all these problems Cloudflare has a tool called Hyperdrive, which keeps a pool of pre-warmed connections to our database open. Our Workers then connect to Hyperdrive, quickly, and have immediate access to these pre-warmed connections.
 
