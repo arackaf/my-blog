@@ -1,20 +1,76 @@
 ---
 title: Introducing AI Skills for Real Engineers
-date: "2019-03-04T20:00:32.169Z"
+date: "2026-08-09T20:00:32.169Z"
 description:
 ---
 
+AI is an undeniable force in software engineering right now. These tools are trivial to use: tell it what to do, and it does it. But as easy as these tools are to start using, they can be tricky to use _well_. This is a post about "AI Skills for Real Engineer" which is a suite of ai "skills" (the kind you install into your ai harness) created by Matt Pocock. These skills exist to help you make AI tooling more effecitve. I've found these skills to be straightforward to use, and very impactful.
+
+We'll take a brief tour through a few of these skills which I think most clearly shows the kind value they can add to almost any software dev's workflow, no matter what you're working on. If you'd like to learn more, the main docs [are here](https://github.com/mattpocock/skills).
+
 ## Installation
+
+I'll assume you're using Claude Code. To install these
 
 ```
 claude plugins install mattpocock-skills
 ```
 
-If that fails with something like `"mattpocock-skills" not found in any marketplace` try clearing your claude code marketplace cache (yes, really)
+If that fails with something like `"mattpocock-skills" not found in any marketplace`,
+
+![xzibit meme](/pocock-skills/img-00-marketplace-error.jpg)
+
+try clearing your claude code marketplace cache (yes, really). This command will do just that
 
 ```
 claude plugins marketplace update
 ```
+
+## A skill to help you use the skills
+
+The docs for these skills are pretty clear, but you might still have some questions. Believe it or not there's a skill that helps you understand what the other skills do.
+
+![xzibit meme](/pocock-skills/img-00-xzibit.jpg)
+
+Let's check it out. Imagine you read the docs and you're not quite sure what the difference between the `/grilling` and `/grill-me` skills. You can just fire up the /ask-matt skill, and ask it
+
+![ask-matt skill](/pocock-skills/img-02-ask-matt.jpg)
+
+Ok let's actually put these skills to work. Let's start by getting things set up for an individual project.
+
+## Project setup
+
+Many of these skills will do things like create tickets, or even documentation like ADRs. To get those, and other things set up, the first thing you should do before using any of these skills in a new project is to run the `/setup-matt-pocock-skills`.
+
+![skills setup](/pocock-skills/img-01-setup.jpg)
+
+This is where we configure these skills on where to create issues, where to create ADRs, and so on. It's a simple thing, but it's a nice touch to help these other skills run more smoothly.
+
+## Producing clear requirements with /grill-me
+
+Anyone who's used LLMs for coding knows that clear, detailed prompts are essential. Missing details are anathema for effective AI use. If you leave AI to assume thingsy you've left out of your prompt, you might be disappointed in the result. Tools like Claude Code do have a plan mode, and LLMs in general will happily accept things like "did I miss anything" at the end of your feature description.
+
+But the /grill-me spec formalizes all that, and takes it to the next level.
+
+To get started, just do /grill-me and describe your feature.
+
+![skills setup](/pocock-skills/img-03-grill-start.jpg)
+
+It'll analyze your prompt, and come up with some surprisingly detailed questions. As you answer those, you'll likely be greeted with some follow-ups
+
+![skills setup](/pocock-skills/img-03-grill-continue.jpg)
+
+and so on, until your model has what it needs.
+
+![skills setup](/pocock-skills/img-03-grill-conclude.jpg)
+
+## Implementing (now or later)
+
+At this point your session and context should have everything needed to implement your feature. You can absolutely feel free to tell Claude something like "looks good build it."
+
+Or if for whatever reason you're not ready for this feature to be implemented right this second—perhaps you have 2 or 3 other AI-generated PRs to test and review, perhaps you have two other agents building things right this second, and were just using that waiting time to spec the next thing—then read on.
+
+### Saving work for later with /to-spec and /to-tickets
 
 ## Parting thoughts
 
