@@ -42,17 +42,17 @@ Ok let's actually put these skills to work. Let's start by getting things set up
 
 ## Project setup
 
-Many of these skills will do things like create tickets, or even documentation like ADRs. To get those, and other things set up, the first thing you should do in a new project is run the `/setup-matt-pocock-skills`.
+Many of these skills will do things like create tickets, or even documentation like ADRs. To get those, and other things set up, the first thing you should do in a new project is run `/setup-matt-pocock-skills`.
 
 ![skills setup](/pocock-skills/img-01-setup.jpg)
 
-This is where we configure these skills on where to create issues, where to create ADRs, and so on. It's a simple thing, but it's a nice touch to help these other skills run more smoothly.
+This is where we configure these skills on where to create issues, where to create ADRs, and so on. It's a simple thing, but it's a nice touch to help the other skills run more smoothly.
 
 ## Producing clear requirements with /grill-me
 
-Anyone who's used LLMs for coding knows that clear, detailed prompts are essential. Missing details are anathema for effective AI use. If you leave AI to assume thingsy you've left out of your prompt, you might be disappointed in the result. Tools like Claude Code do have a plan mode, and LLMs in general will happily accept things like "did I miss anything" at the end of your feature description.
+Anyone who's used LLMs for coding knows that clear, detailed prompts are essential. Missing details are anathema for effective AI use. If you leave AI to assume things you've left out of your prompt, you might be disappointed in the result. Tools like Claude Code do have a plan mode, and LLMs in general will happily accept things like "did I miss anything" at the end of your prompt; but there's a better way.
 
-But the /grill-me spec formalizes all that, and takes it to the next level.
+The /grill-me spec formalizes all that, and takes it to the next level.
 
 To get started, just do /grill-me and describe your feature.
 
@@ -98,8 +98,20 @@ and you'll wind up with a nicely filled out board.
 
 ![to-tickets done](/pocock-skills/img-04-to-tickets-result.jpg)
 
+## Learning with /teach-me
+
+We've all used LLMs to help us learn or understand something. This skill suite actually has a skill to take that to the next level. Fire up the `/teach-me` skill, tell it what you'd like to learn about, and it'll actually put an entire lesson together for you.
+
+![to-tickets done](/pocock-skills/img-07-teach-me.jpg)
+
+When it's ready, the lesson will pop up in your browser.
+
+![to-tickets done](/pocock-skills/img-07-teach-me-result.jpg)
+
+When you're done with that (or before!) it can keep churning on the next lesson in this topic.
+
 ## Parting thoughts
 
-I hope you find these AI skills as useful as I do. They can really help refine, and clarify your ideas to clear, actionable specs your LLM can execute most effectively on.
+I hope you find these AI skills as useful as I do. They can really help refine, and clarify your ideas to clear, actionable specs your LLM can execute most effectively on. This post has barely scratched the surface of everything they can do. Check the docs for a fuller picture!
 
 Happy Coding!
