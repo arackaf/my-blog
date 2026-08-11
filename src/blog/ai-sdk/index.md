@@ -32,7 +32,9 @@ AI_GATEWAY_API_KEY="vck_xyz"
 
 ## Using providers directly
 
-Let's use Anthropic
+The ai-sdk comes with instructions for setting up just about [any provider](https://ai-sdk.dev/providers/ai-sdk-providers) you can think of. For this post, let's look at [using Anthropic](https://ai-sdk.dev/providers/ai-sdk-providers/anthropic).
+
+### Using Anthropic
 
 ```bash
 npm i @ai-sdk/anthropic
