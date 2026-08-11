@@ -4,6 +4,56 @@ date: "2026-08-10T20:00:32.169Z"
 description:
 ---
 
+## Introduction
+
+This is a post about an AI Agent Orchestration tool called Sandcastle. What is AI orchestration? The short elevator pitch is that it's the process of getting multiple agents to work on things at the same time. If you're wondering why you need a tool for that, well, read on.
+
+## Why do I need a tool to run multiple agents
+
+Let's say you have 4 issues that can be implemented simultaneously. You might wonder why you can just spin up 4 different terminals, start Claude in each, write your prompts and hit enter. That would certainly work, sort of. But think about your version control system. At the end of the day, git is working off of your file system. Any changes you make to any files are reflected immediately as unstaged. Yes any, or all of those agents can create branches, but you can only have one branch checked out at any given time. Basically, those agents will all be stepping on each other.
+
+That said, there is a git that predates ai by a lifetime, but is designed to solve this very problem: workstrees. Workstrees have existed in git for over 10 years, but I'll be honest, I had never even heard of them before AI. Back when we were writing our code manually life was simple: check out a branch, do work, commit and push. Then potentially switch to a different branch. Rinse, and repeat. You have one working directory which has one branch open at any given time.
+
+### What are git worktrees
+
+Worktrees allow you to have multiple working directories of your repo checked out on disc at any given time. These separate working directories can each have their own branch checked out therein.
+
+This is obviously a fantastic solution for orchestrating AI agents to work on things in parallel.
+
+But if you think this is the part of the post where I get into the git commands necessary to use Workstrees, think again. There's a tool that happily and elegantly manages these things for you: [Sandcastle](https://github.com/mattpocock/sandcastle).
+
+## Setting expectations
+
+If you're imagining a high-level tool that will magically do amazing things for you out of the box, please understand that this is a low-level primitive. It performs some low-level tasks extremely well, allowing you to put together your own workflow, for your own project, as needed.
+
+And with that, let's get started.
+
+## Installation
+
+Here's [the docs](https://github.com/mattpocock/sandcastle).
+
+Install it into your project via
+
+```
+npm install --save-dev @ai-hero/sandcastle
+```
+
+Then run
+
+```
+npx @ai-hero/sandcastle init
+```
+
+to kick off the setup.
+
+![sandcastle setup](/sandcastle/img-00-sandcastle-setup.jpg)
+
+and if you let it, it'll set up the default Docker image. This is the image Sandcastle will use to run your agents (if you select the Docker sandbox) to ensure isolation between each other.
+
+![sandcastle setup done](/sandcastle/img-00-sandcastle-setup-done.jpg)
+
+## Looking around
+
 ```bash
 gh issue list \
   --state open \
