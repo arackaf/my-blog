@@ -1,6 +1,6 @@
 ---
 title: Vercel's AI SDK with Cloudflare Workers and Durable Objects
-date: "2026-08-09T20:00:32.169Z"
+date: "2026-08-11T20:00:32.169Z"
 description:
 ---
 
