@@ -98,9 +98,9 @@ and you'll wind up with a nicely filled out board.
 
 ![to-tickets done](/pocock-skills/img-04-to-tickets-result.jpg)
 
-## Learning with /teach-me
+## Learning with /teach
 
-We've all used LLMs to help us learn or understand something. This skill suite actually has a skill to take that to the next level. Fire up the `/teach-me` skill, tell it what you'd like to learn about, and it'll actually put an entire lesson together for you.
+We've all used LLMs to help us learn or understand something. This skill suite actually has a skill to take that to the next level. Fire up the `/teach` skill, tell it what you'd like to learn about, and it'll actually put an entire lesson together for you.
 
 ![to-tickets done](/pocock-skills/img-07-teach-me.jpg)
 
