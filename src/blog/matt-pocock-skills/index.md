@@ -4,13 +4,15 @@ date: "2026-08-09T20:00:32.169Z"
 description:
 ---
 
-AI is an undeniable force in software engineering right now. These tools are trivial to use: tell it what to do, and it does it. But as easy as these tools are to start using, they can be tricky to use _well_. This is a post about "AI Skills for Real Engineer" which is a suite of ai "skills" (the kind you install into your ai harness) created by Matt Pocock. These skills exist to help you make AI tooling more effecitve. I've found these skills to be straightforward to use, and very impactful.
+AI is an undeniable force in software engineering right now. These tools are trivial to use: tell it what to do, and it does it. But as easy as these tools are to start using, they can be tricky to use _well_.
+
+This is a post about "AI Skills for Real Engineer" which is a suite of ai "skills" (the kind you install into your ai harness) created by Matt Pocock. These skills exist to help you make AI tooling more effecitve. I've found them to be straightforward to use, and very impactful.
 
 We'll take a brief tour through a few of these skills which I think most clearly shows the kind value they can add to almost any software dev's workflow, no matter what you're working on. If you'd like to learn more, the main docs [are here](https://github.com/mattpocock/skills).
 
 ## Installation
 
-I'll assume you're using Claude Code. To install these
+I'll assume you're using Claude Code (see the docs for other harnesses). To install just run
 
 ```
 claude plugins install mattpocock-skills
@@ -32,7 +34,7 @@ The docs for these skills are pretty clear, but you might still have some questi
 
 ![xzibit meme](/pocock-skills/img-00-xzibit.jpg)
 
-Let's check it out. Imagine you read the docs and you're not quite sure what the difference between the `/grilling` and `/grill-me` skills. You can just fire up the /ask-matt skill, and ask it
+Let's check it out. Imagine you read the docs and you're not quite sure what the difference between the `/grilling` and `/grill-me` skills is. You can just fire up the /ask-matt skill, and ask it
 
 ![ask-matt skill](/pocock-skills/img-02-ask-matt.jpg)
 
@@ -40,7 +42,7 @@ Ok let's actually put these skills to work. Let's start by getting things set up
 
 ## Project setup
 
-Many of these skills will do things like create tickets, or even documentation like ADRs. To get those, and other things set up, the first thing you should do before using any of these skills in a new project is to run the `/setup-matt-pocock-skills`.
+Many of these skills will do things like create tickets, or even documentation like ADRs. To get those, and other things set up, the first thing you should do in a new project is run the `/setup-matt-pocock-skills`.
 
 ![skills setup](/pocock-skills/img-01-setup.jpg)
 
