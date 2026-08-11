@@ -54,6 +54,38 @@ and if you let it, it'll set up the default Docker image. This is the image Sand
 
 ## Looking around
 
+Let's see what was created for us. You should now see a .sandcastle folder. Let's take a peak at the .env file. Mine looks like this
+
+```
+# Claude Code OAuth token — get one by running `claude setup-token` on your host.
+# Lets the agent use your Claude subscription instead of an API key.
+CLAUDE_CODE_OAUTH_TOKEN=""
+# Or use an Anthropic API key instead — uncomment and fill in:
+# ANTHROPIC_API_KEY=
+# GitHub personal access token — the agent uses it to read and manage GitHub Issues
+# Create a fine-grained token: https://github.com/settings/personal-access-tokens/new
+# Required repository permissions: Issues (Read and write) and Metadata (Read)
+GH_TOKEN=""
+```
+
+At the very least, it's looking for a Claude Code token, and a GitHub token; the latter is needed for things like creating GitHub issues, and pull requests.
+
+The instructions for the Claude token are self explanatory, and listed right there: just run `claude setup-token` in a terminal (NOT a Claude session).
+
+For the GitHub token, head on over to [https://github.com/settings/personal-access-tokens/new](https://github.com/settings/personal-access-tokens/new).
+
+![GitHub token](/sandcastle/img-01-gh-token.jpg)
+
+Give your token a name, expiration, etc. And for permissions, make **sure** you select what's below, at a minimum
+
+![GitHub token](/sandcastle/img-02-gh-token-permissions.jpg)
+
+Make sure contents pull requests and issues all have read/write permissions.
+
+## Hello World
+
+## Grabbing our GitHub issues
+
 ```bash
 gh issue list \
   --state open \
