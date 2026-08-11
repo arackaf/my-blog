@@ -70,7 +70,31 @@ At this point your session and context should have everything needed to implemen
 
 Or if for whatever reason you're not ready for this feature to be implemented right this second—perhaps you have 2 or 3 other AI-generated PRs to test and review, perhaps you have two other agents building things right this second, and were just using that waiting time to spec the next thing—then read on.
 
-### Saving work for later with /to-spec and /to-tickets
+### Saving work for later with /to-spec
+
+If you'd like to take the entirety of the current conversation and context and turn it into a single issue for later, you can use the `/to-spec` skill. Just call it up, and let the skill do the rest. It'll even try to add some tests, and check with you about the appropriate testing boundaries.
+
+![skills setup](/pocock-skills/img-05-to-spec.jpg)
+
+### Saving work for later with /to-tickets
+
+What if the feature you just designed is big. Humans work best with small, well-defined tasks, and AI agents are no different. You'll likely get better results if you avoid letting your context window get flooded with content you wouldn't otherwise need.
+
+Inside that same conversation you just had, via the `/grill-me` skill, you can just call up the `/to-tickets` skill, and break that feature into multiple issues.
+
+![to-tickets](/pocock-skills/img-04-to-tickets-proposed.jpg)
+
+It'll even be smart enough to block tickets as needed, based on what depends on what. Naturally you can make any tweaks to the proposed result you'd like
+
+![to-tickets](/pocock-skills/img-04-to-tickets-adjust.jpg)
+
+Once you're happy, tell it so, and it'll do it's thing
+
+![to-tickets done](/pocock-skills/img-04-to-tickets-final.jpg)
+
+and you'll wind up with a nicely filled out board.
+
+![to-tickets done](/pocock-skills/img-04-to-tickets-result.jpg)
 
 ## Parting thoughts
 
