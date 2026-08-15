@@ -6,13 +6,13 @@ description:
 
 ## Introduction
 
-This is a post about an AI Agent Orchestration tool called Sandcastle. What is AI orchestration? The short elevator pitch is that it's the process of getting multiple agents to work on things at the same time. If you're wondering why you need a tool for that, well, read on.
+This is a post about an AI Agent Orchestration tool called Sandcastle. What is AI orchestration? The short answer is that it's the process of getting multiple agents to work on things at the same time. If you're wondering why you need a tool for that, well, read on.
 
 ## Why do I need a tool to run multiple agents
 
-Let's say you have 4 issues that can be implemented simultaneously. You might wonder why you can just spin up 4 different terminals, start Claude in each, write your prompts and hit enter. That would certainly work, sort of. But think about your version control system. At the end of the day, git is working off of your file system. Any changes you make to any files are reflected immediately as unstaged. Yes any, or all of those agents can create branches, but you can only have one branch checked out at any given time. Basically, those agents will all be stepping on each other.
+Let's say you have 4 issues that can be implemented simultaneously. You might wonder why you can just spin up 4 different terminals, start Claude in each, write your prompts and hit enter. That would work, sort of. But think about your version control system. At the end of the day, git is working off of your file system. Any changes you make to any files are reflected immediately as unstaged. Yes any, or all of those agents can create branches, but you can only have one branch checked out at any given time. Basically, those agents will all be stepping on each other.
 
-That said, there is a git that predates ai by a lifetime, but is designed to solve this very problem: workstrees. Workstrees have existed in git for over 10 years, but I'll be honest, I had never even heard of them before AI. Back when we were writing our code manually life was simple: check out a branch, do work, commit and push. Then potentially switch to a different branch. Rinse, and repeat. You have one working directory which has one branch open at any given time.
+That said, there's a git feature that predates ai by a generation, and is designed to solve this very problem: workstrees. Workstrees have existed in git for over 10 years, but I'll be honest, I'd never even heard of them before AI. Back when we were writing our code manually life was simple: check out a branch, do work, commit and push. Then potentially switch to a different branch. Rinse, and repeat. You have one working directory which has one branch open at any given time.
 
 ### What are git worktrees
 
@@ -20,7 +20,7 @@ Worktrees allow you to have multiple working directories of your repo checked ou
 
 This is obviously a fantastic solution for orchestrating AI agents to work on things in parallel.
 
-But if you think this is the part of the post where I get into the git commands necessary to use Workstrees, think again. There's a tool that happily and elegantly manages these things for you: [Sandcastle](https://github.com/mattpocock/sandcastle).
+But if you think this is the part of the post where I get into the git commands necessary to use Workstrees, things have already evolved past that. There are tools that happily and elegantly manages these things for you, and this is a post about one of them: [Sandcastle](https://github.com/mattpocock/sandcastle).
 
 ## Setting expectations
 
@@ -54,21 +54,21 @@ and if you let it, it'll set up the default Docker image. This is the image Sand
 
 ## Looking around
 
-Let's see what was created for us. You should now see a .sandcastle folder. Let's take a peak at the .env file. Mine looks like this
+Let's see what was created for us. You should see a .sandcastle folder, inside of which there should be a .env.example file. Mine looks like this
 
 ```
 # Claude Code OAuth token — get one by running `claude setup-token` on your host.
 # Lets the agent use your Claude subscription instead of an API key.
-CLAUDE_CODE_OAUTH_TOKEN=""
+CLAUDE_CODE_OAUTH_TOKEN=
 # Or use an Anthropic API key instead — uncomment and fill in:
 # ANTHROPIC_API_KEY=
 # GitHub personal access token — the agent uses it to read and manage GitHub Issues
 # Create a fine-grained token: https://github.com/settings/personal-access-tokens/new
 # Required repository permissions: Issues (Read and write) and Metadata (Read)
-GH_TOKEN=""
+GH_TOKEN=
 ```
 
-At the very least, it's looking for a Claude Code token, and a GitHub token; the latter is needed for things like creating GitHub issues, and pull requests.
+Rename is to .env, and then let's get it filled out. It needs a Claude Code token, and a GitHub token; the latter is needed for things like creating GitHub issues, and pull requests.
 
 The instructions for the Claude token are self explanatory, and listed right there: just run `claude setup-token` in a terminal (NOT a Claude session).
 
