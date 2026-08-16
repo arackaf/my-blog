@@ -68,7 +68,7 @@ CLAUDE_CODE_OAUTH_TOKEN=
 GH_TOKEN=
 ```
 
-Rename is to .env, and then let's get it filled out. It needs a Claude Code token, and a GitHub token; the latter is needed for things like creating GitHub issues, and pull requests.
+Rename it to .env, and then let's get it filled out. It needs a Claude Code token, and a GitHub token; the latter is needed for things like creating GitHub issues, and pull requests.
 
 The instructions for the Claude token are self explanatory, and listed right there: just run `claude setup-token` in a terminal (NOT a Claude session).
 
@@ -84,7 +84,80 @@ Make sure contents pull requests and issues all have read/write permissions.
 
 ## Hello World
 
+The simplest possible way to run Sandcastle is via the sample `main.ts` file that was scaffolded. It looks like this by default.
+
+```ts
+import { run, claudeCode } from "@ai-hero/sandcastle";
+import { docker } from "@ai-hero/sandcastle/sandboxes/docker";
+
+// Blank template: customize this to build your own orchestration.
+// Run this with: npx tsx .sandcastle/main.ts
+// Or add to package.json scripts: "sandcastle": "npx tsx .sandcastle/main.ts"
+
+await run({
+  agent: claudeCode("claude-opus-4-6"),
+  sandbox: docker(),
+  promptFile: "./.sandcastle/prompt.md",
+});
+```
+
+Here's the prompt.md file that was generated
+
+```
+# Context
+
+<!-- Use !`command` to pull in dynamic context. Commands run inside the sandbox. -->
+<!-- Example: !`git log --oneline -10` or !`gh issue list --state open --label Sandcastle --limit 100 --json number,title,body,labels,comments --jq '[.[] | {number, title, body, labels: [.labels[].name], comments: [.comments[].body]}]'` -->
+
+# Task
+
+<!-- Describe what the agent should do. -->
+
+# Done
+
+<!-- When the task is complete, output <promise>COMPLETE</promise> to signal early termination. -->
+
+```
+
+To get things working, I'll put this into the `Task` section
+
+```
+Add a new `add.ts` file that exports a single function called `add` that takes two numbers, and returns their sum.
+```
+
+And now I can run
+
+```
+npx tsx .sandcastle/main
+```
+
+which will hopefully look something like this
+
+```
+  ---->npx tsx .sandcastle/main
+[Agent] Started on branch temp
+  tail -f .sandcastle/logs/temp.log
+```
+
+and hopefully there will be a new `add.ts` file with something like this inside of it
+
+```ts
+export function add(a: number, b: number): number {
+  return a + b;
+}
+```
+
+## Building something useful
+
+Obviously being able to type a prompt into a markdown file and run it with a tsx command is useless on its own; you can just type the prompt directly into Claude Code (or whatever harness you like).
+
+But being able to run a prompt with a single line of TypeScript is an incredibly valuable primitive on which we can build some cool workflows. If we can run a single prompt with a single function call, then we can easily run multiple prompts in parallel, and with Sandcastle handling worktree creation we won't have to worry about file conflicts. In fact, using the Docker Sandbox option will provide even further isolation, beyond just git working directories.
+
+Let's build a script that sniffs out all open github issues, allows the user to choose which ones to execute, and for those chosen, spin off parallel agents.
+
 ## Grabbing our GitHub issues
+
+Getting the github issues is easy; there's a cli for that. This command
 
 ```bash
 gh issue list \
@@ -93,7 +166,7 @@ gh issue list \
   --json number,title,body,labels,blockedBy
 ```
 
-which produces
+will produce something like this.
 
 ```json
 [
@@ -150,3 +223,154 @@ which produces
   // and so on
 ]
 ```
+
+## Writing our script
+
+AI wrote this script for me, but I'll show you the high points, and then show the entirety at the end. This is just what I thought would be useful; obviously you can put these primitives together however you'd like.
+
+We can write that github cli command from Node
+
+```ts
+const output = execFileSync("gh", ["issue", "list", "--state", "open", "--limit", "100", "--json", "number,title,body,blockedBy"], {
+  encoding: "utf8",
+});
+```
+
+And we probably want to filter to issues that are _not_ blocked by other, open issues
+
+```ts
+const availableIssues = issues.filter(issue => !issue.blockedBy?.nodes?.some(blocker => blocker.state === "OPEN"));
+```
+
+This library
+
+```ts
+import { checkbox } from "@inquirer/prompts";
+```
+
+has a nice CLI prompt UI, so we can write something like this
+
+```ts
+const selectedIssueIds = await checkbox({
+  message: "Select issues to implement:",
+  choices: availableIssues.map(issue => ({
+    name: issue.title,
+    value: issue.number,
+  })),
+});
+```
+
+And then we can fire off our agents using the same `run` method we saw before
+
+```ts
+Promise.all(
+  selectedIssueIds.map(async issueId => {
+    run({
+      agent: claudeCode("claude-opus-4-6"),
+      sandbox: docker(),
+      prompt: `Implement gh issue ${issueId}. Commit your changes and push to origin. Open a PR.`,
+      branchStrategy: {
+        type: "branch",
+        branch: `agent/gh-issue-${issueId}`,
+        baseBranch: "main",
+      },
+      logging: {
+        type: "stdout",
+        verbose: false,
+      },
+    })
+      .then(resp => `${sep}\n\nIssue ${issueId} completed:\n\n${resp}\n\n${sep}\n\n`)
+      .catch(error => `${sep}\n\nIssue ${issueId} failed: ${error}\n\n${sep}\n\n`);
+  }),
+).then(() => {
+  console.log("All issues completed");
+});
+```
+
+But with some added instructions on branching, and creation of pull requests.
+
+When we run this script it looks like this
+
+![sandcastle setup](/sandcastle/img-03-ticket-select.jpg)
+
+and we can of course select tickets
+
+![sandcastle setup](/sandcastle/img-03-ticket-select-2.jpg)
+
+and then fire it off
+
+![sandcastle setup](/sandcastle/img-04-running.jpg)
+
+And when it's done we should see pull requests created
+
+![sandcastle setup](/sandcastle/img-06-prs.jpg)
+
+## The whole script
+
+Here's the entire script. Remember, this should be (at most) your starting point, for crafting a workflow tailored to your own needs.
+
+```ts
+import { run, claudeCode } from "@ai-hero/sandcastle";
+import { docker } from "@ai-hero/sandcastle/sandboxes/docker";
+
+import { execFileSync } from "node:child_process";
+import { checkbox } from "@inquirer/prompts";
+
+type Issue = {
+  number: number;
+  title: string;
+  body: string;
+  blockedBy: {
+    nodes: {
+      number: number;
+      title: string;
+      state: string;
+    }[];
+  };
+};
+
+const output = execFileSync("gh", ["issue", "list", "--state", "open", "--limit", "100", "--json", "number,title,body,blockedBy"], {
+  encoding: "utf8",
+});
+
+const issues: Issue[] = JSON.parse(output);
+
+const availableIssues = issues.filter(issue => !issue.blockedBy?.nodes?.some(blocker => blocker.state === "OPEN"));
+
+const selectedIssueIds = await checkbox({
+  message: "Select issues to implement:",
+  choices: availableIssues.map(issue => ({
+    name: issue.title,
+    value: issue.number,
+  })),
+});
+
+const sep = "------------------------------------";
+
+Promise.all(
+  selectedIssueIds.map(async issueId => {
+    run({
+      agent: claudeCode("claude-opus-4-6"),
+      sandbox: docker(),
+      prompt: `Implement gh issue ${issueId}. Commit your changes and push to origin. Open a PR.`,
+      branchStrategy: {
+        type: "branch",
+        branch: `agent/gh-issue-${issueId}`,
+        baseBranch: "main",
+      },
+      logging: {
+        type: "stdout",
+        verbose: false,
+      },
+    })
+      .then(resp => `${sep}\n\nIssue ${issueId} completed:\n\n${resp}\n\n${sep}\n\n`)
+      .catch(error => `${sep}\n\nIssue ${issueId} failed: ${error}\n\n${sep}\n\n`);
+  }),
+).then(() => {
+  console.log("All issues completed");
+});
+```
+
+## Wrapping up
+
+Sandcastle is a wonderful library for crafting agentic workflows. It provides you incredibly useful promotives you can compose together however you need, based on your own workflow.
