@@ -6,11 +6,11 @@ description:
 
 ## Introduction
 
-This is a post about an AI Agent Orchestration tool called Sandcastle. What is AI orchestration? The short answer is that it's the process of getting multiple agents to work on things at the same time. If you're wondering why you need a tool for that, well, read on.
+This is a post about [Sandcastle](https://github.com/mattpocock/sandcastle), an AI Agent Orchestration tool. What is AI orchestration? The short answer is that it's the process of getting multiple agents to work on things at the same time. If you're wondering why you need a tool for that, well, read on.
 
 ## Why do I need a tool to run multiple agents
 
-Let's say you have 4 issues that can be implemented simultaneously. You might wonder why you can just spin up 4 different terminals, start Claude in each, write your prompts and hit enter. That would work, sort of. But think about your version control system. At the end of the day, git is working off of your file system. Any changes you make to any files are reflected immediately as unstaged. Yes any, or all of those agents can create branches, but you can only have one branch checked out at any given time. Basically, those agents will all be stepping on each other.
+Let's say you have 4 issues that can be implemented simultaneously. You might wonder why you can't just spin up 4 different terminals, start Claude in each, write your prompts and hit enter. That would work, sort of. But think about your version control system. At the end of the day, git is working off of your file system. Any changes you make to any files are reflected immediately as unstaged. Yes any, or all of those agents can create branches, but you can only have one branch checked out at any given time. Basically, those agents will all be stepping on each other.
 
 That said, there's a git feature that predates ai by a generation, and is designed to solve this very problem: workstrees. Workstrees have existed in git for over 10 years, but I'll be honest, I'd never even heard of them before AI. Back when we were writing our code manually life was simple: check out a branch, do work, commit and push. Then potentially switch to a different branch. Rinse, and repeat. You have one working directory which has one branch open at any given time.
 
@@ -80,7 +80,7 @@ Give your token a name, expiration, etc. And for permissions, make **sure** you 
 
 ![GitHub token](/sandcastle/img-02-gh-token-permissions.jpg)
 
-Make sure contents pull requests and issues all have read/write permissions.
+Make sure contents, pull requests, and issues all have read/write permissions.
 
 ## Hello World
 
@@ -228,7 +228,7 @@ will produce something like this.
 
 AI wrote this script for me, but I'll show you the high points, and then show the entirety at the end. This is just what I thought would be useful; obviously you can put these primitives together however you'd like.
 
-We can write that github cli command from Node
+We can execute that github cli command from Node
 
 ```ts
 const output = execFileSync("gh", ["issue", "list", "--state", "open", "--limit", "100", "--json", "number,title,body,blockedBy"], {
@@ -303,7 +303,7 @@ and then fire it off
 
 And when it's done we should see pull requests created
 
-![sandcastle setup](/sandcastle/img-06-prs.jpg)
+![sandcastle setup](/sandcastle/img-05-prs.jpg)
 
 ## The whole script
 
