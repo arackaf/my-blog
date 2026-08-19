@@ -1,16 +1,28 @@
 ---
-title: Vercel's AI SDK with Cloudflare Workers and Durable Objects
+title: Intro to Vercel's AI SDK and AI Gateway
 date: "2026-08-11T20:00:32.169Z"
 description:
 ---
 
-TODO
+We've all used AI tooling like Claude Code and Cursor to help us write code for a job, side project, etc. This is a post about integrating AI directly into software using Vercel's AI SDK.  
+
+Vercel's AI SDK is a TypeScript utility that makes it simple to run AI requests inside of a software application, so you can integrate the results. It's model agnostic, so you can run prettu much anything you like best, from Claude Sonnet to GPT 5.
+
+Chat bots have been done too many times (arguably once is too many) so for this post we'll do something a little different: we'll use AI to help us create fitness workouts. We'll prompt it clearly, give it some reference material, and most importantly, constrain its resulting format and structure, so we can easily make use of the results, and save these workouts in our own database, for future use. 
 
 ## Installation
+
+Installation is simple enough, and Vercel managed to do a genuinely impressive job at getting a good npm package name here.
 
 ```bash
 npm i ai
 ```
+
+Before we get into actually making our requests, you need to run them against someone actually hosting the model you want to use. To start, let's use the lowest friction option: Vercel's AI Gateway. So let's [head on over there](https://vercel.com/adam-rackis/~/ai-gateway).
+
+Next, we'll need to generate an api access key
+
+![api gateway](/ai-sdk/img-00-api-gateway-access.jpg)
 
 Detailed info about your requests and spend by model
 
@@ -20,9 +32,6 @@ As well as some breakdowns per api key you have configured.
 
 ![api gateway](/ai-sdk/img-00-api-gateway-2.jpg)
 
-Generate an access key
-
-![api gateway](/ai-sdk/img-00-api-gateway-access.jpg)
 
 and once you have it, add it as an environment variable like so
 
