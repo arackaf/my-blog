@@ -1,14 +1,16 @@
 ---
-title: Intro to Vercel's AI SDK and AI Gateway
+title: Having fun with Vercel's AI SDK and AI Gateway
 date: "2026-08-11T20:00:32.169Z"
 description:
 ---
 
-We've all used AI tooling like Claude Code and Cursor to help us write code for a job, side project, etc. This is a post about integrating AI directly into software using Vercel's AI SDK.
+We've all used AI tooling like Claude Code and Cursor to help us write code. This is a post about integrating AI features directly into software. In other words, making AI requests from within our application, and integrating the responses. There's no shortage of tools that do this, and for this post we'll look at Vercel's AI SDK (and AI Gateway).
 
-Vercel's AI SDK is a TypeScript utility that makes it simple to run AI requests inside of a software application, so you can integrate the results. It's model agnostic, so you can run prettu much anything you like best, from Claude Sonnet to GPT 5.
+Vercel's AI SDK is a TypeScript utility that makes it simple to programmatically run AI requests, for integration with existing software. It's model agnostic, so you can use pretty any model you want, from Claude Sonnet to GPT 5.
 
 Chat bots have been done too many times (arguably once is too many) so for this post we'll do something a little different: we'll use AI to help us create fitness workouts. We'll prompt it clearly, give it some reference material, and most importantly, constrain its resulting format and structure, so we can easily make use of the results, and save these workouts in our own database, for future use.
+
+The code for this post is from my own fitness tracking app, [located here](https://github.com/arackaf/fitness-tracker). It's still a work in progress, so I don't have a link I'm willing to share, just yet.
 
 ## Installation
 
@@ -18,7 +20,7 @@ Installation is simple enough, and Vercel managed to do a genuinely impressive j
 npm i ai
 ```
 
-Before we get into actually making our requests, you need to run them against someone actually hosting the model you want to use. To start, let's use the lowest friction option: Vercel's AI Gateway. So let's [head on over there](https://vercel.com/adam-rackis/~/ai-gateway).
+Before we get into actually making our requests, you need to run them against somewhere actually hosting the model you want to use. To start, let's use the lowest friction option: Vercel's AI Gateway. So let's [head on over there](https://vercel.com/adam-rackis/~/ai-gateway).
 
 Navigate to the API Keys screen
 
@@ -54,7 +56,7 @@ As well as some breakdowns per api key you have configured.
 
 We'll start slow and basic. Like I said, we'll be using AI to generate some workouts for us. Before doing it in a useful way, let's write the equivalent of a hello world, just to see things working. Since there are api keys with our money attached we naturally need to make these calls from the server (you'll get a nice CORS error if you screw up and try to do this from the browser).
 
-I'm using TanStack, so the method for server-only code is a Server Function. Here's mine:
+I'm using TanStack, so Server Functions are how we specify server-only code. Here's mine:
 
 ```ts
 export const runVercelAiSdk = createServerFn({
@@ -89,7 +91,7 @@ If you're curious about using the ai-sdk directly against providers, without usi
 
 Let's take a very brief look at [using Anthropic](https://ai-sdk.dev/providers/ai-sdk-providers/anthropic).
 
-Go to the [Anthropic's console](https://platform.claude.com/settings/keys), hit the Create Key button (tell the modal you do in fact need an api key) and create it
+We'll go to the [Anthropic's console](https://platform.claude.com/settings/keys), hit the Create Key button (tell the modal you do in fact need an api key) and create it
 
 ![Create key](/ai-sdk/img-02-anthropic-key.jpg)
 
@@ -99,7 +101,7 @@ and as before, add it as an env var
 ANTHROPIC_API_KEY="sk-ant-xyz"
 ```
 
-With that set up, we'll import a new package
+With that set up, we'll install a new package
 
 ```bash
 npm i @ai-sdk/anthropic
@@ -115,7 +117,7 @@ And pick the model you want to use. As before, you'll get nice auto-complete for
 
 ![Pick your model](/ai-sdk/img-02-anthropic-models-auto-complete.jpg)
 
-We'll use sonnet 4.5 again, as before.
+We'll use sonnet 4.5 again.
 
 ```ts
 const claudeSonnet45Model = anthropic("claude-sonnet-4-5");
@@ -144,17 +146,17 @@ Simple as that, and it still works.
 
 ![Pick your model](/ai-sdk/img-03-anthropic-result.jpg)
 
-And of course we're not using Vercel's AI Gateway anymore, so if you want to track costs, head over to [https://platform.claude.com/settings/keys](Anthropic's console) and see what you're api key is getting billed against.
+And of course we're not using Vercel's AI Gateway anymore, so if you want to track costs, head over to [Anthropic's console](https://platform.claude.com/settings/keys) and see what you're api key is getting billed against.
 
 ![Anthropic Billing](/ai-sdk/img-04-anthropic-console.jpg)
 
 ## A real use case
 
-Getting a random blog of text from text from an AI model isn't the most useful result, especially if the goal is to save new things into our database. In this case, we want to save new workouts. Since this is a fitness tracking app, we _already_ have forms set up to let the user manually input a new workout, components created to display these workout templates, and backend endpoints (server functions) to save those manually created workouts into our database.
+Getting a random wall of text from text from an AI model isn't the most useful result, especially if the goal is to save new things into our database. In this case, we want to save new workouts. Since this is a fitness tracking app, we _already_ have forms set up to let the user manually input a new workout, components created to display these workout templates, and backend endpoints (server functions) to save those manually created workouts into our database.
 
-Wouldn't it be neat if we could get these AI models to create our new workouts in exactly that same format, so we could re-use those same components to display the workout our AI model created, and server function to save them, if the user likes it?
+Wouldn't it be neat if we could get these AI models to create our new workouts in _exactly_ that same format, so we could re-use those _same components_ to display the workout our AI model created, and server function to save them, if the user likes it? AI does not change the benefits of component reuse that software engineers have always strived for.
 
-Well we can. The AI SDK allows us to specify a Zod validation schema to the output we get back. If you're like me, you're not _normally_ using Zod for regular TS types which are not crossing the wire.
+The AI SDK allows us to specify a Zod validation schema for the output we get back, which is exactly what we want. If you're like me, you're not _normally_ using Zod for regular TS types which are not crossing the wire.
 
 ### Our Zod Schema
 
@@ -247,7 +249,7 @@ ${JSON.stringify(exercises)}
 `,
 ```
 
-I'm allowing the user to send up some existing workouts as a baseline, potentially with a prompt telling the model what changes they want made. So our instructions include that.
+I'm allowing the user to send up some existing workouts as a baseline, with a prompt telling the model what changes they want made. So our instructions include that.
 
 ### Our prompt
 
@@ -277,7 +279,7 @@ The xml-like tags, like `<reference_workouts>` are just a way to make it extra c
 
 ## Viewing our final result.
 
-Our server function should validate that we absolutely got the expected format back, and error out if not.
+We'll have our server function validate that we absolutely got the expected format back, and error out if not.
 
 ```ts
 const { text, usage, finalStep } = await generateText({
@@ -300,23 +302,33 @@ return {
 };
 ```
 
-And now, the result from our server function is guarenteed to contain a valid array of workout templates.
+And now, the result from our server function is guarenteed to contain a valid array of workout templates (if it didn't error).
 
-And now we can collect the prompt
+## Building the UI
+
+We'll collect the prompt
 
 ![Anthropic Billing](/ai-sdk/img-05-prompt.jpg)
 
-and if we wait, we do get workouts back, which we can display them.
+and if we wait, we do get workouts back, which we can display.
 
 ![Anthropic Billing](/ai-sdk/img-05-results.jpg)
 
 and note the save buttons - they work, and they simply call the _same_ server function I already have for saving a new workout template which was manually input by the user.
 
-Naturally this UI isn't in its final form. It would probably be better to put these created workout templates into the manual creation _form_ so users can make tweaks before saving (this model loves making all sets as 8 reps for some reason). But that won't fit well in a modal—but a modal is probably a terrible UX for this anyway. In fact just awaiting the frankly slow AI call in the browse is probably a bad idea _ab initio_. A future post will probably look at cleaning all of that up, and leaning on Cloudflare's Durable Object's as a much, much better place to run, manage these requests, and _push_ updates and results _down_ to the browser.
+I'm not showing all that code. It would be hundreds of lines, and this is a post about the AI SDK. Check out [the repo](https://github.com/arackaf/fitness-tracker) if you're curious how everything works.
+
+Naturally this UI isn't in its final form. It would probably be better to put these created workout templates into the manual creation _form_ so users can make tweaks before saving (this model loves making all sets as 8 reps for some reason). But that won't fit well in a modal—but a modal is probably a terrible UX for this anyway. In fact awaiting these slow AI calls in the browser was probably a bad idea _ab initio_. A future post will probably look at cleaning all of that up, and leaning on Cloudflare's Durable Object's as a much, much better place to run, manage these requests, and _push_ updates and results _down_ to the browser.
 
 ## A few warnings
 
-Before we wrap up, here's a few things that went wrong for me, to be aware of. Naturally these might be non-issues by the time you read this.
+Before we wrap up, here's a few things that went wrong, or were surprising for me, to be aware of. Naturally these might be non-issues by the time you read this.
+
+### AI Gateway free mode
+
+AI GAteway does have a free mode that grants you $5 in credits to use against these models. $5 actually goes a _long_ way. Those full, workout-generating requests with the proper systems prompt and output validation cost me $0.03–$0.05, which makes it perfect for testing things out. That said, at time of writing you cannot use Anthropic models (and possibly others) with the AI Gateway in free mode. That does _not_ mean you need to sign up for a Vercel Pro Plan for $20 / month. You just need go into AI Gateway and buy some credits of your own.
+
+Buying your own credits immediately ejects you out of free mode, and grants access to any model you want to use. Currently the minimum spend on credits is $10.
 
 ### Azure errors?!
 
@@ -334,7 +346,7 @@ I haven't had problems since.
 
 ### Beware optional fields in your Zod schema
 
-Another problem I had, also with OpenAI models, was that it would simply choke if any fields anywhere in my Output schema were marked as optional. I have no idea why this was, but it happened consistently. If I had optional fields, the model would error out, claiming that those optional fields were missing (missing because the model correctly omitted them). This was maddening but ultimately not worth fighting. Either remove the optional fields, or make them required. Either solution is fine (unless this is fixed by the time you read this).
+Another problem I had, also with OpenAI models, was that it would simply choke if any fields anywhere in my Output schema were marked as optional. I have no idea why this was, but it happened consistently. If I had optional fields, the model would error out, claiming that those optional fields were missing (missing because the model correctly omitted them). This was maddening but ultimately not worth fighting. Either remove the optional fields, or make them required, and force the model to fill them out. Either solution is fine (unless this is fixed by the time you read this).
 
 ## Other goodies
 
