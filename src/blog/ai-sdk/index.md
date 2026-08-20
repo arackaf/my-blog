@@ -6,7 +6,7 @@ description:
 
 We've all used AI tooling like Claude Code and Cursor to help us write code. This is a post about integrating AI features directly into software. In other words, making AI requests from within our application, and integrating the responses. There's no shortage of tools that do this, and for this post we'll look at Vercel's AI SDK (and AI Gateway).
 
-Vercel's AI SDK is a TypeScript utility that makes it simple to programmatically run AI requests, for integration with existing software. It's model agnostic, so you can use pretty any model you want, from Claude Sonnet to GPT 5.
+Vercel's AI SDK is a TypeScript utility that makes it simple to programmatically run AI requests, for integration with existing software. It's model agnostic, so you can use pretty much any model you want, from Claude Sonnet to GPT 5.
 
 Chat bots have been done too many times (arguably once is too many) so for this post we'll do something a little different: we'll use AI to help us create fitness workouts. We'll prompt it clearly, give it some reference material, and most importantly, constrain its resulting format and structure, so we can easily make use of the results, and save these workouts in our own database, for future use.
 
@@ -38,9 +38,9 @@ AI_GATEWAY_API_KEY="vck_xyz"
 
 ## Benefits of the AI Gateway
 
-Before we start making actual requests with the AI SDK, let's briefly look at the benefits you get by using the Vercel's AI Gateway.
+Before we start making actual requests with the AI SDK, let's briefly look at the benefits you get by using Vercel's AI Gateway.
 
-The AI Gateway serves as a single, centralized location to make requests against virtually any model, no matter if it's from OpenAI, Anthropic, etc. It even allows you to specify which providers you want them run against, and can even specify model fallbacks: run this against Claude Sonnet 5, and if that fails, try it with Claude Sonnet 4.6. Or whatever combination you want.
+The AI Gateway serves as a single, centralized location to make requests against virtually any model, no matter if it's from OpenAI, Anthropic, etc. It even allows you to specify which providers and models you want them to run against, and can even specify fallbacks: for example, run this against Claude Sonnet 5, and if that fails, try it with Claude Sonnet 4.6. Or whatever combination you want, or with the providers themselves, not just the models.
 
 What's also nice is that, even though you're making requests against models from any provider, you're interacting with, and getting billed by only Vercel (who is charging you listed rates for the api calls, with no markup).
 
@@ -146,7 +146,7 @@ Simple as that, and it still works.
 
 ![Pick your model](/ai-sdk/img-03-anthropic-result.jpg)
 
-And of course we're not using Vercel's AI Gateway anymore, so if you want to track costs, head over to [Anthropic's console](https://platform.claude.com/settings/keys) and see what you're api key is getting billed against.
+And of course we're not using Vercel's AI Gateway anymore, so if you want to track costs, head over to [Anthropic's console](https://platform.claude.com/settings/keys) and see what your api key is getting billed against.
 
 ![Anthropic Billing](/ai-sdk/img-04-anthropic-console.jpg)
 
@@ -154,7 +154,7 @@ And of course we're not using Vercel's AI Gateway anymore, so if you want to tra
 
 Getting a random wall of text from text from an AI model isn't the most useful result, especially if the goal is to save new things into our database. In this case, we want to save new workouts. Since this is a fitness tracking app, we _already_ have forms set up to let the user manually input a new workout, components created to display these workout templates, and backend endpoints (server functions) to save those manually created workouts into our database.
 
-Wouldn't it be neat if we could get these AI models to create our new workouts in _exactly_ that same format, so we could re-use those _same components_ to display the workout our AI model created, and server function to save them, if the user likes it? AI does not change the benefits of component reuse that software engineers have always strived for.
+Wouldn't it be neat if we could get these AI models to create our new workouts in _exactly_ that same format, so we could reuse those _same components_ to display the workout our AI model created, and server function to save them, if the user likes it? AI does not change the benefits of component reuse that software engineers have always strived for.
 
 The AI SDK allows us to specify a Zod validation schema for the output we get back, which is exactly what we want. If you're like me, you're not _normally_ using Zod for regular TS types which are not crossing the wire.
 
@@ -193,11 +193,11 @@ export const workoutTemplateValidator = z.object({
 }) satisfies z.ZodType<WorkoutTemplateState>;
 ```
 
-The `satisfies` clause confirms that this type is actually a valid substitute for the real thing (so if you change your TS types, this will error, and you'll have to make matching changes here).
+The `satisfies` clause confirms that this type is actually a valid substitute for the real thing (so if you change your TS types, this will produce TS errors, and you'll have to make matching changes here).
 
 ### Using our Zod Schema
 
-The `generateText` method has an `output` field, that let's us insert our Zod schema.
+The `generateText` method has an `output` field, that lets us insert our Zod schema.
 
 ```ts
 output: Output.object({
@@ -277,7 +277,7 @@ Even the normal prompt we massage a bit, rather than just dumping the user's inp
 
 The xml-like tags, like `<reference_workouts>` are just a way to make it extra clear to the model where reference data are contained.
 
-## Viewing our final result.
+## Viewing our final result
 
 We'll have our server function validate that we absolutely got the expected format back, and error out if not.
 
@@ -318,7 +318,7 @@ and note the save buttons - they work, and they simply call the _same_ server fu
 
 I'm not showing all that code. It would be hundreds of lines, and this is a post about the AI SDK. Check out [the repo](https://github.com/arackaf/fitness-tracker) if you're curious how everything works.
 
-Naturally this UI isn't in its final form. It would probably be better to put these created workout templates into the manual creation _form_ so users can make tweaks before saving (this model loves making all sets as 8 reps for some reason). But that won't fit well in a modal—but a modal is probably a terrible UX for this anyway. In fact awaiting these slow AI calls in the browser was probably a bad idea _ab initio_. A future post will probably look at cleaning all of that up, and leaning on Cloudflare's Durable Object's as a much, much better place to run, manage these requests, and _push_ updates and results _down_ to the browser.
+Naturally this UI isn't in its final form. It would probably be better to put these created workout templates into the manual creation _form_ so users can make tweaks before saving (this model loves making all sets as 8 reps for some reason). But that won't fit well in a modal—but a modal is probably a terrible UX for this anyway. In fact awaiting these slow AI calls in the browser was probably a bad idea _ab initio_. A future post will probably look at cleaning all of that up, and leaning on Cloudflare's Durable Objects as a much, much better place to run, manage these requests, and _push_ updates and results _down_ to the browser.
 
 ## A few warnings
 
@@ -326,7 +326,7 @@ Before we wrap up, here's a few things that went wrong, or were surprising for m
 
 ### AI Gateway free mode
 
-AI GAteway does have a free mode that grants you $5 in credits to use against these models. $5 actually goes a _long_ way. Those full, workout-generating requests with the proper systems prompt and output validation cost me $0.03–$0.05, which makes it perfect for testing things out. That said, at time of writing you cannot use Anthropic models (and possibly others) with the AI Gateway in free mode. That does _not_ mean you need to sign up for a Vercel Pro Plan for $20 / month. You just need go into AI Gateway and buy some credits of your own.
+AI Gateway does have a free mode that grants you $5 in credits to use against these models. $5 actually goes a _long_ way. Those full, workout-generating requests with the proper system prompt and output validation cost me $0.03–$0.05, which makes it perfect for testing things out. That said, at time of writing you cannot use Anthropic models (and possibly others) with the AI Gateway in free mode. That does _not_ mean you need to sign up for a Vercel Pro Plan for $20 / month. You just need to go into AI Gateway and buy some credits of your own.
 
 Buying your own credits immediately ejects you out of free mode, and grants access to any model you want to use. Currently the minimum spend on credits is $10.
 
@@ -350,7 +350,7 @@ Another problem I had, also with OpenAI models, was that it would simply choke i
 
 ## Other goodies
 
-The response object your get back from `generateText` has some other things that can be useful. There's a `usage` object that contains the input, and output tokens consumed. In theory you could use this to compute the cost incurred by the request. But in reality (if you're using the AI Gateway) there's also a `finalStep` object, which contains the cost directly, which you can access via
+The response object you get back from `generateText` has some other things that can be useful. There's a `usage` object that contains the input and output tokens consumed. In theory you could use this to compute the cost incurred by the request. But in reality (if you're using the AI Gateway) there's also a `finalStep` object, which contains the cost directly, which you can access via
 
 ```ts
 finalStep.providerMetadata?.gateway?.cost;
