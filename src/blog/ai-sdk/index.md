@@ -40,7 +40,7 @@ AI_GATEWAY_API_KEY="vck_xyz"
 
 Before we start making actual requests with the AI SDK, let's briefly look at the benefits you get by using the Vercel's AI Gateway.
 
-The AI Gateway serves as a single, centralized location to make requests against virtually any model, no matter if it's from OpenAI, Anthropic, etc. It even allows you to specify which providers you want them run against, and can even specify model fallbacks: run this against Claude Sonnet 5, and if that fails, try it with Claude Sonney 4.6. Or whatever combination you want.
+The AI Gateway serves as a single, centralized location to make requests against virtually any model, no matter if it's from OpenAI, Anthropic, etc. It even allows you to specify which providers you want them run against, and can even specify model fallbacks: run this against Claude Sonnet 5, and if that fails, try it with Claude Sonnet 4.6. Or whatever combination you want.
 
 What's also nice is that, even though you're making requests against models from any provider, you're interacting with, and getting billed by only Vercel (who is charging you listed rates for the api calls, with no markup).
 
@@ -302,7 +302,7 @@ return {
 };
 ```
 
-And now, the result from our server function is guarenteed to contain a valid array of workout templates (if it didn't error).
+And now, the result from our server function is guaranteed to contain a valid array of workout templates (if it didn't error).
 
 ## Building the UI
 
