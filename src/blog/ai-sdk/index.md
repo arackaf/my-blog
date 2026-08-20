@@ -279,30 +279,37 @@ The xml-like tags, like `<reference_workouts>` are just a way to make it extra c
 
 ## Viewing our final result
 
-We'll have our server function validate that we absolutely got the expected format back, and error out if not.
+Since we're specifying an output schema, we can now access the `output` property of the returned result, which will already be validated against our schema.
 
 ```ts
-const { text, usage, finalStep } = await generateText({
+const { output, usage, finalStep } = await generateText({
   // ....
 });
 
-const obj = JSON.parse(text);
-if (!obj.workouts) {
+if (!output.workouts.length) {
   throw new Error("No workouts generated");
 }
 
-const parsedWorkouts = z.array(workoutTemplateValidator).parse(obj.workouts);
+const parsedWorkouts = z.array(workoutTemplateValidator).parse(output.workouts);
 
 return {
   success: true,
   workouts: parsedWorkouts,
-  commentary: obj.commentary ?? "",
+  commentary: output.commentary ?? "",
   usage,
   cost: finalStep.providerMetadata?.gateway?.cost ?? "<unknown>",
 };
 ```
 
-And now, the result from our server function is guaranteed to contain a valid array of workout templates (if it didn't error).
+The call to
+
+```ts
+const parsedWorkouts = z.array(workoutTemplateValidator).parse(output.workouts);
+```
+
+is almost certainly not needed, since Vercel's SDK should be doing that validation. But for me, for something coming across the wire that extra validation doesn't hurt, and lets me sleep easier at night.
+
+And now, with that, the result from our server function is guaranteed to contain a valid array of workout templates (if it didn't error).
 
 ## Building the UI
 
