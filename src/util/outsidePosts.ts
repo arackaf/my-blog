@@ -7,6 +7,42 @@ export type ExternalPost = {
 
 export const externalPosts: ExternalPost[] = [
   {
+    title: "Introducing Sandcastle",
+    date: "2026-08-24T10:00:00.000Z",
+    description: "An introduction to Sandcastle, an AI orchestration library",
+    url: "https://blog.master.dev/introducing-sandcastle/",
+  },
+  {
+    title: "Introducing AI Skills for Real Engineers",
+    date: "2026-08-18T10:00:00.000Z",
+    description: "An introduction to Matt Pocock's AI Skills",
+    url: "https://blog.master.dev/introducing-ai-skills-for-real-engineers/",
+  },
+  {
+    title: "Cloudflare Workers and Hyperdrive with SvelteKit",
+    date: "2026-07-27T10:00:00.000Z",
+    description: "Shipping a SvelteKit application via Cloudflare Workers",
+    url: "https://blog.master.dev/cloudflare-workers-and-hyperdrive-with-sveltekit/",
+  },
+  {
+    title: "Durable Objects on Cloudflare",
+    date: "2026-07-20T10:00:00.000Z",
+    description: "An introduction Cloudflare Durable Objects",
+    url: "https://blog.master.dev/durable-objects-on-cloudflare/",
+  },
+  {
+    title: "Cloudflare Workers and Hyperdrive with TanStack Start",
+    date: "2026-07-02T10:00:00.000Z",
+    description: "Shipping a TanStack Start application via Cloudflare Workers",
+    url: "https://blog.master.dev/cloudflare-workers-and-hyperdrive-with-tanstack-start/",
+  },
+  {
+    title: "Introduction to Cloudflare Workers for Web Apps",
+    date: "2026-06-26T10:00:00.000Z",
+    description: "A broad introduction to building web apps on Cloudflare Workers",
+    url: "https://blog.master.dev/introduction-to-cloudflare-workers-for-web-apps/",
+  },
+  {
     title: "React Server Components in TanStack Start",
     date: "2026-05-18T10:00:00.000Z",
     description: "High level overview of React Server Components in TanStack Start",
