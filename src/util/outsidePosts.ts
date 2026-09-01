@@ -7,6 +7,12 @@ export type ExternalPost = {
 
 export const externalPosts: ExternalPost[] = [
   {
+    title: "Having Fun with Vercel’s AI SDK and AI Gateway",
+    date: "2026-08-31T10:00:00.000Z",
+    description: "A high level introduction to Vercel's AI SDK and AI Gateway with a real use case",
+    url: "https://blog.master.dev/having-fun-with-vercels-ai-sdk-and-ai-gateway/",
+  },
+  {
     title: "Introducing Sandcastle",
     date: "2026-08-24T10:00:00.000Z",
     description: "An introduction to Sandcastle, an AI orchestration library",
