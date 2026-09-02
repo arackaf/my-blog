@@ -51,7 +51,9 @@ In the constructor I use the `ctx.blockConcurrencyWhile` helper to essentially l
 
 Then I instantiate the drizzle object.
 
-The `getSessions` method is an example of fetching data from our SQLite instance, to return back to our UI. Here we can pull up all sessions the user has ever started (whether in progress or complete). Note the lack of async or await; the SQLite api is synchronous, which is especially nice.
+The `getSessions` method is an example of fetching data from our SQLite instance, to return back to our UI. Here we can pull up all sessions the user has ever started (whether in progress or complete). Note the lack of async or await; the SQLite api is synchronous, which is especially nice. Note also the lack of filters based on the current user.
+
+Recall that we create instances of these durable objects _per user_, based on their userId from our Authentication layer. This means each user's DO has _its own SQLite database_, and we can simply dump the table to get all sessions, or delete sessions at will. The user has access to everything in the Durable Object's DB because of how we've chosen to instantiate them. To access someone else's data they'd have to gain access to someone else's Durable Object, which they could only do by breaking our own authentication mechanism, in which case we'd have bigger problems!
 
 ## Parting thoughts
 
