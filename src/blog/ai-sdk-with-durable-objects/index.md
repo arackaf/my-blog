@@ -38,10 +38,6 @@ export class WorkoutTemplateAIGenerationDO extends DurableObject {
 
     this.db = drizzle(ctx.storage);
   }
-  getSessions() {
-    const rows = this.db.select().from(sessionTable).all();
-    return rows;
-  }
 }
 ```
 
@@ -51,12 +47,163 @@ In the constructor I use the `ctx.blockConcurrencyWhile` helper to essentially l
 
 Then I instantiate the drizzle object.
 
+## Setting up our web socket
+
+I covered this in detail in my prior [Durable Objects post](https://blog.master.dev/durable-objects-on-cloudflare/), but to accept and set up web socket connections you need a fetch method which takes the raw request, inside of which we call some built-in Cloudflare utilities to establish, and save the connection.
+
+```ts
+fetch(request: Request): Response {
+  if (request.headers.get("Upgrade") !== "websocket") {
+    return new Response("Expected WebSocket", {
+      status: 426,
+    });
+  }
+
+  // ...
+
+  const pair = new WebSocketPair();
+  const client = pair[0];
+  const server = pair[1];
+
+  this.ctx.acceptWebSocket(server);
+
+  return new Response(null, {
+    status: 101,
+    webSocket: client,
+  });
+
+}
+```
+
+### Sending web socket messages
+
+To get all open sockets for this durable object, we call `this.ctx.getWebSockets()` and use the `send` method accordingly
+
+```ts
+sendMessage(payload: Object) {
+  for (const socket of this.ctx.getWebSockets()) {
+    try {
+      socket.send(JSON.stringify(payload));
+    } catch {
+      // The socket may have disconnected before Cloudflare observed it.
+      socket.close(1011, "Unable to send message");
+    }
+  }
+}
+```
+
+simple and humble.
+
+## Running prompts and saving data
+
+When the user wants to run a prompt, we can save a new session into our SQLite database
+
+```ts
+createSession(promptInfo: PromptInput): { id: number } {
+  const result = this.db
+    .insert(sessionTable)
+    .values({
+      name: "",
+      createdAt: new Date().toISOString(),
+    })
+    .returning({ id: sessionTable.id })
+    .all();
+
+  const sessionId = result[0].id;
+
+  // ...
+
+  this.prompt(promptInfo)
+    .then(promptResult => {
+      // ...
+    })
+    .catch(() => {
+      // ...
+    })
+    .finally(() => {
+      this.sendUpdateForPromptId(sessionId, sessionPromptId);
+    });
+
+  return result[0];
+}
+```
+
+The `prompt` method being called here is what interacts directly with the Vercel AI SDK.
+
+```ts
+export class WorkoutTemplateAIGenerationDO extends DurableObject {
+  // ...
+  async prompt(input: PromptInput): Promise<PromptResult> {
+    const { workoutTemplates, prompt, exercises, model = "anthropic/claude-sonnet-4.6" } = input;
+
+    try {
+      const { output, usage, finalStep } = await generateText({
+        instructions: systemPrompt(workoutTemplates, exercises),
+        model,
+        prompt: userPrompt(prompt, workoutTemplates),
+        // ...
+      });
+
+      // ....
+    } catch (err) {}
+  }
+}
+```
+
+See my [prior post](https://blog.master.dev/having-fun-with-vercels-ai-sdk-and-ai-gateway/) on the SDK for more details.
+
+I'm deliberately leaving out some details, and in fact I'm probably showing too much code. Really just understand how these pieces fit together, and build whatever workflow works best for you
+
+## Reading data
+
 The `getSessions` method is an example of fetching data from our SQLite instance, to return back to our UI. Here we can pull up all sessions the user has ever started (whether in progress or complete). Note the lack of async or await; the SQLite api is synchronous, which is especially nice. Note also the lack of filters based on the current user.
 
+```ts
+getSessions() {
+  const rows = this.db.select().from(sessionTable).all();
+  return rows;
+}
+```
+
 Recall that we create instances of these durable objects _per user_, based on their userId from our Authentication layer. This means each user's DO has _its own SQLite database_, and we can simply dump the table to get all sessions, or delete sessions at will. The user has access to everything in the Durable Object's DB because of how we've chosen to instantiate them. To access someone else's data they'd have to gain access to someone else's Durable Object, which they could only do by breaking our own authentication mechanism, in which case we'd have bigger problems!
+
+## Interacting with our Durable Object
+
+We can only call methods on our Durable Object from the server, not the browser. So if you're using TanStack, like I am, we'll need some server functions. First a helper to get a connection to a given user's durable object
+
+```ts
+export const getWorkoutTemplateAIGenerationDurableObject = async (context: AuthContext) => {
+  const userId = await requireUserId(context);
+  const { WorkoutTemplateAIGenerationDO } = env;
+  const doId = WorkoutTemplateAIGenerationDO.idFromName(userId);
+  return WorkoutTemplateAIGenerationDO.get(doId);
+};
+```
+
+and then a server function interacting with our durable object might look something like this
+
+```ts
+export const loadAiSessionServerFn = createServerFn({ method: "POST" })
+  .validator((payload: { sessionId: number }) => payload)
+  .handler(async ({ data, context }) => {
+    const durableObject = await getWorkoutTemplateAIGenerationDurableObject(context);
+    const resultRaw = await durableObject.loadSession(data.sessionId);
+    return doStrip(resultRaw);
+  });
+```
+
+## Putting it all together
+
+Once you understand how these pieces fit together you can clearly instruct your preferred agent and harness of choice to build whatever UX and workflow you'd like.
+
+Mine looks something like this
 
 ## Parting thoughts
 
 Vercel's AI SDK is a great tool for making model-agnostic requests. I've found Cloudflare's Durable Objects to be a fantastic platform for making the most of it. From its dedicated storage, to its built-in web socket support, it has tons of features that make implementing real use cases as straightforward as possible.
 
 Happy Coding!
+
+```
+
+```
