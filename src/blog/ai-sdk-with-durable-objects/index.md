@@ -94,6 +94,48 @@ sendMessage(payload: Object) {
 
 simple and humble.
 
+### Connecting to the durable object's web socket
+
+If you're curious how you get a raw connection into the DO, the trick is to use what most metaframeworks call an API route (and which TanStack calls a server route)
+
+```ts
+import { getWorkoutTemplateAIGenerationDurableObject } from "@/durable-objects/WorkoutTemplateAIGeneration/do";
+import { createFileRoute } from "@tanstack/react-router";
+
+export const Route = createFileRoute("/app/admin/workout-templates/ai/$id/subscribe")({
+  server: {
+    handlers: {
+      GET: async ({ request, context }) => {
+        const cart = await getWorkoutTemplateAIGenerationDurableObject(context);
+        return cart.fetch(request);
+      },
+    },
+  },
+});
+```
+
+along with a bit of helper code
+
+```ts
+export function openWorkoutTemplateWebSocket(sessionId: string, lastPromptId?: number) {
+  return new Promise<WebSocket>((res, rej) => {
+    const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+
+    const socket = new WebSocket(
+      `${protocol}//${location.host}/app/admin/workout-templates/ai/${sessionId}/subscribe${lastPromptId ? `?lastPromptId=${lastPromptId}` : ""}`,
+    );
+
+    socket.addEventListener("open", () => {
+      res(socket);
+    });
+
+    socket.addEventListener("error", event => {
+      rej(event);
+    });
+  });
+}
+```
+
 ## Running prompts and saving data
 
 When the user wants to run a prompt, we can save a new session into our SQLite database
