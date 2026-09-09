@@ -4,17 +4,17 @@ date: "2027-09-05T20:00:32.169Z"
 description:
 ---
 
-I previously wrote about Vercel's AI SDK and AI Gateway [here](https://blog.master.dev/having-fun-with-vercels-ai-sdk-and-ai-gateway/). That post covered the basics of setting up an account in Vercel's AI Gateway (or directly in a provider of your choice); making requests against an AI model, and constraining the resulting data it sent back, to ensure you could use it in your application (if your database is expecting a field called `weight`, things won't work well if the LLM sends back that data in a field called `bodyweight`).
+I've previously written about [Vercel's AI SDK and AI Gateway](https://blog.master.dev/having-fun-with-vercels-ai-sdk-and-ai-gateway/). That post covered the basics of setting up an account in the AI Gateway (or directly in a provider of your choice), and making requests against an AI model while constraining the resulting data it sent back, to ensure you could use it in your application: if your database is expecting a field called `weight`, things won't work well if the LLM sends back that data in a field called `bodyweight`.
 
 That post used an existing fitness tracker app I've been toying with. It set up a rudimentary UI for the user to provide the LLM with some reference workouts, and a prompt to produce new workouts based on the prompt, and the reference workouts (and underneath the reference list of exercises was also sent over). To keep things simple I set up a basic modal that simply showed a spinner while the request was being processed (which usually takes about 30 seconds, or even more). When the request finished, the workouts displayed, along with a save button if the user wanted to save them into their account.
 
-The limitations of this UX should be obvious. If the user refreshed the page while the request was in flight, everything would be lost. If the user even refreshed the page after those results were in the modal, they'd also be lost. Granted, the latter is easily fixed. We could save those results into our own database for later recall. But this post will wrap everything together into one cohesive UI with on of my favorite infrastructure primitives: Cloudflare Durable Objects.
+The limitations of this UX should be obvious. If the user refreshed the page while the request was in flight, everything would be lost. If the user even refreshed the page after those results were in the modal, they'd also be lost. Granted, the latter is easily fixed: we could save those results into our own database for later recall. But this post will wrap everything together into one cohesive UI with on of my favorite infrastructure primitives: Cloudflare Durable Objects.
 
 ## Why Durable Objects
 
 I previously wrote about Durable Objects [here](https://blog.master.dev/durable-objects-on-cloudflare/). The elevator pitch for DOs is that they're like a regular Cloudflare Worker, except instead of being being ephemeral, and spun up quickly to serve a request before dying off, they come with persistent storage (SQLite), and even have built-in web socket support.
 
-You define a DO with a class, and then instantiate it with whatever unique IDs you want (one per user, or whatever you can imagine). Each one you spin up has its own dedicated SQLite database and collection of web socket connections.
+You define a DO with a class, and then instantiate it with whatever unique IDs you want (one per user, or whatever you can imagine). Each one you spin up has its own dedicated SQLite database, and collection of web socket connections.
 
 This provides us all the missing primitives we need. When the user hits the "Generate" button to run their prompt, we run it _on_ the durable object, and save it to SQLite. When the request is finished, we use a web socket to _push_ the result to the user's browser. And if the user refreshes the page, we can hit up that same DO and ask it to query its SQLite db for current prompts, past prompts, etc.
 
@@ -96,7 +96,7 @@ simple and humble.
 
 ### Connecting to the durable object's web socket
 
-If you're curious how you get a raw connection into the DO, the trick is to use what most metaframeworks call an API route (and which TanStack calls a server route)
+If you're curious how you get a raw connection into the DO, the trick is to use what most metaframeworks call an API route (and which TanStack calls a server route). You establish your connection that _that_, and that api route simply forwards (proxies) the request to the Durable Object.
 
 ```ts
 import { getWorkoutTemplateAIGenerationDurableObject } from "@/durable-objects/WorkoutTemplateAIGeneration/do";
@@ -114,7 +114,7 @@ export const Route = createFileRoute("/app/admin/workout-templates/ai/$id/subscr
 });
 ```
 
-along with a bit of helper code
+along with a bit of helper code to send the request to the right place, no matter whether you're in production, or development mode
 
 ```ts
 export function openWorkoutTemplateWebSocket(sessionId: string, lastPromptId?: number) {
@@ -207,7 +207,7 @@ getSessions() {
 }
 ```
 
-Recall that we create instances of these durable objects _per user_, based on their userId from our Authentication layer. This means each user's DO has _its own SQLite database_, and we can simply dump the table to get all sessions, or delete sessions at will. The user has access to everything in the Durable Object's DB because of how we've chosen to instantiate them. To access someone else's data they'd have to gain access to someone else's Durable Object, which they could only do by breaking our own authentication mechanism, in which case we'd have bigger problems!
+If you recall, we create instances of these durable objects _per user_, based on their userId from our Authentication layer. This means each user's DO has _its own SQLite database_, and we can simply dump the table to get all sessions, or delete sessions at will. The user has access to everything in the Durable Object's DB because of how we've chosen to instantiate them. To access someone else's data they'd have to gain access to someone else's Durable Object, which they could only do by breaking our own authentication mechanism, in which case we'd have bigger problems!
 
 ## Interacting with our Durable Object
 
@@ -227,10 +227,9 @@ and then a server function interacting with our durable object might look someth
 ```ts
 export const loadAiSessionServerFn = createServerFn({ method: "POST" })
   .validator((payload: { sessionId: number }) => payload)
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data, context }): Promise<SessionPayload> => {
     const durableObject = await getWorkoutTemplateAIGenerationDurableObject(context);
-    const resultRaw = await durableObject.loadSession(data.sessionId);
-    return doStrip(resultRaw);
+    return durableObject.loadSession(data.sessionId);
   });
 ```
 
