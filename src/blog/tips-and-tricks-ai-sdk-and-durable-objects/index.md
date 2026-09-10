@@ -41,7 +41,66 @@ return type is this
 }[] & Disposable
 ```
 
-note the `& Disposable`. This may or may not be a problem.
+note the `& Disposable`.
+
+What may be especially surprising is that setting a return type on the DO's method does not change this
+
+```ts
+getSessions(): SessionSummary[] {
+  const rows = this.db.select().from(sessionTable).all();
+  return rows;
+}
+```
+
+The return type of the server function which calls the Durable Object's function is still
+
+```ts
+const aiSessions: {
+  id: number;
+  createdAt: string;
+  name: string;
+}[] &
+  Disposable;
+```
+
+Remember, we don't instantiate the Durable Object's class directly; instead, we always go through this
+
+```ts
+const { WorkoutTemplateAIGenerationDO } = env;
+const doId = WorkoutTemplateAIGenerationDO.idFromName(userId);
+return WorkoutTemplateAIGenerationDO.get(doId);
+```
+
+That utilities wraps the Durable Object, and handles the network boilerplate for making request. That's what's taking our actual return types and tacking on `Disposable`; and for that matter, wrapping with `Promise`.
+
+### Is this a problem?
+
+Maybe, or maybe not. For this particular example you can probably just ignore the Disposable and everything will probably work.
+
+This produces no errors
+
+```ts
+const { data: aiSessions } = useSuspenseQuery(getAiSessionsQueryOptions());
+
+const arr: SessionSummary[] = aiSessions;
+```
+
+aiSessions is of type
+
+```ts
+{
+  id: number;
+  createdAt: string;
+  name: string;
+}
+[] & Disposable;
+```
+
+But thanks to the way TS's structural typing works, we can absolutely assign that to `SessionSummary[]`; the Disposable part is just ignored.
+
+But let's take a look at a different example.
+
+### When the added on Disposable type gets in the way
 
 ### Attempt 1
 
