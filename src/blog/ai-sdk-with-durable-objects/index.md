@@ -1,6 +1,6 @@
 ---
 title: Making the most of Vercel's AI SDK with Cloudflare Durable Objects
-date: "2027-09-05T20:00:32.169Z"
+date: "2026-09-05T20:00:32.169Z"
 description:
 ---
 

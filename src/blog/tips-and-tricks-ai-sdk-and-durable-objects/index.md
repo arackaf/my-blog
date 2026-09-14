@@ -1,6 +1,6 @@
 ---
 title: Tips and tricks for using TanStack Start with Cloudflare Durable Objects
-date: "2027-09-05T20:00:32.169Z"
+date: "2026-09-05T20:00:32.169Z"
 description:
 ---
 
