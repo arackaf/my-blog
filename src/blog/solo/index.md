@@ -8,7 +8,7 @@ description:
 
 Solo is one of my favorite new tools. I heard about recently from its creator, Aaron Francis, while at a conference he was emceeing.
 
-Solo's website describes it as a Meta-harness for coding agents, but in my opinion that doesn't do this project justice. Solo to me is a control panel for whatever project I'm working on, with deep AI integration (naturally). It's the home to any terminals I might need, with common commands preloading into thier own dedicated slots in Solo, with the option to auto-start. And again, AI is deeply integrated: you can launch agents, and what's especially neat is that Solo provides it's own MCP that can provide your agents access to your various tasks and terminals to help it debug problems you're having.
+Solo's website describes it as a Meta-harness for coding agents, but in my opinion that doesn't do this project justice. Solo to me is a control panel for whatever project I'm working on, with deep AI integration (naturally). It's the home to any terminals I might need, with common commands preloading into their own dedicated slots in Solo, with the option to auto-start. And again, AI is deeply integrated: you can launch agents, and what's especially neat is that Solo provides it's own MCP that can provide your agents access to your various tasks and terminals to help it debug problems you're having.
 
 Let's take a look!
 
@@ -115,15 +115,15 @@ Note the line
 disable-model-invocation: true
 ```
 
-that prevents models from invoking it on thier own.
+that prevents models from invoking it on their own.
 
-I put that in `.claide/skills/solo-debug/SKILL.md` and with that, I can now just do /solo-debug and type my original prompt
+I put that in `.claude/skills/solo-debug/SKILL.md` and with that, I can now just do /solo-debug and type my original prompt
 
 ![project setup](/solo/img-07-solo-use-debug-skill.jpg)
 
 ## There's so much more
 
-I'm about to wrap this post up, but if you're feeling underwhelmted with Solo, I promise I'm barely scrating the surface. Solo also supports scratchpads and todos, which of course can integrate with your agents. And there's entire [ai orchestration workflows](https://soloterm.com/docs/workflows/agent-orchestration). There's even guides on [building better daily workflows](https://soloterm.com/docs/workflows/daily-operating-patterns).
+I'm about to wrap this post up, but if you're feeling underwhelmed with Solo, I promise I'm barely scratching the surface. Solo also supports scratchpads and todos, which of course can integrate with your agents. And there's entire [ai orchestration workflows](https://soloterm.com/docs/workflows/agent-orchestration). There's even guides on [building better daily workflows](https://soloterm.com/docs/workflows/daily-operating-patterns).
 
 ## Wrapping up
 
