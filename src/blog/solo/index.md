@@ -38,9 +38,9 @@ But it's 2026, so obviously you want to see the AI integration. Naturally you ca
 
 Don't worry, Solo supports virtually any agent you've ever heard of; only Claude and Codex show up here because that's all I bothered to set up.
 
-Once you start an agent, it's living as normal right inside Solo, just like you're used to. (TODO: show a Claude agent without Spotify stuff)
+Once you start an agent, it's living as normal right inside Solo, just like you're used to.
 
-![project setup](/solo/img-01b-agent.jpg)
+![project setup](/solo/img-01b-agent.png)
 
 Nothing changes for you as the user. Well, for the most part. Solo adds some UX niceties. As your agent works, and you start having pending changes in your repo, Solo will show you all pending diffs next to the Agent's normal output, via split screen (if you're on a large enough monitor).
 
