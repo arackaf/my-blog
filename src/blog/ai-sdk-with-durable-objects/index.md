@@ -1,6 +1,6 @@
 ---
 title: Making the most of Vercel's AI SDK with Cloudflare Durable Objects
-date: "2026-09-05T20:00:32.169Z"
+date: "2026-09-15T20:00:32.169Z"
 description:
 ---
 
@@ -12,11 +12,11 @@ The limitations of this UX should be obvious. If the user refreshed the page whi
 
 ## Why Durable Objects
 
-I previously wrote about Durable Objects [here](https://blog.master.dev/durable-objects-on-cloudflare/). The elevator pitch for DOs is that they're like a regular Cloudflare Worker, except instead of being being ephemeral, and spun up quickly to serve a request before dying off, they come with persistent storage (SQLite), and even have built-in web socket support.
+I previously wrote about Durable Objects [here](https://blog.master.dev/durable-objects-on-cloudflare/). The elevator pitch for DOs is that they're like a regular Cloudflare Worker, except instead of being being ephemeral, and spun up quickly to serve a request before dying off, they come with persistent storage (SQLite), and even have built-in web socket support. Oh and as the name implies, they're durable. They're expected to be long-lived, and hybernate (without cost) when not in use.
 
 You define a DO with a class, and then instantiate it with whatever unique IDs you want (one per user, or whatever you can imagine). Each one you spin up has its own dedicated SQLite database, and collection of web socket connections.
 
-This provides us all the missing primitives we need. When the user hits the "Generate" button to run their prompt, we run it _on_ the durable object, and save it to SQLite. When the request is finished, we use a web socket to _push_ the result to the user's browser. And if the user refreshes the page, we can hit up that same DO and ask it to query its SQLite db for current prompts, past prompts, etc.
+This provides us all the missing primitives we need. When the user hits the "Generate" button to run their prompt, we run it _on_ the durable object, and save it to SQLite. When the request is finished, we again save it (in SQLite) and then use a web socket to _push_ the result to the user's browser. And if the user refreshes the page, we can hit up that same DO and ask it to query its SQLite db for current prompts, past prompts, etc.
 
 I obviously won't show every line of code, but the repo is [here](https://github.com/arackaf/fitness-tracker). This is currently a work in progress in the feature/ai-workout-template-generation branch, but of course by the time you read this it might be in Main.
 
@@ -96,7 +96,7 @@ simple and humble.
 
 ### Connecting to the durable object's web socket
 
-If you're curious how you get a raw connection into the DO, the trick is to use what most metaframeworks call an API route (and which TanStack calls a server route). You establish your connection that _that_, and that api route simply forwards (proxies) the request to the Durable Object.
+If you're curious how to get a raw connection into the DO, so we can establish a web socket connection, the trick is to use what most meta-frameworks call an API route (and which TanStack calls a server route). You establish your connection to _that_, and that api route simply forwards (proxies) the request to the Durable Object.
 
 ```ts
 import { getWorkoutTemplateAIGenerationDurableObject } from "@/durable-objects/WorkoutTemplateAIGeneration/do";
@@ -194,7 +194,7 @@ export class WorkoutTemplateAIGenerationDO extends DurableObject {
 
 See my [prior post](https://blog.master.dev/having-fun-with-vercels-ai-sdk-and-ai-gateway/) on the SDK for more details.
 
-I'm deliberately leaving out some details, and in fact I'm probably showing too much code. Really just understand how these pieces fit together, and build whatever workflow works best for you
+I'm deliberately leaving out some code, and in fact I'm probably showing too much. Really just understand how these pieces fit together, and build whatever UI and workflow works best for you
 
 ## Reading data
 
@@ -237,14 +237,42 @@ export const loadAiSessionServerFn = createServerFn({ method: "POST" })
 
 Once you understand how these pieces fit together you can clearly instruct your preferred agent and harness of choice to build whatever UX and workflow you'd like.
 
-Mine looks something like this
+Mine looks something like this. The main page, which allows you to prompt for new workout templates to be created, along with links to prior prompting sessions.
+
+![project setup](/ai-sdk-with-durable-objects/img-01-main-page.jpg)
+
+After we fill out our prompt and hit generate, we call a server function, which calls into our durable object to create the session, start the prompt, and then _immediately_ returns back the session id (without waiting for the prompt).
+
+With the session id I then redirect to a page for that dedicated session. That page has the session id in the url, and I use it to load the full prompt and response history for that session, as well as set up a web socket connection.
+
+![project setup](/ai-sdk-with-durable-objects/img-03a-session-waiting.jpg)
+
+In the session in the screenshot above, we're still waiting on the prompt response from the ai model. When that finally comes in, the web socket sends the update, and we update the UI.
+
+![project setup](/ai-sdk-with-durable-objects/img-03b-results.jpg)
+
+I display the response from the model, as well as the proposed workouts. Since I'm using a Zod schema to force these workout templates to be in the same structure used by the rest of this application, I can put them directly into the same form components I usually use for letting the user set up their own workout templates manually.
+
+![project setup](/ai-sdk-with-durable-objects/img-03c-results-save-button.jpg)
+
+When the user hits the save button, I use the save endpoints I already have, notify the durable object that that workout has been saved, and then in the future I display it in my other existing component, for read-only display of workout templates.
+
+![project setup](/ai-sdk-with-durable-objects/img-03d-results-template-saved.jpg)
+
+## Wrapping up
+
+I hope I've done a good job of showing why Cloudflare's Durable Objects are such a good fit for managing long-running ai sessions. To be clear, their feature sets make them a great fit for a _ton_ of use cases. Durable Objects come with
+
+\- Dedicated SQLite storage scoped to each individual DO instance you choose to create
+
+\- Built-in web socket support
+
+\- All the normal benefits Cloudflare Workers offer, like low latency
+
+In this post we put those features together to build a feature that tracks AI prompts. We stored the prompts and results in SQLite, and pushed results as they came in down to the user via the built-in web socket functionality.
 
 ## Parting thoughts
 
-Vercel's AI SDK is a great tool for making model-agnostic requests. I've found Cloudflare's Durable Objects to be a fantastic platform for making the most of it. From its dedicated storage, to its built-in web socket support, it has tons of features that make implementing real use cases as straightforward as possible.
+Vercel's AI SDK is a great tool for making model-agnostic requests. I've found Cloudflare's Durable Objects to be a fantastic feature for making the most of it. From its dedicated storage, to its built-in web socket support, it has tons of features that make implementing real use cases as straightforward as possible.
 
 Happy Coding!
-
-```
-
-```
