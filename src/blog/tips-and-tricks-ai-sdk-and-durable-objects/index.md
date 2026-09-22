@@ -6,6 +6,10 @@ description:
 
 Let's get started.
 
+## Tagged web socket connections
+
+You can tag, and then filter web socket connections
+
 ## Return Types, Durable Object and Server Functions
 
 So here's our Durable Object method
@@ -31,7 +35,7 @@ export const getAiSessionsServerFn = createServerFn({ method: "POST" })
   });
 ```
 
-return type is this
+the inferred return type is this
 
 ```
 {
@@ -41,7 +45,7 @@ return type is this
 }[] & Disposable
 ```
 
-note the `& Disposable`.
+note the `& Disposable`. The array of objects with `id`, `createdAt` and `name` is what comes back from the query. `Disposable` gets added on behind the scenes in the disposable object.
 
 What may be especially surprising is that setting a return type on the DO's method does not change this
 
@@ -63,7 +67,7 @@ const aiSessions: {
   Disposable;
 ```
 
-Remember, we don't instantiate the Durable Object's class directly; instead, we always go through this
+The Durable Object result is _stil_ getting that ``Disposable` added on. Remember, we don't instantiate the Durable Object's class directly; instead, we always go through this
 
 ```ts
 const { WorkoutTemplateAIGenerationDO } = env;
