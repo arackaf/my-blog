@@ -10,6 +10,8 @@ Let's get started.
 
 You can tag, and then filter web socket connections
 
+## Middleware to simplify DO creation
+
 ## Return Types, Durable Object and Server Functions
 
 So here's our Durable Object method
@@ -175,7 +177,47 @@ export function doStrip<T>(value: T): Omit<T, typeof Symbol.dispose> {
 }
 ```
 
-Take in some type, and just strip off the undesired pieces. You pass the value through this function to "clean" the type of Symbol.dispose (which is what the Disposable type adds). Unfortunately, `Omit<T, typeof Symbol.dispose>` doesn't distribute over the union type that we saw before
+Take in some type, and just strip off the undesired pieces. You pass the value through this function to "clean" the type of Symbol.dispose (which is what the Disposable type adds).
+
+When we do
+
+```ts
+export const loadAiSessionServerFn = createServerFn({ method: "POST" })
+  .validator((payload: { sessionId: number }) => payload)
+  .middleware([withWtDo])
+  .handler(async ({ data, context }) => {
+    return doStrip(await context.wtDo.loadSession(data.sessionId));
+  });
+```
+
+the return type is now inferred as
+
+```ts
+Omit<
+  | ({
+      status: "not-found";
+    } & Disposable)
+  | ({
+      status: "error";
+    } & Disposable)
+  | ({
+      status: "loaded";
+      session: {
+        id: number;
+        createdAt: string;
+        name: string;
+      };
+      prompts: {
+        //.......
+      };
+    } & Disposable),
+  typeof Symbol.dispose
+>;
+```
+
+which is not at all what we wanted.
+
+The problem is, `Omit<T, typeof Symbol.dispose>` doesn't distribute over the union type that we saw before.
 
 But TypeScript has a special type for which distributing over unions is a core feature: conditional types.
 
@@ -202,11 +244,42 @@ export const loadAiSessionServerFn = createServerFn({ method: "POST" })
   });
 ```
 
+This works, essentially. Unfortunately the type is reported as
+
+```ts
+Omit<
+  {
+    status: "not-found";
+  } & Disposable,
+  typeof Symbol.dispose
+> |
+  Omit<
+    {
+      status: "error";
+    } & Disposable,
+    typeof Symbol.dispose
+  > |
+  Omit<
+    {
+      status: "loaded";
+      session: {
+        id: number;
+        createdAt: string;
+        name: string;
+      };
+      prompts: {};
+    } & Disposable,
+    typeof Symbol.dispose
+  >;
+```
+
+It's ugly but correct. But let's take a step back.
+
 ### The real solution
 
 The real way of solving this is to just add a return type to your server function.
 
-Normally with TypeScript relying in type inference is perfectly acceptable, and frankly preferred the overwhelming majority of the time. But here, annotating the return type we want
+Normally with TypeScript relying on type inference is perfectly acceptable, and frankly preferred the overwhelming majority of the time. But here, we simply annotate the return type we want
 
 ```ts
 export const loadAiSessionServerFn = createServerFn({ method: "POST" })
@@ -219,12 +292,8 @@ export const loadAiSessionServerFn = createServerFn({ method: "POST" })
 
 And that's that. The Disposable type is still returned from the Durable Object. But that value, with the Disposable cruft, is still _assignable to_ our return type, and anything calling into our server function will now get back solely our declared return type.
 
-Exactly whay we
+Exactly whay we want.
 
 ## Parting thoughts
-
-Cloudflare's Durable Objects is one of my favorite infrastructure primitives around. The built-in storage, and web socket support make it a superb tool for a surprising number of use cases. And TanStack Start has been my preferred web framework for as long as I care to remember.
-
-Hopefully this post had some useful tips for getting the most out of those tools, especially when used together!
 
 Happy Coding!
