@@ -4,13 +4,96 @@ date: "2026-09-05T20:00:32.169Z"
 description:
 ---
 
-Let's get started.
+I've previously written about Cloudflare's [Durable Objects](https://blog.master.dev/durable-objects-on-cloudflare/), and I've written about TanStack Start too many times to list here.
 
-## Tagged web socket connections
+This post is about some of the tips and tricks I've come across using them together. A _few_ of these tips are solutions to problems that may be solved in TanStack by the time you read this. But most, like utilizing Middleware and tagged web socket connections are just making the most of great features.
 
-You can tag, and then filter web socket connections
+Let's get started!
 
 ## Middleware to simplify DO creation
+
+Durable Objects can only be called from the server, not from the browser. A Durable Object is not a publicly adressable resource on the internet; it's an internal resource that can only be connected to from within Cloudflare infra. But since our web app is (presumably) running within Cloudflare, we can absolutely connect to it from server-side code in our web app. (if your web app is hosted on a vanilla Node process, or on Vercel, Durable Objects may not be a great tool to lean on).
+
+In prior posts I've shown code like this for getting an instance of the Durable Object.
+
+```ts
+export const getWorkoutTemplateAIGenerationDurableObject = async (context: AuthContext) => {
+  const userId = await requireUserId(context);
+  const { WorkoutTemplateAIGenerationDO } = env;
+  const doId = WorkoutTemplateAIGenerationDO.idFromName(userId);
+  return WorkoutTemplateAIGenerationDO.get(doId);
+};
+```
+
+which _could_ be used like this
+
+```
+//TODO: Chris - make sure this has TS formatting - I shut it off to prevent Prettier from formatting this code snippet badly
+export const getAiSessionsServerFn = createServerFn({ method: "POST" })
+  .handler(async ({ context }): Promise<SessionSummary[]> => {
+    const wtDo = await getWorkoutTemplateAIGenerationDurableObject(context);
+    return wtDo.getSessions();
+  });
+```
+
+But what if the call site of `getWorkoutTemplateAIGenerationDurableObject` were to change in some way. We wouldn't want to have to update every single call site which uses this method. Yes, of course an agent would make such a refactor trivial. Nonetheless, there's a TanStack feature that's built for this kind of thing: [Middleware](https://tanstack.com/start/latest/docs/framework/react/guide/middleware).
+
+### First attempt
+
+```ts
+const withWtDo = createMiddleware({ type: "function" }).server(async ({ context, next }) => {
+  const durableObject = await getWorkoutTemplateAIGenerationDurableObject(context);
+  return next({
+    context: {
+      wtDo: durableObject,
+    },
+  });
+});
+```
+
+Unfortunately this creates TS errors, since context is undefined. This was a surprise since I'd previously used [Global Middleware](https://tanstack.com/start/latest/docs/framework/react/guide/middleware#global-middleware) to add authentication info, so it would automatically be available everywhere.
+
+This is currently a limitation with TanStack's static typings; but there's an easy workaround.
+
+### The solution
+
+When we created global middleware we did so in `start.ts` at the root of our project, and then we
+
+```ts
+export const startInstance = createStart(() => ({
+  requestMiddleware: [csrfMiddleware, globalContextMiddleware, errorLoggingMiddleware],
+  functionMiddleware: [],
+}));
+```
+
+As of now, middleware here can't pick up things added to context in global middleware, like I do above with `globalContextMiddleware`.
+
+The workaround, for now, is to just import that very same `startInstance`, and then simply do
+
+```ts
+export const withWtDo = startInstance.createMiddleware({ type: "function" }).server(async ({ context, next }) => {
+  const durableObject = await getWorkoutTemplateAIGenerationDurableObject(context);
+  return next({
+    context: {
+      wtDo: durableObject,
+    },
+  });
+});
+```
+
+which works like a charm.
+
+Now we can simply add the middleware to our server functions.
+
+```ts
+export const getAiSessionsServerFn = createServerFn({ method: "POST" })
+  .middleware([withWtDo])
+  .handler(async ({ context }): Promise<SessionSummary[]> => {
+    return context.wtDo.getSessions();
+  });
+```
+
+And our Durable Object instance will be available and waiting for us in context.
 
 ## Return Types, Durable Object and Server Functions
 
