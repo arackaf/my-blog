@@ -51,13 +51,13 @@ const withWtDo = createMiddleware({ type: "function" }).server(async ({ context,
 });
 ```
 
-Unfortunately this creates TS errors, since context is undefined. This was a surprise since I'd previously used [Global Middleware](https://tanstack.com/start/latest/docs/framework/react/guide/middleware#global-middleware) to add authentication info, so it would automatically be available everywhere.
+Unfortunately this creates TS errors, since context is undefined. This was a surprise since I'm using [Global Middleware](https://tanstack.com/start/latest/docs/framework/react/guide/middleware#global-middleware) to add authentication info, so it would automatically be available everywhere.
 
 This is currently a limitation with TanStack's static typings; but there's an easy workaround.
 
 ### The solution
 
-When we created global middleware we did so in `start.ts` at the root of our project, and then we
+When we created global middleware we did so in `start.ts` at the root of our project. Inside of that we have this export (this is all covered in the linked docs above)
 
 ```ts
 export const startInstance = createStart(() => ({
@@ -66,9 +66,9 @@ export const startInstance = createStart(() => ({
 }));
 ```
 
-As of now, middleware here can't pick up things added to context in global middleware, like I do above with `globalContextMiddleware`.
+As of now, middleware can't pick up things added to context in global middleware like, as I'm doing here with `globalContextMiddleware`.
 
-The workaround, for now, is to just import that very same `startInstance`, and then simply do
+The workaround, for now, is to just import that very same `startInstance`, and then simply call `createMiddleware` off of `startInstance`
 
 ```ts
 export const withWtDo = startInstance.createMiddleware({ type: "function" }).server(async ({ context, next }) => {
@@ -97,7 +97,7 @@ And our Durable Object instance will be available and waiting for us in context.
 
 ## Return Types, Durable Object and Server Functions
 
-So here's our Durable Object method
+Here's a Durable Object method
 
 ```ts
 export class WorkoutTemplateAIGenerationDO extends DurableObject {
@@ -108,6 +108,17 @@ export class WorkoutTemplateAIGenerationDO extends DurableObject {
   }
   // ...
 }
+```
+
+The inferred return type of this method is
+
+```ts
+{
+  id: number;
+  name: string;
+  createdAt: string;
+}
+[];
 ```
 
 And here's our Server Function we use to call it
@@ -122,15 +133,15 @@ export const getAiSessionsServerFn = createServerFn({ method: "POST" })
 
 the inferred return type is this
 
-```
-{
+```ts
+Promise<{
     id: number;
-    createdAt: string;
     name: string;
+    createdAt: string;
 }[] & Disposable
 ```
 
-note the `& Disposable`. The array of objects with `id`, `createdAt` and `name` is what comes back from the query. `Disposable` gets added on behind the scenes in the disposable object.
+note the `& Disposable`. The array of objects with `id`, `name`, etc is what comes back from the query. `Disposable` gets added on behind the scenes, as does `Promise<T>` wrapping the whole thing.
 
 What may be especially surprising is that setting a return type on the DO's method does not change this
 
@@ -144,15 +155,17 @@ getSessions(): SessionSummary[] {
 The return type of the server function which calls the Durable Object's function is still
 
 ```ts
-const aiSessions: {
-  id: number;
-  createdAt: string;
-  name: string;
-}[] &
-  Disposable;
+Promise<
+  {
+    id: number;
+    name: string;
+    createdAt: string;
+  }[] &
+    Disposable
+>;
 ```
 
-The Durable Object result is _stil_ getting that ``Disposable` added on. Remember, we don't instantiate the Durable Object's class directly; instead, we always go through this
+The Durable Object result is _stil_ getting that ``Disposable` added on. Remember, we don't instantiate the Durable Object's class directly; instead, we always go through this to create a proxy to the DO.
 
 ```ts
 const { WorkoutTemplateAIGenerationDO } = env;
@@ -160,7 +173,7 @@ const doId = WorkoutTemplateAIGenerationDO.idFromName(userId);
 return WorkoutTemplateAIGenerationDO.get(doId);
 ```
 
-That utilities wraps the Durable Object, and handles the network boilerplate for making request. That's what's taking our actual return types and tacking on `Disposable`; and for that matter, wrapping with `Promise`.
+Those utilities wrap the Durable Object, and handle the network boilerplate for making requests. That's what's taking our actual return types, and tacking on `Disposable`; and for that matter, wrapping return types with `Promise`.
 
 ### Is this a problem?
 
@@ -225,7 +238,7 @@ loadSession(sessionId: number): SessionPayload {
 }
 ```
 
-Just having a TanStack Server Function attempt to call, and return this value:
+Just having a TanStack Server Function attempt to call, and return this method:
 
 ```ts
 export const loadAiSessionServerFn = createServerFn({ method: "POST" })
@@ -306,7 +319,7 @@ But TypeScript has a special type for which distributing over unions is a core f
 
 ### Attempt 2
 
-Once we realize that conditional types are how we distribute over unions and intersections we might try something like this
+Once we realize that conditional types are how we distribute over unions we might try something like this
 
 ```ts
 type StripDisposable<T> = T extends unknown ? Omit<T, typeof Symbol.dispose> : never;
@@ -362,7 +375,7 @@ It's ugly but correct. But let's take a step back.
 
 The real way of solving this is to just add a return type to your server function.
 
-Normally with TypeScript relying on type inference is perfectly acceptable, and frankly preferred the overwhelming majority of the time. But here, we simply annotate the return type we want
+Normally with TypeScript relying on type inference is perfectly acceptable, and frankly **preferred** the overwhelming majority of the time. But here, we simply annotate the return type we want
 
 ```ts
 export const loadAiSessionServerFn = createServerFn({ method: "POST" })
@@ -378,5 +391,7 @@ And that's that. The Disposable type is still returned from the Durable Object. 
 Exactly whay we want.
 
 ## Parting thoughts
+
+Hopefully this post contained some useful tidbits for using Durable Objects effectively with TanStack Start.
 
 Happy Coding!
