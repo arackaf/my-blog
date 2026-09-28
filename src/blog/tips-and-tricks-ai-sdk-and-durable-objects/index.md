@@ -1,6 +1,6 @@
 ---
 title: Tips and tricks for using TanStack Start with Cloudflare Durable Objects
-date: "2026-09-05T20:00:32.169Z"
+date: "2026-09-28T20:00:32.169Z"
 description:
 ---
 
@@ -94,6 +94,115 @@ export const getAiSessionsServerFn = createServerFn({ method: "POST" })
 ```
 
 And our Durable Object instance will be available and waiting for us in context.
+
+## Tagged WebSocket connections
+
+Durable Objects have built-in WebSocket support. I've covered this in my other posts, but the short of it is, to accept and create a new WebSocket connection, you add a fetch method like so
+
+```ts
+  fetch(request: Request): Response {
+    if (request.headers.get("Upgrade") !== "websocket") {
+      return new Response("Expected WebSocket", {
+        status: 426,
+      });
+    }
+
+    // ...
+
+    const pair = new WebSocketPair();
+    const client = pair[0];
+    const server = pair[1];
+
+    this.ctx.acceptWebSocket(server);
+
+    return new Response(null, {
+      status: 101,
+      webSocket: client,
+    });
+```
+
+And then, to send out a message to all WebSocket connections, you do something like this
+
+```ts
+  sendMessage(sessionId: number, payload: Object) {
+    for (const socket of this.ctx.getWebSockets()) {
+      try {
+        socket.send(JSON.stringify(payload));
+      } catch {
+        // The socket may have disconnected before Cloudflare observed it.
+        socket.close(1011, "Unable to send message");
+      }
+    }
+  }
+```
+
+### Filtering WebSocket connections
+
+But what if you want to separate or categorize WebSocket connections? In my prior post I wrote about using AI to generate workouts. When the user input a prompt, I called methods in my Durable Object to save that to a new session, then open a WebSocket connection for prompt results.
+
+But what if the user has multiple sessions open at once. If a single session's prompt results come back, when we do this
+
+```ts
+for (const socket of this.ctx.getWebSockets()) {
+  try {
+    socket.send(JSON.stringify(payload));
+  } catch {
+    // The socket may have disconnected before Cloudflare observed it.
+    socket.close(1011, "Unable to send message");
+  }
+}
+```
+
+We'll wind up sending that prompt update to all sessions, even ones this does not apply to. Sure we could add code to check, and ignore irrelevant messages, but there's a cleaner, more direct solution: tagged WebSocket connections.
+
+### Tagging WebSocket connections
+
+When we create (accept) a WebSocket connection, we have the option of providing one or more tags. These allow us to, well, "tag" a WebSocket connection; and we can use these tags for subsequent retrieval.
+
+For the AI workout generation example I just mentioned, when a new WebSocket connection is created, I include the sessionId in the URL that's used for setting up new connections. Remember, we have to set up our own API route, and then manually call the `fetch` method on our Durable Object, and pass in the raw request object. That raw request object has the original url, and you can set up whatever url for your API route you'd like. For mine, I included the sessionId as a route param.
+
+```ts
+fetch(request: Request): Response {
+  if (request.headers.get("Upgrade") !== "websocket") {
+    return new Response("Expected WebSocket", {
+      status: 426,
+    });
+  }
+
+  const url = new URL(request.url);
+  const sessionIdParam = url.pathname.split("/").at(-2) || "";
+```
+
+And then, when we call `acceptWebSocket` we can pass in a tag
+
+```ts
+this.ctx.acceptWebSocket(server, [webSocketTag(sessionId)]);
+```
+
+`webSocketTag` is just a simple function that takes in a sessionId and returns back a string tag. Mine is simply this
+
+Mine is simply this
+
+```ts
+const webSocketTag = (sessionId: number) => `session:${sessionId}`;
+```
+
+Why would I bother with a function for something so simple? Because I also use that _same_ tag to _retrieve_ WebSockets when I want to _send_ a message, which I do like this
+
+```ts
+sendMessage(sessionId: number, payload: Object) {
+  for (const socket of this.ctx.getWebSockets(webSocketTag(sessionId))) {
+    try {
+      socket.send(JSON.stringify(payload));
+    } catch {
+      // The socket may have disconnected before Cloudflare observed it.
+      socket.close(1011, "Unable to send message");
+    }
+  }
+}
+```
+
+And with that, a given WebSocket only receives messages it cares about.
 
 ## Return Types, Durable Object and Server Functions
 
