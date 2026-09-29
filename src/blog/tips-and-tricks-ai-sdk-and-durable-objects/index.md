@@ -12,7 +12,7 @@ Let's get started!
 
 ## Middleware to simplify DO creation
 
-Durable Objects can only be called from the server, not from the browser. A Durable Object is not a publicly adressable resource on the internet; it's an internal resource that can only be connected to from within Cloudflare infra. But since our web app is (presumably) running within Cloudflare, we can absolutely connect to it from server-side code in our web app. (if your web app is hosted on a vanilla Node process, or on Vercel, Durable Objects may not be a great tool to lean on).
+Durable Objects can only be called from the server, not from the browser. A Durable Object is not a publicly addressable resource on the internet; it's an internal resource that can only be connected to from within Cloudflare infra. But since our web app is (presumably) running within Cloudflare, we can absolutely connect to it from server-side code in our web app. (if your web app is hosted on a vanilla Node process, or on Vercel, Durable Objects may not be a great tool to lean on).
 
 In prior posts I've shown code like this for getting an instance of the Durable Object.
 
@@ -274,7 +274,7 @@ Promise<
 >;
 ```
 
-The Durable Object result is _stil_ getting that ``Disposable` added on. Remember, we don't instantiate the Durable Object's class directly; instead, we always go through this to create a proxy to the DO.
+The Durable Object result is _still_ getting that ``Disposable` added on. Remember, we don't instantiate the Durable Object's class directly; instead, we always go through this to create a proxy to the DO.
 
 ```ts
 const { WorkoutTemplateAIGenerationDO } = env;
@@ -497,7 +497,7 @@ export const loadAiSessionServerFn = createServerFn({ method: "POST" })
 
 And that's that. The Disposable type is still returned from the Durable Object. But that value, with the Disposable cruft, is still _assignable to_ our return type, and anything calling into our server function will now get back solely our declared return type.
 
-Exactly whay we want.
+Exactly what we want.
 
 ## Parting thoughts
 
