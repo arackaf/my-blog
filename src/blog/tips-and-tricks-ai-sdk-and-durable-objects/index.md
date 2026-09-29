@@ -6,13 +6,13 @@ description:
 
 I've previously written about Cloudflare's [Durable Objects](https://blog.master.dev/durable-objects-on-cloudflare/), and I've written about TanStack Start too many times to list here.
 
-This post is about some of the tips and tricks I've come across using them together. A _few_ of these tips are solutions to problems that may be solved in TanStack by the time you read this. But most, like utilizing Middleware and tagged web socket connections are just making the most of great features.
+This post is about some of the tips and tricks I've come across using them together. A _few_ of these tips are solutions to problems that may be solved in TanStack by the time you read this. But most, like utilizing Middleware and tagged WebSocket connections are just making the most of great features.
 
 Let's get started!
 
 ## Middleware to simplify DO creation
 
-Durable Objects can only be called from the server, not from the browser. A Durable Object is not a publicly addressable resource on the internet; it's an internal resource that can only be connected to from within Cloudflare infra. But since our web app is (presumably) running within Cloudflare, we can absolutely connect to it from server-side code in our web app. (if your web app is hosted on a vanilla Node process, or on Vercel, Durable Objects may not be a great tool to lean on).
+Durable Objects can only be called from the server, not from the browser. A Durable Object is not a publicly addressable resource on the internet; it's an internal resource that can only be connected to from within Cloudflare infra. But since our web app is (presumably) running within Cloudflare, we can absolutely connect to it from server-side code in our web app. If your web app is hosted on a vanilla Node process, or on Vercel, Durable Objects may not be a great tool to lean on, since you'd have to stand up a new Worker just to communicate with the DO.
 
 In prior posts I've shown code like this for getting an instance of the Durable Object.
 
@@ -36,7 +36,7 @@ export const getAiSessionsServerFn = createServerFn({ method: "POST" })
   });
 ```
 
-But what if the call site of `getWorkoutTemplateAIGenerationDurableObject` were to change in some way. We wouldn't want to have to update every single call site which uses this method. Yes, of course an agent would make such a refactor trivial. Nonetheless, there's a TanStack feature that's built for this kind of thing: [Middleware](https://tanstack.com/start/latest/docs/framework/react/guide/middleware).
+But what if the signature of `getWorkoutTemplateAIGenerationDurableObject` were to change in some way. We wouldn't want to have to update every single call site which uses this method. Yes, of course an agent would make such a refactor trivial. Nonetheless, there's a TanStack feature that's built for this kind of thing: [Middleware](https://tanstack.com/start/latest/docs/framework/react/guide/middleware).
 
 ### First attempt
 
@@ -57,7 +57,7 @@ This is currently a limitation with TanStack's static typings; but there's an ea
 
 ### The solution
 
-When we created global middleware we did so in `start.ts` at the root of our project. Inside of that we have this export (this is all covered in the linked docs above)
+When we created global middleware we did so in `start.ts` at the root of our project. Inside, we have this export (this is all covered in the linked docs above)
 
 ```ts
 export const startInstance = createStart(() => ({
@@ -66,7 +66,7 @@ export const startInstance = createStart(() => ({
 }));
 ```
 
-As of now, middleware can't pick up things added to context in global middleware like, as I'm doing here with `globalContextMiddleware`.
+As of now, middleware can have trouble picking up things added to context in global middleware, which I'm doing here with `globalContextMiddleware`.
 
 The workaround, for now, is to just import that very same `startInstance`, and then simply call `createMiddleware` off of `startInstance`
 
@@ -138,9 +138,9 @@ And then, to send out a message to all WebSocket connections, you do something l
 
 ### Filtering WebSocket connections
 
-But what if you want to separate or categorize WebSocket connections? In my prior post I wrote about using AI to generate workouts. When the user input a prompt, I called methods in my Durable Object to save that to a new session, then open a WebSocket connection for prompt results.
+But what if you want to separate or categorize WebSocket connections? In my prior post I wrote about using AI to generate workouts. When the user enters a prompt, I called methods in my Durable Object to save that to a new session, then open a WebSocket connection for prompt results.
 
-But what if the user has multiple sessions open at once. If a single session's prompt results come back, when we do this
+But what if the user has multiple sessions open at once? If a single session's prompt results come back, when we do this
 
 ```ts
 for (const socket of this.ctx.getWebSockets()) {
@@ -159,7 +159,7 @@ We'll wind up sending that prompt update to all sessions, even ones this does no
 
 When we create (accept) a WebSocket connection, we have the option of providing one or more tags. These allow us to, well, "tag" a WebSocket connection; and we can use these tags for subsequent retrieval.
 
-For the AI workout generation example I just mentioned, when a new WebSocket connection is created, I include the sessionId in the URL that's used for setting up new connections. Remember, we have to set up our own API route, and then manually call the `fetch` method on our Durable Object, and pass in the raw request object. That raw request object has the original url, and you can set up whatever url for your API route you'd like. For mine, I included the sessionId as a route param.
+For the AI workout generation example I just mentioned, when a new WebSocket connection is created, I include the sessionId in the URL that's used for setting up new connections. Remember, we have to set up our own API route, and then manually call the `fetch` method on our Durable Object, and pass in the raw request object. That raw request object contains the original url, and you can set up whatever url for your API route you'd like. For mine, I included the sessionId as a route param.
 
 ```ts
 fetch(request: Request): Response {
@@ -179,9 +179,7 @@ And then, when we call `acceptWebSocket` we can pass in a tag
 this.ctx.acceptWebSocket(server, [webSocketTag(sessionId)]);
 ```
 
-`webSocketTag` is just a simple function that takes in a sessionId and returns back a string tag. Mine is simply this
-
-Mine is simply this
+`webSocketTag` is just a simple function that takes in a sessionId and returns back a string tag. Here's the implementation:
 
 ```ts
 const webSocketTag = (sessionId: number) => `session:${sessionId}`;
@@ -250,7 +248,7 @@ Promise<{
 }[] & Disposable
 ```
 
-note the `& Disposable`. The array of objects with `id`, `name`, etc is what comes back from the query. `Disposable` gets added on behind the scenes, as does `Promise<T>` wrapping the whole thing.
+Note the `& Disposable`. The array of objects with `id`, `name`, etc is what comes back from the query. `Disposable` gets added on behind the scenes, as does `Promise<T>` wrapping the whole thing.
 
 What may be especially surprising is that setting a return type on the DO's method does not change this
 
@@ -274,7 +272,7 @@ Promise<
 >;
 ```
 
-The Durable Object result is _still_ getting that ``Disposable` added on. Remember, we don't instantiate the Durable Object's class directly; instead, we always go through this to create a proxy to the DO.
+The Durable Object result is _still_ getting that `Disposable` added on. Remember, we don't instantiate the Durable Object's class directly; instead, we always go through this to create a proxy to the DO.
 
 ```ts
 const { WorkoutTemplateAIGenerationDO } = env;
@@ -311,7 +309,7 @@ But thanks to the way TS's structural typing works, we can absolutely assign tha
 
 But let's take a look at a different example.
 
-### When the added on Disposable type gets in the way
+### When the added-on Disposable type gets in the way
 
 Have a look at this type
 
@@ -347,11 +345,11 @@ loadSession(sessionId: number): SessionPayload {
 }
 ```
 
-Just having a TanStack Server Function attempt to call, and return this method:
+Simply calling and returning this method from a TanStack server function:
 
 ```ts
 export const loadAiSessionServerFn = createServerFn({ method: "POST" })
-  .inputValidator((payload: { sessionId: number }) => payload)
+  .validator((payload: { sessionId: number }) => payload)
   .middleware([withWtDo])
   .handler(async ({ data, context }) => {
     return context.wtDo.loadSession(data.sessionId);
@@ -370,7 +368,7 @@ produces a horrendous TypeScript error
             Type '() => void' is not assignable to type 'SerializationError<"Function may not be serializable">'.
 ```
 
-I'll be honest, I'm not even sure why this error happened. I suspect the Union type (my `SessionPayload` type) being intersected with the Disposable type produced something slightly unexpected. But more importantly I _don't care_ exactly why this broke. The Disposable type is actually adding friction now, so let's just get rid of it.
+I'll be honest, I'm not even sure why this error happened. I suspect the Union type (my `SessionPayload`) being intersected with the Disposable type produced something slightly unexpected, and incompatible with TanStack's serialization checks. But more importantly I _don't care_ exactly why this broke. The Disposable type is actually adding friction now, so let's just get rid of it.
 
 ### Attempt 1
 
@@ -428,7 +426,7 @@ But TypeScript has a special type for which distributing over unions is a core f
 
 ### Attempt 2
 
-Once we realize that conditional types are how we distribute over unions we might try something like this
+Once we realize conditional types are how we distribute over unions, we might try something like this:
 
 ```ts
 type StripDisposable<T> = T extends unknown ? Omit<T, typeof Symbol.dispose> : never;
