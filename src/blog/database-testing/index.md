@@ -279,4 +279,26 @@ IMG 2
 
 Obviously a bug that overt would probably be caught without tests; the point is, a more subtle bug you'd be less likely to even think of would be caught also.
 
+At the risk of belaboring an obvious point, consider something as silly as ordering the measurement sets wrongly
+
+```ts
+.orderBy(
+  desc(workoutTable.workoutDate),
+  desc(workoutTable.id),
+  asc(workoutSegmentTable.segmentOrder),
+  asc(workoutSegmentExerciseTable.exerciseOrder),
+  desc(workoutSegmentExerciseMeasurementTable.setOrder), // <------ should be desc
+);
+```
+
+IMG
+
+Anything which causes our object graph to not get read back out in the same structire we put it in will fail our test.
+
 ## Wrapping up
+
+Hopefully this post has shown you some useful tools you can use in your own projects, and at work to write meaningful tests for your data access code.
+
+The `@testcontainers` package will get Docker running right inside your Vitest tests. Spin up an empty database, use your existing data access utilities to make sure things work exactly as expected. And remember, more tests is absolutely not always better. Test the meaningful parts of your application, with non-trivial logic. Tests which verify every single basic CRUD operation are unlikely to add much value, and are very likely to slow your test suite down to a crawl.
+
+Happy coding!
