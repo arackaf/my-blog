@@ -4,9 +4,9 @@ date: "2026-10-07T10:00:00.000Z"
 description: Introduction to TanStack AI
 ---
 
-TanStack AI is the latest offering from the TanStack universe. It's an ecosystem of AI-libraries that together allow you to add virtually any AI features you can imagine into your apps. Like other TanStack libraries, it's fully features, and extremely strongly typed.
+TanStack AI is the latest offering from the TanStack universe. It's an ecosystem of AI-libraries that together allow you to add virtually any AI features you can imagine into your apps. Like other TanStack libraries, it's fully featured, and _extremely_ strongly typed.
 
-This will be a two-part post will introduce some of the more basic, common features you're more likely to reach for in every day applications. Future posts will push the limits and use TanStack AI to spin up agents.
+This will be a two-part post, and will introduce some of the more basic, common features you're more likely to reach for in everyday applications. Future posts will go further and use TanStack AI to do things like spin up agents.
 
 Part 1 will cover basic setup and AI requests, streaming, persistence and resumability. I know that sounds like a lot, but honestly TanStack makes this stuff incredibly simple, and borderline turnkey, so we'll cover this ground fairly quickly.
 
@@ -16,7 +16,7 @@ Let's get started!
 
 ## Setting up
 
-Let's install some packages we'll be needing
+Let's install some packages
 
 ```
 npm i @tanstack/ai @tanstack/ai-react
@@ -30,9 +30,9 @@ npm i @tanstack/ai-vercel-gateway
 
 ## Our first backend
 
-You'll want a plain old API endpoint to send your AI prompts into. Even if you're using TanStack Start, which I am. We'll be using Server Routes, rather than Server Functions.
+You'll want a plain old API endpoint to send your AI prompts into, even if you're using TanStack Start, which I am; we'll be using Server Routes, rather than Server Functions.
 
-Here's the simplest possible endpoint for sending AI prompts up to the model of our choice.
+Here's the simplest possible endpoint for sending AI prompts over to the model of our choice.
 
 ```ts
 import { chat, toServerSentEventsResponse } from "@tanstack/ai";
@@ -63,7 +63,9 @@ Note the return value
 return toServerSentEventsResponse(stream);
 ```
 
-TanStack gives us all the tools we need to establish a nice SSE stream that pipes our prompt result to the frontend as it comes back from the model.
+TanStack gives us all the tools we need to establish a nice SSE\* stream that pipes our prompt result to the frontend as it comes back from the model.
+
+\*server-sent events - they're like web sockets, but only one way, from the server to the client
 
 Let's see how to process that on the frontend.
 
@@ -83,7 +85,7 @@ const { messages, sendMessage, isLoading } = useChat({
 });
 ```
 
-It couldn't be simpler. We have an array of current messages, a function to send a new prompt, and an isLoading indicator. Let's wire up a basic UI (or have our agent do it).
+It couldn't be simpler. We have an array of current messages, a function to send a new prompt, and an `isLoading` indicator. Let's wire up a basic UI (or have our agent do it).
 
 ```tsx
 function BasicChat() {
@@ -119,11 +121,11 @@ function BasicChat() {
 }
 ```
 
-Messages have a role, and we format user prompts on the right in a nice blue bubble, since I lack the creative originality to think of a better ui here than what ChatGPT does.
+Messages have a role, and we format user prompts on the right in a nice bubble, since I lack the creative originality to think of a better ui here than what ChatGPT does.
 
 ### Running it
 
-And now we can send a basic prompt, and not only will we get a response, and that response will be streamed as it comes in, just from TanStack api's right out of the box.
+And now we can send a basic prompt, and not only will we get a response, but that response will be streamed as it comes in, just from TanStack api's right out of the box.
 
 ![Streaming](/tanstack-ai/basic-streaming.gif)
 
@@ -138,19 +140,19 @@ const stream = chat({
 });
 ```
 
-And of course the `useChat` hook will do the work of forwarding those messages. We can test this very easily by giving a follow-up prompt that's all but meaningless without the prior messages.
+The `useChat` hook will do the work of forwarding those messages. We can test this very easily by giving a follow-up prompt that's all but meaningless without the prior messages.
 
 ![Streaming](/tanstack-ai/with-context.gif)
 
 ## Persistence (and Resumability!)
 
-Obviously if we refresh the page our prompt, and responses vanish into the void; nothing is saving of that, anywhere.
+Obviously if we refresh the page our prompt, and responses vanish into the void; nothing is saving any of that, anywhere.
 
 Let's fix that and add persistence.
 
-TanStack AI handles persistence a bit differently than you might be expecting. It gives you a contract to satisfy in any way you want, in whatever database you want. And of course you're not expected to manually cobble together the needed schema definitions via DDL. TanStack AI actually gives you an [AI Skill to install](https://tanstack.com/ai/latest/docs/persistence/build-your-own-adapter#let-your-agent-write-it), and use that to generate all of the needed code. In fact, it's even well aware of Drizzle, and will happily generate the needed drizzle schema objects, and allow you to simply `npx drizzle-kit push` to generate the tables in your actual database. Or it'll just generate the needed tools against a raw database.
+TanStack AI handles persistence a bit differently than you might be expecting. It gives you a contract to satisfy in any way you want, in whatever database you want. And of course you're not expected to manually cobble together the needed schema definitions via DDL. TanStack AI actually gives you an [AI Skill to install](https://tanstack.com/ai/latest/docs/persistence/build-your-own-adapter#let-your-agent-write-it), which should generate all of the needed code. In fact, it's even well aware of Drizzle, and will happily generate the needed drizzle schema objects, and allow you to just `npx drizzle-kit push` to generate the tables in your actual database. Or it can generate the needed tools against a raw database.
 
-Here's a sample of the Drizzle-based persistence module it generated for me. It essentially one-shotted it
+Here's a sample of the Drizzle-based persistence module it one-shotted for me.
 
 ```ts
 import { and, asc, desc, eq, isNotNull, lte } from "drizzle-orm";
@@ -227,9 +229,9 @@ Let's put this persistence code to good use!
 
 ### Adding middleware
 
-Step one is adding our new persistence store to some middleware on the server. I know I haven't covered middleware yet, and won't be for this post, but TanStack AI supports a full middleware chain for processing, modifying, or in this case, persisting AI threads. We'll add it in our server route.
+Step one is adding our new persistence store as middleware on the server. I know I haven't covered middleware yet, and won't be for this post, but TanStack AI supports a full middleware chain for processing, modifying, or in this case, persisting AI threads. We'll add it in our server route.
 
-We'll also forward along any threadId, or runId passed from the frontend. This will allow the frontend to request a persisted thread, or even resume an interrupted thread in a bit.
+We'll also forward along any threadId, or runId passed from the frontend. This will allow the frontend to request a persisted thread, or even resume an interrupted thread—more on that soon.
 
 ```ts
 import { chat, chatParamsFromRequest, toServerSentEventsResponse } from "@tanstack/ai";
@@ -263,19 +265,19 @@ const { messages, sendMessage, isLoading } = useChat({
 });
 ```
 
-Obviously for a real app we'd generate a meaningful (and unique!) threadId, but for now, "123" will work just fine. And now, when we run another prompt, and get results.
+Obviously for a real app we'd generate a meaningful (and unique!) threadId, but for now, "123" will work just fine. Now when we run a prompt and get results, we can check our database,
 
 ![Streaming](/tanstack-ai/persisted-prompt.jpg)
 
-If we check our database, we can see our threads being saved!
+and see our threads being saved!
 
 ![Streaming](/tanstack-ai/persisting.jpg)
 
-But when we refresh, our page is empty. Why is the saved thread not being loaded for us?
+But when we refresh, our page is empty. Why is the saved thread not being loaded for us in the UI?
 
 ## Adding a GET endpoint
 
-Whatever backend endpoint we set up for our prompts is a POST, which TanStack AI will post to when submitting a new prompt. To load a prompt, we need to set up a GET handler at the same place, and use TanStack's helpers to load the thread in question (as the frontend will include the threadId with the request).
+Whatever backend endpoint we set up for our prompts is a POST, which TanStack AI will post to when submitting a new prompt. To load a saved thread, we need to set up a GET handler at the same place, and use TanStack's helpers to load the thread in question (the frontend will include the threadId with the request).
 
 ```ts
 import { reconstructChat, withPersistence } from "@tanstack/ai-persistence";
@@ -294,7 +296,7 @@ If you'd like to render a loading indicator while the existing thread is being l
 
 ## Resumability
 
-What happens if we refresh the page _while_ the response is being generated. Right now that causes the SSE connection to disconnect, and our results are lost completely. To fix this, we need to make our response stream resumable by buffering the results into some in-memory stream, on the server, and check that in the GET endpoint, before just returning what's in our database.
+What happens if we refresh the page _while_ the response is being generated. Right now that causes the SSE connection to disconnect, and our results are lost completely. To fix this, we need to make our response stream resumable by buffering the results into an in-memory stream, on the server, and check that in the GET endpoint, before just returning what's in our database.
 
 Unsurprisingly, TanStack makes this easy.
 
@@ -321,7 +323,7 @@ import { chat, chatParamsFromRequest, toServerSentEventsResponse, memoryStream, 
   },
 ```
 
-That causes our output to be buffered into a memory stream. And then we'll consult that memory stream when loading a thread in our GET handler
+That causes our output to be buffered into a memory stream. And now we can consult that memory stream when loading a thread in our GET handler
 
 ```ts
   GET: async ({ request }) => {
