@@ -229,6 +229,8 @@ Let's put this persistence code to good use!
 
 Step one is adding our new persistence store to some middleware on the server. I know I haven't covered middleware yet, and won't be for this post, but TanStack AI supports a full middleware chain for processing, modifying, or in this case, persisting AI threads. We'll add it in our server route.
 
+We'll also forward along any threadId, or runId passed from the frontend. This will allow the frontend to request a persited thread, or even resume an interrupted thread in a bit.
+
 ```ts
 import { chat, chatParamsFromRequest, toServerSentEventsResponse } from "@tanstack/ai";
 import { reconstructChat, withPersistence } from "@tanstack/ai-persistence";
@@ -240,6 +242,7 @@ import { reconstructChat, withPersistence } from "@tanstack/ai-persistence";
         adapter: vercelGatewayText("anthropic/claude-opus-5"),
         messages: params.messages,
         threadId: params.threadId,
+        runId: params.runId,
         middleware: [withPersistence(persistence)],
         stream: true,
       });
@@ -280,17 +283,70 @@ import { reconstructChat, withPersistence } from "@tanstack/ai-persistence";
   GET: async ({ request }) => {
     return reconstructChat(persistence, request, {
       // WITHOUT this, anyone who guesses a thread id gets the whole transcript.
-      authorize: async (threadId, req) => ownsThread(req, threadId),
+      authorize: async (threadId, req) => true,
     });
   },
 ```
 
-And with that, reloading the page re-renders the same thread you just saw above.
+Obviously fill in the authorize callback with actual verification logic, but otherwise, with that, reloading the page re-renders the same thread you just saw above.
+
+If you'd like to render a loading indicator while the existing thread is being loaded from persistence, use the `isHydrating` boolean returned from the `useChat` hook.
+
+## Resumability
+
+What happens if we refresh the page _while_ the response is being generated. Right now that causes the SSE connection to disconnect, and our results are lost completely. To fix this, we need to make our response stream resumable by buffering the results into some in-memory stream, on the server, and check that in the GET endpoint, before just returning what's in our database.
+
+Unsurprisingly, TanStack makes this easy.
+
+First we'll modify our POST handler like this
+
+```ts
+import { chat, chatParamsFromRequest, toServerSentEventsResponse, memoryStream, resumeServerSentEventsResponse } from "@tanstack/ai";
+
+  POST: async ({ request }) => {
+    const params = await chatParamsFromRequest(request);
+
+    const stream = chat({
+      adapter: vercelGatewayText("anthropic/claude-opus-5"),
+      messages: params.messages,
+      threadId: params.threadId,
+      runId: params.runId,
+      middleware: [withPersistence(persistence)],
+      stream: true,
+    });
+
+    return toServerSentEventsResponse(stream, {
+      durability: { adapter: memoryStream(request) },
+    });
+  },
+```
+
+That causes our output to be buffered into a memory stream. And then we'll consult that memory stream when loading a thread in our GET handler
+
+```ts
+  GET: async ({ request }) => {
+    const durability = memoryStream(request);
+    if (durability.resumeFrom() !== null) {
+      return resumeServerSentEventsResponse({ adapter: durability });
+    }
+
+    return reconstructChat(persistence, request, {
+      // WITHOUT this, anyone who guesses a thread id gets the whole transcript.
+      authorize: async (threadId, req) => true,
+    });
+  },
+```
+
+It's a surprisingly small amount of boilerplate, and of course it's incredibly flexible if you ever wanted to tweak anything.
+
+And now, when we refresh the page mid-response, it resumes where it left off, and keeps going.
+
+![Streaming](/tanstack-ai/with-interrupt.gif)
 
 ## Wrapping up
 
-Hopefully this post has shown you some useful tools you can use in your own projects, and at work to write meaningful tests for your data access code.
+TanStack AI is an incredibly exciting addition to the growing list of AI tools out there. We got basic prompting set up, with persistence, and resumability without much effort at all. And yet we've barely scratched the surface of what this library is capable of.
 
-The `@testcontainers` package will get Docker running right inside your Vitest tests. Spin up an empty database, use your existing data access utilities to make sure things work exactly as expected. And remember, more tests is absolutely not always better. Test the meaningful parts of your application, with non-trivial logic. Tests which verify every single basic CRUD operation are unlikely to add much value, and are very likely to slow your test suite down to a crawl.
+Stay tuned for part two where we'll dive into structured output, and future posts where we'll do much more.
 
 Happy coding!
