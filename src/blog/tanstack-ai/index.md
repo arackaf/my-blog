@@ -1,6 +1,6 @@
 ---
 title: Unlocking AI in your apps with TanStack AI
-date: "2026-10-05T10:00:00.000Z"
+date: "2026-10-07T10:00:00.000Z"
 description: Introduction to TanStack AI
 ---
 
@@ -118,6 +118,174 @@ function BasicChat() {
   );
 }
 ```
+
+Messages have a role, and we format user prompts on the right in a nice blue bubble, since I lack the creative originality to think of a better ui here than what ChatGPT does.
+
+### Running it
+
+And now we can send a basic prompt, and not only will we get a response, and that response will be streamed as it comes in, just from TanStack api's right out of the box.
+
+![Streaming](/tanstack-ai/basic-streaming.gif)
+
+And of course you can keep the conversation goind. Our backend from before already takes the existing messages from the thread, and passes them along.
+
+```ts
+const { messages } = await request.json();
+
+const stream = chat({
+  adapter: vercelGatewayText("anthropic/claude-opus-5"),
+  messages,
+});
+```
+
+And of course the `useChat` hook will do the work of forwarding those messages. We can test this very easily by giving a follow-up prompt that's all but meaningless without the prior messages.
+
+![Streaming](/tanstack-ai/with-context.gif)
+
+## Persistence (and Resumability!)
+
+Obviously if we refresh the page our prompt, and responses vanish into the void; nothing is saving of that, anywhere.
+
+Let's fix that and add persistence.
+
+TanStack AI handles persistence a bit differently than you might be expecting. It gives you a contract to satisfy in any way you want, in whatever database you want. And of course you're not expected to manually cobble together the needed schema definitions via DDL. TanStack AI actually gives you an [AI Skill to install](https://tanstack.com/ai/latest/docs/persistence/build-your-own-adapter#let-your-agent-write-it), and use that to generate all of the needed code. In fact, it's even well aware of Drizzle, and will happily generate the needed drizzle schema objects, and allow you to simply `npx drizzle-kit push` to generate the tables in your actual database. Or it'll just generate the needed tools against a raw database.
+
+Here's a sample of the Drizzle-based persistence module it generated for me. It essentially one-shotted it
+
+```ts
+import { and, asc, desc, eq, isNotNull, lte } from "drizzle-orm";
+import { defineAIPersistence } from "@tanstack/ai-persistence";
+import type { SQL } from "drizzle-orm";
+import type { ChatPersistence, InterruptRecord, InterruptStore, MessageStore, MetadataStore, RunRecord, RunStore } from "@tanstack/ai-persistence";
+
+import { chatInterrupts, chatMetadata, chatRuns, chatThreads } from "#/drizzle/schema";
+import { db, type DB } from "#/data/db";
+
+// Records omit absent optionals so they compare cleanly against the reference
+// in-memory backend.
+function mapRun(row: typeof chatRuns.$inferSelect): RunRecord {
+  return {
+    runId: row.runId,
+    threadId: row.threadId,
+    status: row.status,
+    startedAt: row.startedAt,
+    ...(row.finishedAt != null ? { finishedAt: row.finishedAt } : {}),
+    ...(row.error != null
+      ? {
+          error: {
+            message: row.error,
+            ...(row.errorCode != null ? { code: row.errorCode } : {}),
+          },
+        }
+      : {}),
+    ...(row.usageJson != null ? { usage: row.usageJson } : {}),
+    ...(row.sandboxKey != null ? { sandboxKey: row.sandboxKey } : {}),
+    ...(row.detachedSince != null ? { detachedSince: row.detachedSince } : {}),
+    ...(row.cancelRequested != null ? { cancelRequested: row.cancelRequested } : {}),
+    ...(row.driverEpoch != null ? { driverEpoch: row.driverEpoch } : {}),
+    ...(row.parentRunId != null ? { parentRunId: row.parentRunId } : {}),
+    ...(row.subagentRunId != null ? { subagentRunId: row.subagentRunId } : {}),
+    ...(row.name != null ? { name: row.name } : {}),
+  };
+}
+
+function mapInterrupt(row: typeof chatInterrupts.$inferSelect): InterruptRecord {
+  return {
+    interruptId: row.interruptId,
+    runId: row.runId,
+    threadId: row.threadId,
+    status: row.status,
+    requestedAt: row.requestedAt,
+    payload: row.payloadJson,
+    ...(row.resolvedAt != null ? { resolvedAt: row.resolvedAt } : {}),
+    ...(row.responseJson != null ? { response: row.responseJson } : {}),
+  };
+}
+
+function createMessageStore(db: DB): MessageStore {
+  // ....
+}
+
+// ...
+
+/** The four chat state stores backed by the app's Drizzle database. */
+export const persistence: ChatPersistence = defineAIPersistence({
+  stores: {
+    messages: createMessageStore(db),
+    runs: createRunStore(db),
+    interrupts: createInterruptStore(db),
+    metadata: createMetadataStore(db),
+  },
+});
+```
+
+If using an AI skill to generate standard code that lives on in your repo, free for you to tweak seems crazy, just realize that if you substitue "CLI" for "AI skill" above, that's essentially how ShadCN works.
+
+That said, I don't think this current AI skill is the final form of persistence code generation for TanStack AI, and personally I'd love to see this get replaced with a proper CLI. But for a new project, this is an outstanding solution for the time being.
+
+Let's put this persistence code to good use!
+
+### Adding middleware
+
+Step one is adding our new persistence store to some middleware on the server. I know I haven't covered middleware yet, and won't be for this post, but TanStack AI supports a full middleware chain for processing, modifying, or in this case, persisting AI threads. We'll add it in our server route.
+
+```ts
+import { chat, chatParamsFromRequest, toServerSentEventsResponse } from "@tanstack/ai";
+import { reconstructChat, withPersistence } from "@tanstack/ai-persistence";
+
+    POST: async ({ request }) => {
+      const params = await chatParamsFromRequest(request);
+
+      const stream = chat({
+        adapter: vercelGatewayText("anthropic/claude-opus-5"),
+        messages: params.messages,
+        threadId: params.threadId,
+        middleware: [withPersistence(persistence)],
+        stream: true,
+      });
+
+      return toServerSentEventsResponse(stream);
+    },
+```
+
+### Frontend changes
+
+And now, on the frontend we need to send over a threadId, and tell our hook that we're using persistence
+
+```ts
+const { messages, sendMessage, isLoading } = useChat({
+  connection: fetchServerSentEvents("/api/ai/chat-with-persistence"),
+  persistence: true,
+  threadId: "123",
+});
+```
+
+Obviously for a real app we'd generate a meaningful (and unique!) threadId, but for now, "123" will work just fine. And now, when we run another prompt, and get results.
+
+![Streaming](/tanstack-ai/persisted-prompt.jpg)
+
+If we check our database, we can see our threads being saved!
+
+![Streaming](/tanstack-ai/persisting.jpg)
+
+But when we refresh, our page is empty. Why is the saved thread not being loaded for us?
+
+## Adding a GET endpoint
+
+Whatever backend endpoint we set up for our prompts is a POST, which TanStack AI will post to when submitting a new prompt. To load a prompt, we need to set up a GET handler at the same place, and use TanStack's helpers to load the thread in question (as the frontend will include the threadId with the request).
+
+```ts
+import { reconstructChat, withPersistence } from "@tanstack/ai-persistence";
+
+  GET: async ({ request }) => {
+    return reconstructChat(persistence, request, {
+      // WITHOUT this, anyone who guesses a thread id gets the whole transcript.
+      authorize: async (threadId, req) => ownsThread(req, threadId),
+    });
+  },
+```
+
+And with that, reloading the page re-renders the same thread you just saw above.
 
 ## Wrapping up
 
