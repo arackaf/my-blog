@@ -4,9 +4,9 @@ date: "2026-10-07T10:00:00.000Z"
 description: Introduction to TanStack AI
 ---
 
-TanStack AI is the latest offering from the TanStack universe. It's an ecosystem of AI-libraries that together allow you to add virtually any AI features you can imagine into your apps. Like other TanStack libraries, it's fully featured, and _extremely_ strongly typed.
+TanStack AI is the latest offering from the TanStack universe. It's an ecosystem of AI libraries that together allow you to add virtually any AI features you can imagine into your apps. Like other TanStack libraries, it's fully featured, and _extremely_ strongly typed.
 
-This will be a two-part post, and will introduce some of the more basic, common features you're more likely to reach for in everyday applications. Future posts will go further and use TanStack AI to do things like spin up agents.
+This will be a two-part post introducing some of the basic, common features you're most likely to reach for in everyday applications. Future posts will go further and use TanStack AI to do things like spin up agents.
 
 Part 1 will cover basic setup and AI requests, streaming, persistence and resumability. I know that sounds like a lot, but honestly TanStack makes this stuff incredibly simple, and borderline turnkey, so we'll cover this ground fairly quickly.
 
@@ -22,7 +22,7 @@ Let's install some packages
 npm i @tanstack/ai @tanstack/ai-react
 ```
 
-and since I love putting my AI requests through _one_ gateway, no matter who owns the model in question, let's also install the helper for Vercel's AI Gateway
+and since I love routing all my AI requests through _one_ gateway, no matter who owns the model being used, let's also install the adapter for Vercel's AI Gateway
 
 ```
 npm i @tanstack/ai-vercel-gateway
@@ -63,9 +63,9 @@ Note the return value
 return toServerSentEventsResponse(stream);
 ```
 
-TanStack gives us all the tools we need to establish a nice SSE\* stream that pipes our prompt result to the frontend as it comes back from the model.
+TanStack gives us everything we need to establish an SSE\* stream that pipes our prompt results to the frontend as it's generated.
 
-\*server-sent events - they're like web sockets, but only one way, from the server to the client
+\*server-sent events - they're like WebSockets, but only one way, from the server to the client
 
 Let's see how to process that on the frontend.
 
@@ -77,7 +77,7 @@ Unsurprisingly TanStack ships bindings for most UI frameworks. Since I'm using T
 import { fetchServerSentEvents, useChat } from "@tanstack/ai-react";
 ```
 
-We get a hook, and then an adapter for that SSE event stream. Let's fire it up
+We get a hook, and then an adapter for that SSE stream. Let's fire it up
 
 ```ts
 const { messages, sendMessage, isLoading } = useChat({
@@ -121,11 +121,11 @@ function BasicChat() {
 }
 ```
 
-Messages have a role, and we format user prompts on the right in a nice bubble, since I lack the creative originality to think of a better ui here than what ChatGPT does.
+Messages have a role, and we format user prompts on the right in a nice bubble, since I lack the creative originality to think of a better UI here than what ChatGPT does.
 
 ### Running it
 
-And now we can send a basic prompt, and not only will we get a response, but that response will be streamed as it comes in, just from TanStack api's right out of the box.
+And now we can send a basic prompt, and not only will we get a response, but that response will be streamed as it comes in, just from TanStack APIs right out of the box.
 
 ![Streaming](/tanstack-ai/basic-streaming.gif)
 
@@ -150,7 +150,13 @@ Obviously if we refresh the page our prompt, and responses vanish into the void;
 
 Let's fix that and add persistence.
 
-TanStack AI handles persistence a bit differently than you might be expecting. It gives you a contract to satisfy in any way you want, in whatever database you want. And of course you're not expected to manually cobble together the needed schema definitions via DDL. TanStack AI actually gives you an [AI Skill to install](https://tanstack.com/ai/latest/docs/persistence/build-your-own-adapter#let-your-agent-write-it), which should generate all of the needed code. In fact, it's even well aware of Drizzle, and will happily generate the needed drizzle schema objects, and allow you to just `npx drizzle-kit push` to generate the tables in your actual database. Or it can generate the needed tools against a raw database.
+First, a new package
+
+```
+npm i @tanstack/ai-persistence
+```
+
+TanStack AI handles persistence a bit differently than you might be expecting. It gives you a contract to satisfy in any way you want, in whatever database you want. And of course you're not expected to manually cobble together the needed schema definitions via DDL. TanStack AI actually gives you an [AI Skill to install](https://tanstack.com/ai/latest/docs/persistence/build-your-own-adapter#let-your-agent-write-it), which should generate all of the needed code. In fact, it's even well aware of Drizzle, and will happily generate the needed Drizzle schema objects, and allow you to just `npx drizzle-kit push` to generate the tables in your actual database. Or it can generate the needed tools against a raw database.
 
 Here's a sample of the Drizzle-based persistence module it one-shotted for me.
 
@@ -221,7 +227,7 @@ export const persistence: ChatPersistence = defineAIPersistence({
 });
 ```
 
-If using an AI skill to generate standard code that lives on in your repo, free for you to tweak seems crazy, just realize that if you substitute "CLI" for "AI skill" above, that's essentially how ShadCN works.
+If using an AI skill to generate code that lives in your repo, free for you to tweak, seems crazy, just remember: substitute "CLI" for "AI skill" and you're left with ShadCN.
 
 That said, I don't think this current AI skill is the final form of persistence code generation for TanStack AI, and personally I'd love to see this get replaced with a proper CLI. But for a new project, this is an outstanding solution for the time being.
 
@@ -231,7 +237,7 @@ Let's put this persistence code to good use!
 
 Step one is adding our new persistence store as middleware on the server. I know I haven't covered middleware yet, and won't be for this post, but TanStack AI supports a full middleware chain for processing, modifying, or in this case, persisting AI threads. We'll add it in our server route.
 
-We'll also forward along any threadId, or runId passed from the frontend. This will allow the frontend to request a persisted thread, or even resume an interrupted thread—more on that soon.
+We'll also forward along any threadId or runId passed from the frontend. This will allow the frontend to request a persisted thread, or even resume an interrupted thread—more on that soon.
 
 ```ts
 import { chat, chatParamsFromRequest, toServerSentEventsResponse } from "@tanstack/ai";
@@ -246,7 +252,6 @@ import { reconstructChat, withPersistence } from "@tanstack/ai-persistence";
         threadId: params.threadId,
         runId: params.runId,
         middleware: [withPersistence(persistence)],
-        stream: true,
       });
 
       return toServerSentEventsResponse(stream);
@@ -255,7 +260,7 @@ import { reconstructChat, withPersistence } from "@tanstack/ai-persistence";
 
 ### Frontend changes
 
-And now, on the frontend we need to send over a threadId, and tell our hook that we're using persistence
+On the frontend we need to send over a threadId and tell our hook that we're using persistence
 
 ```ts
 const { messages, sendMessage, isLoading } = useChat({
@@ -296,7 +301,7 @@ If you'd like to render a loading indicator while the existing thread is being l
 
 ## Resumability
 
-What happens if we refresh the page _while_ the response is being generated. Right now that causes the SSE connection to disconnect, and our results are lost completely. To fix this, we need to make our response stream resumable by buffering the results into an in-memory stream, on the server, and check that in the GET endpoint, before just returning what's in our database.
+What happens if we refresh the page _while_ the response is being generated? Right now that causes the SSE stream to disconnect, and our results are lost completely. To fix this, we need to make our response stream resumable by buffering the results into an in-memory stream, on the server, and check that in the GET endpoint, before just returning what's in our database.
 
 Unsurprisingly, TanStack makes this easy.
 
@@ -314,7 +319,6 @@ import { chat, chatParamsFromRequest, toServerSentEventsResponse, memoryStream, 
       threadId: params.threadId,
       runId: params.runId,
       middleware: [withPersistence(persistence)],
-      stream: true,
     });
 
     return toServerSentEventsResponse(stream, {
@@ -339,16 +343,24 @@ That causes our output to be buffered into a memory stream. And now we can consu
   },
 ```
 
+NOTE:
+
+Be sure to repeat whatever security check you (hopefully) added in the authorize callback before resuming anything from that memory stream.
+
 It's a surprisingly small amount of boilerplate, and of course it's incredibly flexible if you ever wanted to tweak anything.
 
 And now, when we refresh the page mid-response, it resumes where it left off, and keeps going.
 
 ![Streaming](/tanstack-ai/with-interrupt.gif)
 
+NOTE
+
+For this demo we're using an in-memory stream, which works great locally (or if you're connecting to something like a CloudFlare DurableObject, with a consistent identity). In production you may want a durable stream backend so that resuming works across server instances and restarts.
+
 ## Wrapping up
 
 TanStack AI is an incredibly exciting addition to the growing list of AI tools out there. We got basic prompting set up, with persistence, and resumability without much effort at all. And yet we've barely scratched the surface of what this library is capable of.
 
-Stay tuned for part two where we'll dive into structured output, and future posts where we'll do much more.
+Stay tuned for part two where we'll dive into structured output, and future posts where we'll go even deeper.
 
 Happy coding!
