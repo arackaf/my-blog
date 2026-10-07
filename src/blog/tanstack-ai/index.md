@@ -127,7 +127,7 @@ And now we can send a basic prompt, and not only will we get a response, and tha
 
 ![Streaming](/tanstack-ai/basic-streaming.gif)
 
-And of course you can keep the conversation goind. Our backend from before already takes the existing messages from the thread, and passes them along.
+And of course you can keep the conversation going. Our backend from before already takes the existing messages from the thread, and passes them along.
 
 ```ts
 const { messages } = await request.json();
@@ -219,7 +219,7 @@ export const persistence: ChatPersistence = defineAIPersistence({
 });
 ```
 
-If using an AI skill to generate standard code that lives on in your repo, free for you to tweak seems crazy, just realize that if you substitue "CLI" for "AI skill" above, that's essentially how ShadCN works.
+If using an AI skill to generate standard code that lives on in your repo, free for you to tweak seems crazy, just realize that if you substitute "CLI" for "AI skill" above, that's essentially how ShadCN works.
 
 That said, I don't think this current AI skill is the final form of persistence code generation for TanStack AI, and personally I'd love to see this get replaced with a proper CLI. But for a new project, this is an outstanding solution for the time being.
 
@@ -229,7 +229,7 @@ Let's put this persistence code to good use!
 
 Step one is adding our new persistence store to some middleware on the server. I know I haven't covered middleware yet, and won't be for this post, but TanStack AI supports a full middleware chain for processing, modifying, or in this case, persisting AI threads. We'll add it in our server route.
 
-We'll also forward along any threadId, or runId passed from the frontend. This will allow the frontend to request a persited thread, or even resume an interrupted thread in a bit.
+We'll also forward along any threadId, or runId passed from the frontend. This will allow the frontend to request a persisted thread, or even resume an interrupted thread in a bit.
 
 ```ts
 import { chat, chatParamsFromRequest, toServerSentEventsResponse } from "@tanstack/ai";
