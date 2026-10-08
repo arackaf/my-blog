@@ -28,6 +28,12 @@ and since I love routing all my AI requests through _one_ gateway, no matter who
 npm i @tanstack/ai-vercel-gateway
 ```
 
+and then to make requests actually work, we'll need an entry in our .env file
+
+```
+AI_GATEWAY_API_KEY="xyz"
+```
+
 ## Our first backend
 
 You'll want a plain old API endpoint to send your AI prompts into, even if you're using TanStack Start, which I am; we'll be using Server Routes, rather than Server Functions.
@@ -68,7 +74,7 @@ Unsurprisingly TanStack ships bindings for most UI frameworks. Since I'm using T
 import { fetchJson, useChat } from "@tanstack/ai-react";
 ```
 
-We get a hook, and then an adapter for that SSE stream. Let's fire it up
+We get a hook, and then an adapter for responses. Let's fire it up
 
 ```ts
 const { messages, sendMessage, isLoading } = useChat({
@@ -83,7 +89,7 @@ function BasicChat() {
   const [prompt, setPrompt] = useState("");
 
   const { messages, sendMessage, isLoading } = useChat({
-    connection: fetchServerSentEvents("/api/ai/chat"),
+    connection: fetchJson("/api/ai/chat-no-streaming"),
   });
 
   // ...
@@ -112,13 +118,13 @@ function BasicChat() {
 }
 ```
 
-Messages have a role, and we format user prompts on the right in a nice bubble, since I lack the creative originality to think of a better UI here than what ChatGPT does.
+Messages have a role, and we format user prompts on the right in a nice blue bubble, since I lack the creative originality to think of a better UI here than what ChatGPT does.
 
 ### Running it
 
-And now we can send a basic prompt, and not only will we get a response, but that response will be streamed as it comes in, just from TanStack APIs right out of the box.
+And now we can send a basic prompt, and get a response.
 
-![Streaming](/tanstack-ai/basic-chat.jpg)
+![Chat](/tanstack-ai/basic-chat.jpg)
 
 And of course you can keep the conversation going. Our backend from before already takes the existing messages from the thread, and passes them along.
 
@@ -148,7 +154,7 @@ import { chat, toServerSentEventsResponse } from "@tanstack/ai";
 import { vercelGatewayText } from "@tanstack/ai-vercel-gateway";
 import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/api/ai/chat")({
+export const Route = createFileRoute("/api/ai/chat-streaming")({
   server: {
     handlers: {
       POST: async ({ request }) => {
@@ -192,7 +198,7 @@ const { messages, sendMessage, isLoading } = useChat({
 
 It couldn't be simpler. And now our UI streams.
 
-![Streaming](/tanstack-ai/basic-streaming.gif)
+![Streaming](/tanstack-ai/chat-with-streaming.gif)
 
 ## Persistence (and Resumability!)
 
@@ -206,7 +212,9 @@ First, a new package
 npm i @tanstack/ai-persistence
 ```
 
-TanStack AI handles persistence a bit differently than you might be expecting. It gives you a contract to satisfy in any way you want, in whatever database you want. And of course you're not expected to manually cobble together the needed schema definitions via DDL. TanStack AI actually gives you an [AI Skill to install](https://tanstack.com/ai/latest/docs/persistence/build-your-own-adapter#let-your-agent-write-it), which should generate all of the needed code. In fact, it's even well aware of Drizzle, and will happily generate the needed Drizzle schema objects, and allow you to just `npx drizzle-kit push` to generate the tables in your actual database. Or it can generate the needed tools against a raw database.
+TanStack AI handles persistence a bit differently than you might be expecting. It gives you a contract to satisfy in any way you want, in whatever database you want. And of course you're not expected to manually cobble together the needed schema definitions via DDL.
+
+TanStack AI actually gives you an [AI Skill to install](https://tanstack.com/ai/latest/docs/persistence/build-your-own-adapter#let-your-agent-write-it), which should generate all of the needed code. In fact, it's even well aware of Drizzle, and will happily generate the needed Drizzle schema objects, allowing you to just `npx drizzle-kit push` to generate the tables in your actual database. Or it can generate the needed stores against a raw database.
 
 Here's a sample of the Drizzle-based persistence module it one-shotted for me.
 
@@ -277,7 +285,7 @@ export const persistence: ChatPersistence = defineAIPersistence({
 });
 ```
 
-If using an AI skill to generate code that lives in your repo, free for you to tweak, seems crazy, just remember: substitute "CLI" for "AI skill" and you're left with ShadCN.
+If using an AI skill to generate code that lives in your repo for you to tweak seems crazy, just remember: substitute "CLI" for "AI skill" and you're basically left with ShadCN.
 
 That said, I don't think this current AI skill is the final form of persistence code generation for TanStack AI, and personally I'd love to see this get replaced with a proper CLI. But for a new project, this is an outstanding solution for the time being.
 
@@ -320,11 +328,7 @@ const { messages, sendMessage, isLoading } = useChat({
 });
 ```
 
-Obviously for a real app we'd generate a meaningful (and unique!) threadId, but for now, "123" will work just fine. Now when we run a prompt and get results, we can check our database,
-
-![Streaming](/tanstack-ai/persisted-prompt.jpg)
-
-and see our threads being saved!
+Obviously for a real app we'd generate a meaningful (and unique!) threadId, but for now, "123" will work just fine. Now when we run a prompt and get results, we can check our database and see our threads being saved!
 
 ![Streaming](/tanstack-ai/persisting.jpg)
 
