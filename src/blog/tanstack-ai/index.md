@@ -12,6 +12,8 @@ Part 1 will cover basic setup and AI requests, streaming, persistence and resuma
 
 Part 2 will get into structured output, also with streaming.
 
+All code samples from both parts are in [this repo](https://github.com/arackaf/tanstack-ai-blog-post).
+
 Let's get started!
 
 ## Setting up
