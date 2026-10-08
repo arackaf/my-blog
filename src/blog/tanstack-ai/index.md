@@ -118,7 +118,7 @@ function BasicChat() {
 }
 ```
 
-Messages have a role, and we format user prompts on the right in a nice blue bubble, since I lack the creative originality to think of a better UI here than what ChatGPT does.
+Messages have a role, and we format user prompts on the right in a nice blue bubble, since I lack the creative originality to think of a better UI than what ChatGPT does.
 
 ### Running it
 
@@ -212,9 +212,9 @@ First, a new package
 npm i @tanstack/ai-persistence
 ```
 
-TanStack AI handles persistence a bit differently than you might be expecting. It gives you a contract to satisfy in any way you want, in whatever database you want. And of course you're not expected to manually cobble together the needed schema definitions via DDL.
+TanStack AI handles persistence a bit differently than you might be expecting. It gives you a contract to satisfy however you'd like, in whatever database you want. And of course you're not expected to manually cobble together the needed schema definitions via DDL.
 
-TanStack AI actually gives you an [AI Skill to install](https://tanstack.com/ai/latest/docs/persistence/build-your-own-adapter#let-your-agent-write-it), which should generate all of the needed code. In fact, it's even well aware of Drizzle, and will happily generate the needed Drizzle schema objects, allowing you to just `npx drizzle-kit push` to generate the tables in your actual database. Or it can generate the needed stores against a raw database.
+TanStack AI actually gives you an [AI Skill to install](https://tanstack.com/ai/latest/docs/persistence/build-your-own-adapter#let-your-agent-write-it), which should generate all of the needed code. In fact, it's even aware of Drizzle, and will happily generate the needed Drizzle schema objects, allowing you to just `npx drizzle-kit push` to generate the tables in your actual database. Or it can generate the needed stores against a raw database.
 
 Here's a sample of the Drizzle-based persistence module it one-shotted for me.
 
