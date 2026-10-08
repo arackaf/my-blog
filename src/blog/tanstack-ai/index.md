@@ -57,7 +57,38 @@ export const Route = createFileRoute("/api/ai/chat")({
 });
 ```
 
-Note the return value
+## Adding streaming
+
+It's not ideal having our UI wait until the entire message is back before showing anything. Anyone who's used ChatGPT has seen AI models _stream_ responses to you, so you can start reading immediately, while the model continues to stream the rest of the message in.
+
+Let's add that here. The changes we have to make are surprisingly trivial.
+
+Here's our new backend endpoint.
+
+```ts
+import { chat, toServerSentEventsResponse } from "@tanstack/ai";
+import { vercelGatewayText } from "@tanstack/ai-vercel-gateway";
+import { createFileRoute } from "@tanstack/react-router";
+
+export const Route = createFileRoute("/api/ai/chat")({
+  server: {
+    handlers: {
+      POST: async ({ request }) => {
+        const { messages } = await request.json();
+
+        const stream = chat({
+          adapter: vercelGatewayText("anthropic/claude-opus-5"),
+          messages,
+        });
+
+        return toServerSentEventsResponse(stream);
+      },
+    },
+  },
+});
+```
+
+Note that we _removed_ `stream: false` and changed our return value to this
 
 ```ts
 return toServerSentEventsResponse(stream);
@@ -67,17 +98,13 @@ TanStack gives us everything we need to establish an SSE\* stream that pipes our
 
 \*server-sent events - they're like WebSockets, but only one way, from the server to the client
 
-Let's see how to process that on the frontend.
-
-## Our frontend
-
-Unsurprisingly TanStack ships bindings for most UI frameworks. Since I'm using TanStack Start, I'll of course use the React bindings.
+On the frontend we'll grab a new import
 
 ```ts
 import { fetchServerSentEvents, useChat } from "@tanstack/ai-react";
 ```
 
-We get a hook, and then an adapter for that SSE stream. Let's fire it up
+and tweak our hook like so
 
 ```ts
 const { messages, sendMessage, isLoading } = useChat({
@@ -85,64 +112,9 @@ const { messages, sendMessage, isLoading } = useChat({
 });
 ```
 
-It couldn't be simpler. We have an array of current messages, a function to send a new prompt, and an `isLoading` indicator. Let's wire up a basic UI (or have our agent do it).
-
-```tsx
-function BasicChat() {
-  const [prompt, setPrompt] = useState("");
-
-  const { messages, sendMessage, isLoading } = useChat({
-    connection: fetchServerSentEvents("/api/ai/chat"),
-  });
-
-  // ...
-
-  return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-bold">Basic Chat</h1>
-
-      <div className="flex flex-col gap-4">
-        {messages.map(message =>
-          message.role === "user" ? (
-            <div key={message.id} className="w-1/2 self-end rounded-2xl bg-blue-100 px-4 py-2">
-              {message.parts.map((part, index) => (part.type === "text" ? <p key={index}>{part.content}</p> : null))}
-            </div>
-          ) : (
-            <div key={message.id} className="w-full">
-              {message.parts.map((part, index) => (part.type === "text" ? <p key={index}>{part.content}</p> : null))}
-            </div>
-          ),
-        )}
-        {isLoading && <Loader2 className="size-6 animate-spin text-muted-foreground" />}
-      </div>
-      {/* ... */}
-    </div>
-  );
-}
-```
-
-Messages have a role, and we format user prompts on the right in a nice bubble, since I lack the creative originality to think of a better UI here than what ChatGPT does.
-
-### Running it
-
-And now we can send a basic prompt, and not only will we get a response, but that response will be streamed as it comes in, just from TanStack APIs right out of the box.
+It couldn't be simpler. And now our UI streams.
 
 ![Streaming](/tanstack-ai/basic-streaming.gif)
-
-And of course you can keep the conversation going. Our backend from before already takes the existing messages from the thread, and passes them along.
-
-```ts
-const { messages } = await request.json();
-
-const stream = chat({
-  adapter: vercelGatewayText("anthropic/claude-opus-5"),
-  messages,
-});
-```
-
-The `useChat` hook will do the work of forwarding those messages. We can test this very easily by giving a follow-up prompt that's all but meaningless without the prior messages.
-
-![Streaming](/tanstack-ai/with-context.gif)
 
 ## Persistence (and Resumability!)
 
