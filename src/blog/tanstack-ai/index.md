@@ -35,37 +35,28 @@ You'll want a plain old API endpoint to send your AI prompts into, even if you'r
 Here's the simplest possible endpoint for sending AI prompts over to the model of our choice.
 
 ```ts
-import { chat, toServerSentEventsResponse } from "@tanstack/ai";
+import { chat, toJsonResponse } from "@tanstack/ai";
 import { vercelGatewayText } from "@tanstack/ai-vercel-gateway";
 import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/api/ai/chat")({
+export const Route = createFileRoute("/api/ai/chat-no-streaming")({
   server: {
     handlers: {
       POST: async ({ request }) => {
         const { messages } = await request.json();
 
-        const stream = chat({
+        const stream = await chat({
           adapter: vercelGatewayText("anthropic/claude-opus-5"),
           messages,
+          stream: false,
         });
 
-        return toServerSentEventsResponse(stream);
+        return toJsonResponse(stream);
       },
     },
   },
 });
 ```
-
-Note the return value
-
-```ts
-return toServerSentEventsResponse(stream);
-```
-
-TanStack gives us everything we need to establish an SSE\* stream that pipes our prompt results to the frontend as it's generated.
-
-\*server-sent events - they're like WebSockets, but only one way, from the server to the client
 
 Let's see how to process that on the frontend.
 
@@ -74,14 +65,14 @@ Let's see how to process that on the frontend.
 Unsurprisingly TanStack ships bindings for most UI frameworks. Since I'm using TanStack Start, I'll of course use the React bindings.
 
 ```ts
-import { fetchServerSentEvents, useChat } from "@tanstack/ai-react";
+import { fetchJson, useChat } from "@tanstack/ai-react";
 ```
 
 We get a hook, and then an adapter for that SSE stream. Let's fire it up
 
 ```ts
 const { messages, sendMessage, isLoading } = useChat({
-  connection: fetchServerSentEvents("/api/ai/chat"),
+  connection: fetchJson("/api/ai/chat-no-streaming"),
 });
 ```
 
@@ -127,7 +118,7 @@ Messages have a role, and we format user prompts on the right in a nice bubble, 
 
 And now we can send a basic prompt, and not only will we get a response, but that response will be streamed as it comes in, just from TanStack APIs right out of the box.
 
-![Streaming](/tanstack-ai/basic-streaming.gif)
+![Streaming](/tanstack-ai/basic-chat.jpg)
 
 And of course you can keep the conversation going. Our backend from before already takes the existing messages from the thread, and passes them along.
 
@@ -142,7 +133,7 @@ const stream = chat({
 
 The `useChat` hook will do the work of forwarding those messages. We can test this very easily by giving a follow-up prompt that's all but meaningless without the prior messages.
 
-![Streaming](/tanstack-ai/with-context.gif)
+![Streaming](/tanstack-ai/chat-with-context.jpg)
 
 ## Adding streaming
 
@@ -188,14 +179,14 @@ TanStack gives us everything we need to establish an SSE\* stream that pipes our
 On the frontend we'll grab a new import
 
 ```ts
-import { fetchJson, useChat } from "@tanstack/ai-react";
+import { fetchServerSentEvents, useChat } from "@tanstack/ai-react";
 ```
 
 and tweak our hook like so
 
 ```ts
 const { messages, sendMessage, isLoading } = useChat({
-  connection: fetchJson("/api/ai/chat"),
+  connection: fetchServerSentEvents("/api/ai/chat-streaming"),
 });
 ```
 
