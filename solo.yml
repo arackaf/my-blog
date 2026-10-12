@@ -1,0 +1,10 @@
+name: my-blog
+icon: null
+processes:
+  npm:dev:
+    command: npm run dev
+    working_dir: null
+    auto_start: true
+    auto_restart: false
+    restart_when_changed: []
+    env: {}
