@@ -112,6 +112,85 @@ I've also added a systemPrompt for good measure. That's what the `systemPrompts`
 
 ## Our frontend
 
+Our frontend for structured output is pretty similar to what we saw in part 1.
+
+```ts
+const payload = useChat({
+  connection: fetchJson("/api/ai/chat-structured-output"),
+  outputSchema: promptOutputSchema,
+});
+```
+
+We use the same `useChat` hook, and specify the same `outputSchema`. And we use the same `fetchJson` utility for non-streaming. Then we render our responses similarly to before
+
+`TODO`
+
+The main difference is that I'm now grabbing a `data` object off of the message part. The type for this object is, unsurprisingly, the same type that we specified for the on the server for our structured output in the `outputSchema` property.
+
+`TODO: make sure this is still needed or if Alem tightens the types here`
+You might wonder why we have to check `part.status === "complete"` before accessing the data prop. For this particular setup our messages will only come in when the data are complete. But in a moment we'll look at streaming, and see how to continuously stream in partially complete payloads, as the LLM puts it together.
+
+And with that, let's look at streaming structured output!
+
+## Adding Streaming
+
+To switch streaming on we simply add this to our backend
+
+```ts
+stream: true,
+```
+
+Same backend as before, we just specify `stream: true`.
+
+Then on the frontend we go back to the `fetchServerSentEvents` utility.
+
+```ts
+const payload = useChat({
+  connection: fetchServerSentEvents("/api/ai/chat-structured-output"),
+  outputSchema: promptOutputSchema,
+});
+```
+
+But the work's not quite done yet. Processing a partially complete response is a bit more tricky with structured output.
+
+You might wonder how you can even process an incomplete object. If the json string terminates from the LLM before a fully-formed object is formed, it obviously won't parse and re-serialize. But TanStack handles this for you. It completes the object from wherever the LLM stops. It closes any strings, object, or array braces as needed, and essentially gives you a version of your schema where _everything_ is optional.
+
+Eventually, when the payload is complete you'll of course get the fully-formed object as before. But if you choose to stream it in as it comes in, you'll need components that can handle any property being undefined.
+
+### Adapting our schema type
+
+This is again adapted from a fitness tracking app I've been toying with. I already had a component to display a workout template, so I adjusted to take a version of the same object where everything was optional. If you're wondering how you can manipulate a type to make everything (deeply) optional, there's a utility for that
+
+```ts
+import type { DeepPartial } from "@tanstack/ai";
+```
+
+and then use it as needed
+
+```ts
+type DisplayRepsProps = {
+  segment: DeepPartial<TemplateSegmentWithExercises>;
+};
+```
+
+and now let's render it!
+
+### Our component
+
+To keep things a bit more manageable I broke things out into a few components
+
+`TODO`
+
+The new piece is here
+
+`TODO`
+
+`DisplayWorkoutTemplateStreaming` is basically a copy of my workout rendering component `DisplayWorkoutTemplate` but with the prop taking `DeepPartial<WorkoutTemplateState>`.
+
+That component is much too big, and grankly uninteresting to show here, but check the repo if you're curious. And now streaming works!
+
+`TODO: gif`
+
 ## Wrapping up
 
 TanStack AI is an incredibly exciting addition to the growing list of AI tools out there. We got basic prompting set up, with persistence, and resumability without much effort at all. And yet we've barely scratched the surface of what this library is capable of.
