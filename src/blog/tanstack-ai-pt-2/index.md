@@ -8,13 +8,15 @@ This is part 2 of an introductory post on TanStack AI. In part 1 we covered send
 
 Here in part 2 we'll cover structured output, and how to stream with it.
 
+As in part 1, the code for everything is in [this repo](https://github.com/arackaf/tanstack-ai-blog-post).
+
 Let's get started.
 
 ## What is structured output
 
 Everything we covered in part 1 were responses that were just strings of text. We asked our AI something, and it dumped the response back to us. Structured output is about forcing ... _structure_ to the _output_ the LLM sends back to us.
 
-I covered this in a [previous post](https://blog.master.dev/having-fun-with-vercels-ai-sdk-and-ai-gateway/) on Vercel's AI SDK. We saw how to generate fitness workouts, and in so doing, provided a Zod schema to constrain the exact format of the workouts. This allowed us to force AI-generated workouts into the same structure our app was used to, so we could re-use components for displaying those workouts, as well as backend utilities for saving them.
+I covered this in a [previous post](https://blog.master.dev/having-fun-with-vercels-ai-sdk-and-ai-gateway/) on Vercel's AI SDK. We saw how to generate fitness workouts, and in so doing provided a Zod schema to constrain the exact format of the workouts. This allowed us to force AI-generated workouts into the same structure our app was used to, so we could re-use components for displaying those workouts, as well as backend utilities for saving them.
 
 For this post we'll re-implement the same use case, but with TanStack AI. We'll get to use the same nice `useChat` hook we saw in part 1, and we'll even see how to stream the response as it comes in, including a partially generated, incomplete json structure containing our workout!
 
@@ -22,7 +24,7 @@ For this post we'll re-implement the same use case, but with TanStack AI. We'll 
 
 TanStack AI supports [numerous options](https://tanstack.com/ai/latest/docs/structured-outputs/overview#schema-libraries) for specifying your schema. For this post, we'll use Zod.
 
-Here's our Zod schema for our workouts.
+Here's our Zod schema.
 
 ```ts
 import { z } from "zod";
@@ -70,7 +72,7 @@ export const promptOutputSchema = z.object({
 });
 ```
 
-This is taken and adapted from a fitness tracker app I've been tinkering with. If that looks surprisingly complex, it's fully normalized to allow for data tracking, and visualization. Each workout is made up of 1 or more segments. Each segment can have 1 exercise, or multiple (for a superset or compound set), and earch exercise in each segment will have 1 or more measurements, for each set performed. Again, this is so I can query those data and render visualizations of progress, as well as ask AI for suggestions on where, and how to improve.
+This is taken and adapted from a fitness tracker app I've been tinkering with. If that looks surprisingly complex, it's fully normalized to allow for data tracking, and visualization. Each workout is made up of 1 or more segments. Each segment can have 1 exercise, or multiple (for a superset or compound set), and each exercise in each segment will have 1 or more measurements, for each set performed. Again, this is so I can query those data and render visualizations of progress, as well as ask AI for suggestions on where, and how to improve.
 
 ## Our backend
 
@@ -169,6 +171,28 @@ stream: true,
 
 With structured output, streaming needs to be specified explicitly.
 
+As well as adjust the return type
+
+```ts
+      POST: async ({ request }) => {
+        const { messages } = await request.json();
+
+        const stream = chat({ // <--- no await
+          adapter: vercelGatewayText("anthropic/claude-opus-5"),
+          messages,
+          outputSchema: promptOutputSchema,
+          stream: true,
+          systemPrompts: [
+            `
+            ....
+          `,
+          ],
+        });
+
+        return toServerSentEventsResponse(stream); // <--- and here
+      },
+```
+
 Then on the frontend we go back to the `fetchServerSentEvents` utility.
 
 ```ts
@@ -178,7 +202,7 @@ const payload = useChat({
 });
 ```
 
-But the work's not quite done yet. Processing a partially complete response is a bit trickier with structured output.
+But the work's not quite done. Processing a partially complete response is a bit trickier with structured output.
 
 You might wonder how you can even process an incomplete object. If the json string terminates from the LLM before a fully-formed object is complete, it obviously won't parse and re-serialize. But TanStack handles this for you. It completes the object from wherever the LLM stops. It closes any strings, object, or array braces as needed, and essentially gives you a version of your schema where _everything_ is optional.
 
@@ -265,7 +289,7 @@ return (
 );
 ```
 
-This block hits if we have a structured output response, but status is not "complete." `DisplayWorkoutTemplateStreaming` is basically a copy of my workout rendering component `DisplayWorkoutTemplate` but with the prop taking `DeepPartial<WorkoutTemplateState>`.
+This block hits if we have a structured output response, but status is not "complete." `DisplayWorkoutTemplateStreaming` is the copy of my workout rendering component `DisplayWorkoutTemplate` but with the prop taking `DeepPartial<WorkoutTemplateState>`.
 
 That component is much too big, and frankly uninteresting to show here, but check the repo if you're curious.
 
