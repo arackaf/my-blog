@@ -76,7 +76,7 @@ This is taken and adapted from a fitness tracker app I've been tinkering with. I
 
 ## Our backend
 
-Our backend is virtualy identical to the non-streaming backend we saw in part 1.
+Our backend is virtually identical to the non-streaming backend we saw in part 1.
 
 ```ts
   POST: async ({ request }) => {
@@ -110,7 +110,7 @@ Generate workouts that conform to the provided output schema.
 
 I've added a field for `outputSchema` which tells TanStack AI what format we want our response in.
 
-I've also added a systemPrompt for good measure. That allows _us_ to provide instructions directly to the AI model, independent of whatever prompt the user has specified. This is almost always a good idea, since we don't want to just yolo give artbitrary user prompts directly to the LLM, unless we want people burning through our tokens via abusive prompts.
+I've also added a systemPrompt for good measure. That allows _us_ to provide instructions directly to the AI model, independent of whatever prompt the user has specified. This is almost always a good idea, since we don't want to just yolo give arbitrary user prompts directly to the LLM, unless we want people burning through our tokens via abusive prompts.
 
 ## Our frontend
 
