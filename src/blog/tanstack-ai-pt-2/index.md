@@ -82,7 +82,7 @@ Our backend is virtually identical to the non-streaming backend we saw in part 1
   POST: async ({ request }) => {
     const { messages } = await request.json();
 
-    const stream = await chat({
+    const msg = await chat({
       adapter: vercelGatewayText("anthropic/claude-opus-5"),
       messages,
       outputSchema: promptOutputSchema,
@@ -103,7 +103,7 @@ Generate workouts that conform to the provided output schema.
       ],
     });
 
-    return toJsonResponse(stream);
+    return toJsonResponse(msg);
   },
 },
 ```
