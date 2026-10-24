@@ -7,6 +7,36 @@ export type ExternalPost = {
 
 export const externalPosts: ExternalPost[] = [
   {
+    title: "Structured Output with TanStack AI",
+    date: "2026-10-19T10:00:00.000Z",
+    description: "Working with structured output with TanStack AI",
+    url: "https://blog.master.dev/structured-output-with-tanstack-ai/",
+  },
+  {
+    title: "Unlocking AI in Your Apps with TanStack AI",
+    date: "2026-10-16T10:00:00.000Z",
+    description: "Introduction to TanStack AI, a batteries included AI library from TanStack",
+    url: "https://blog.master.dev/unlocking-ai-in-your-apps-with-tanstack-ai/",
+  },
+  {
+    title: "Tips and Tricks for Using TanStack Start with Cloudflare Durable Objects",
+    date: "2026-10-12T10:00:00.000Z",
+    description: "Working through some useful tricks, and handy workarounds for using TanStack Start with Cloudflare Durable Objects",
+    url: "https://blog.master.dev/tips-and-tricks-for-using-tanstack-start-with-cloudflare-durable-objects/",
+  },
+  {
+    title: "Making the Most of Vercel’s AI SDK with Cloudflare Durable Objects",
+    date: "2026-09-28T10:00:00.000Z",
+    description: "Building AI features with Vercel's AI SDK and Cloudflare Durable Objects",
+    url: "https://blog.master.dev/making-the-most-of-vercels-ai-sdk-with-cloudflare-durable-objects/",
+  },
+  {
+    title: "Introducing Solo",
+    date: "2026-09-23T10:00:00.000Z",
+    description: "Introduction to Solo, an agent orchestration library",
+    url: "https://blog.master.dev/introducing-solo/",
+  },
+  {
     title: "Having Fun with Vercel’s AI SDK and AI Gateway",
     date: "2026-08-31T10:00:00.000Z",
     description: "A high level introduction to Vercel's AI SDK and AI Gateway with a real use case",
