@@ -8,7 +8,7 @@ With AI writing the overwhelming majority of our code these days, testing and ve
 
 But writing tests against data access code has always been harder. Unit tests are supposed to be fast, and isolated; introducing an external database cuts against both of those goals.
 
-Historically a common approach would be to have a test database, and, for each test, add a `try` block and begin a transaction, possibly with a READ UNCOMMITTED isolation level depending on database and test, insert data, verify, and in the `finally` block rollback the transaction. The downsides of this approach should be obvious. The complexity is high, as is the likelihood of different, concurrent tests interfering with each other while running on the same test database.
+Historically, a common approach would be to have a test database, and, for each test, add a `try` block and begin a transaction, possibly with a READ UNCOMMITTED isolation level depending on the database and test, insert data, verify, and in the `finally` block `rollback` the transaction. The downsides of this approach should be obvious. The complexity is high, as is the likelihood of different, concurrent tests interfering with each other while running on the same test database.
 
 ## Do you really need to unit test database code at all?
 
@@ -24,7 +24,7 @@ These days we have better options than hacking around transactions; we have Dock
 
 ## Requirements
 
-You'll need Docker running locally on your machine. Install (and start) Docker Desktop if it isn't already. If you're worried about CI/CD, don't. GitHub Actions' runners include Docker, so these tests will run just fine, there.
+You'll need Docker running locally on your machine. Install (and start) Docker Desktop (or a suitable alternative) if it isn't already. If you're worried about CI/CD, don't. GitHub Actions' Ubuntu runners include Docker, so these tests will run just fine there.
 
 ## Setting up our database
 
@@ -34,7 +34,7 @@ You'll likely lean on your agent of choice for this, but know that setting up yo
 const postgres = await new PostgreSqlContainer("postgres:18-alpine").start();
 ```
 
-To get the url to the db in that container, it's as simple as
+To get the URL to the database in that container, it's as simple as
 
 ```ts
 postgres.getConnectionUri();
@@ -48,7 +48,7 @@ let postgres: Awaited<ReturnType<PostgreSqlContainer["start"]>>;
 
 ## Tearing down our database
 
-Don't forget to clean up at the end
+Don't forget to clean up at the end:
 
 ```ts
 afterAll(async () => {
@@ -61,7 +61,7 @@ afterAll(async () => {
 
 ## Scaffolding our data
 
-We want to run some tests against some complicated application queries, insertion logic, etc. We have a connection to an empty Postgres database in a Docker container. We need to get our tables and such set up. There's any number of ways to do this, but if you're using Drizzle, this can be especially easy.
+We want to run some tests against some complicated application queries, insertion logic, etc. We have a connection to an empty Postgres database in a Docker container. We need to get our tables and such set up. There are any number of ways to do this, but if you're using Drizzle, this can be especially easy.
 
 `drizzle-kit` provides a seamless way to do database migrations. I wrote about `drizzle-kit` [here](https://blog.master.dev/drizzle-database-migrations/) so check that post out for a fuller introduction, but `drizzle-kit` push will send the database structure in my Drizzle objects over to a database. With just a little code, I can use that command to do this migration onto our Postgres database sitting in our container.
 
@@ -120,7 +120,7 @@ await pushSchema(postgres.getConnectionUri());
 
 ## Our use case
 
-I've been tinkering with a fitness tracking application lately. The structure for storing workouts is fully normalized. An individual workout contains one or more segment. Each segment contains one or more exercises. And each exercise contains one or more measurements, for how many reps you did, with how much weight, etc.
+I've been tinkering with a fitness tracking application lately. The structure for storing workouts is fully normalized. An individual workout contains one or more segments. Each segment contains one or more exercises. And each exercise contains one or more measurements, for how many reps you did, with how much weight, etc.
 
 The function for inserting a workout runs to almost 100 lines. Here's a small section of it
 
@@ -298,7 +298,7 @@ function createWorkout(name: string, date: string): WorkoutState {
 }
 ```
 
-and then this quick dirty prompt
+and then this quick and dirty prompt
 
 ```
 > ❯ Jump in @src/data/workouts/workouts.test.ts and see createWorkout
@@ -310,7 +310,7 @@ and then this quick dirty prompt
 > Start there and stop
 ```
 
-And lo and behold
+And lo and behold,
 
 ```ts
 type TestMeasurement = Omit<WorkoutSegmentExerciseMeasurementState, "setOrder">;
@@ -457,7 +457,7 @@ function toSegmentsWithExercises(segments: TestSegment[]): SegmentWithExercises[
 
 Again, I spent literally a few minutes generating them with the help of Claude Code.
 
-Here's my test setup
+Here's my test setup:
 
 ```ts
 beforeAll(
@@ -487,7 +487,7 @@ beforeAll(
 );
 ```
 
-And here's my first test
+And here's my first test:
 
 ```ts
 test("Insert simple workout with one exercise", async () => {
@@ -531,11 +531,11 @@ test("Insert simple workout with one exercise", async () => {
 
 And the test passes
 
-![Test fails](/database-testing/img0-test-passes.jpg)
+![Test passes](/database-testing/img0-test-passes.jpg)
 
 There's no sleight of hand here. I'm actually inserting that object graph into my multiple normalized tables using the same method my application code uses, and then reconstructing it back together, again with the same method my application uses, with that large join you saw before. And I'm verifying that everything gets put back together correctly.
 
-A testing purist might argue that I'm doing too much in this test, that I should insert the workout and verify that the rows are in the right tables. And then a second test inserting those rows into the right tables, and then calling `getWorkouts` and verifying that they join and construct correctly. Honestly I prefer it this way. The test is less fragile. A change in database schema would not require any changes to this test. However the test is inserted, and read back is opaque to this test; it cares only that it comes back out in the same form it went in.
+A testing purist might argue that I'm doing too much in this test, that I should insert the workout and verify that the rows are in the right tables. And then a second test inserting those rows into the right tables, and then calling `getWorkouts` and verifying that they join and construct correctly. Honestly I prefer it this way. The test is less fragile. A change in database schema would not require any changes to this test. How the test data is inserted and read back is opaque to this test; it cares only that it comes back out in the same form it went in.
 
 ## Testing the test
 
@@ -557,7 +557,7 @@ and lo and behold
 
 The test fails.
 
-And just for fun I'll revert that (verify the test passes again) and then break the insertion by changing this
+And just for fun, I'll revert that (and verify the test passes again) and then break the insertion by changing this
 
 ```ts
 for (const [segmentIndex, segment] of input.segments.entries()) {
@@ -598,7 +598,7 @@ and again things don't read back correctly.
 
 ![Test fails](/database-testing/img2-test-failure-2.jpg)
 
-Obviously a bug that overt would probably be caught without tests; the point is, a more subtle bug you'd be less likely to even think of would be caught also.
+Obviously a bug that overt would probably be caught without tests; the point is that a more subtle bug would be caught also.
 
 At the risk of belaboring an obvious point, consider something as silly as ordering the measurement sets wrongly
 
@@ -614,17 +614,17 @@ At the risk of belaboring an obvious point, consider something as silly as order
 
 ![Test fails](/database-testing/img3-test-failure-3.jpg)
 
-Any bug that causes our object graph to come back in a different structure that what we inserted will fail our test.
+Any bug that causes our object graph to come back in a different structure than what we inserted will fail our test.
 
 ## These tests aren't free (or fast)
 
-As you can see, the test suite takes over a second to setup and run; that's the container getting created. For complicated logic like you saw, that's time well spent in order to verify that everything works as you'd expect. But please don't abuse this tool and clutter your app with dozens or even hundreds of trivial tests verifying trivial functionality.
+As you can see, the test suite takes over a second to set up and run; that's the container getting created. For complicated logic like you saw, that's time well spent in order to verify that everything works as you'd expect. But please don't abuse this tool and clutter your app with dozens or even hundreds of trivial tests verifying trivial functionality.
 
 With AI helping us spit out tests quickly, it's never been easier to create spam like that, so be discerning!
 
 ## Wrapping up
 
-Hopefully this post has shown you some useful tools you can use in your own projects, and at work to write meaningful tests for your data access code.
+Hopefully this post has shown you some useful tools you can use to write meaningful tests for your data access code.
 
 The `@testcontainers` package will get Docker containers running right inside your Vitest tests. Spin up an empty database, use your existing data access utilities to make sure things work exactly as expected. And remember, more tests is absolutely not always better. Test the meaningful parts of your application, with non-trivial logic. Tests which verify every single basic CRUD operation are unlikely to add much value, and are very likely to slow your test suite down to a crawl.
 
