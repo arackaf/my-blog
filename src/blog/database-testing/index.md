@@ -1,14 +1,14 @@
 ---
 title: Data access testing with @testcontainers
 date: "2026-10-28T10:00:00.000Z"
-description: Introduction to @testcontainers as a way to unit test database code
+description: Introduction to @testcontainers as a way to test database code
 ---
 
 With AI writing the overwhelming majority of our code these days, testing and verification have never been more important. We probably all know how to write unit tests with something like Jest or Vitest, or even verify that our frontend code behaves correctly using something like RTL.
 
 But writing tests against data access code has always been harder. Unit tests are supposed to be fast, and isolated; introducing an external database cuts against both of those goals.
 
-Historically a common approach would be to have a test database, and, for each test, add a `try` block and begin a transaction with an isolation level that would allow you to read data which were not yet committed, inserted data, verify, and in the `finally` block, rollback the transaction. The downsides of this approach should be obvious. The complexity is high, as is the likelihood of different, concurrent tests interfering with each other while running on the same test database.
+Historically a common approach would be to have a test database, and, for each test, add a `try` block and begin a transaction, possibly with a READ UNCOMMITTED isolation level depending on database and test, insert data, verify, and in the `finally` block rollback the transaction. The downsides of this approach should be obvious. The complexity is high, as is the likelihood of different, concurrent tests interfering with each other while running on the same test database.
 
 ## Do you really need to unit test database code at all?
 
@@ -20,11 +20,11 @@ Let's get started.
 
 ## Docker to the rescue
 
-These days we have better options than hacking around transactions; we have Docker. Docker allows us to spin up virtually anything within a completely isolated container, do what we wish, and then let the container to vanish into the ether. And to help utilize Docker for this very use case, there's a nifty library called `@testcontainers`. There's a number of modules within that family, and for this post we'll be looking at `@testcontainers/postgresql`.
+These days we have better options than hacking around transactions; we have Docker. Docker allows us to spin up virtually anything within a completely isolated container, do what we wish, and then let the container vanish into the ether. And to help utilize Docker for this very use case, there's a nifty family of packages called `@testcontainers`. There are a number of modules within that family, and for this post we'll be looking at `@testcontainers/postgresql`.
 
 ## Requirements
 
-You'll need Docker running locally on your machine. Install (and start) Docker Desktop if it isn't already. If you're worried about CI/CD, don't. The container GitHub Actions run in includes Docker, so these tests will run just fine, there.
+You'll need Docker running locally on your machine. Install (and start) Docker Desktop if it isn't already. If you're worried about CI/CD, don't. GitHub Actions' runners include Docker, so these tests will run just fine, there.
 
 ## Setting up our database
 
@@ -44,6 +44,19 @@ You'll probably want to access this object in both the `beforeAll` hook of your 
 
 ```ts
 let postgres: Awaited<ReturnType<PostgreSqlContainer["start"]>>;
+```
+
+## Tearing down our database
+
+Don't forget to clean up at the end
+
+```ts
+afterAll(async () => {
+  try {
+    await db.$client.end();
+    await postgres.stop();
+  } catch {}
+});
 ```
 
 ## Scaffolding our data
@@ -107,7 +120,7 @@ await pushSchema(postgres.getConnectionUri());
 
 ## Our use case
 
-I've been tinkering with a fitness tracking application lately. The structure for storing workouts is fully normalized. An individual workout contains 1 or more segment. Each segment contains one or more exercise. And each exercise contains one or more measurement, for how many reps you did, with how much weight, etc.
+I've been tinkering with a fitness tracking application lately. The structure for storing workouts is fully normalized. An individual workout contains one or more segment. Each segment contains one or more exercises. And each exercise contains one or more measurements, for how many reps you did, with how much weight, etc.
 
 The function for inserting a workout runs to almost 100 lines. Here's a small section of it
 
@@ -595,13 +608,13 @@ At the risk of belaboring an obvious point, consider something as silly as order
   desc(workoutTable.id),
   asc(workoutSegmentTable.segmentOrder),
   asc(workoutSegmentExerciseTable.exerciseOrder),
-  desc(workoutSegmentExerciseMeasurementTable.setOrder), // <------ should be desc
+  desc(workoutSegmentExerciseMeasurementTable.setOrder), // <------ should be asc
 );
 ```
 
 ![Test fails](/database-testing/img3-test-failure-3.jpg)
 
-Anything which causes our object graph to not get read back out in the same structure we put it in will fail our test.
+Any bug that causes our object graph to come back in a different structure that what we inserted will fail our test.
 
 ## These tests aren't free (or fast)
 
@@ -613,6 +626,6 @@ With AI helping us spit out tests quickly, it's never been easier to create spam
 
 Hopefully this post has shown you some useful tools you can use in your own projects, and at work to write meaningful tests for your data access code.
 
-The `@testcontainers` package will get Docker running right inside your Vitest tests. Spin up an empty database, use your existing data access utilities to make sure things work exactly as expected. And remember, more tests is absolutely not always better. Test the meaningful parts of your application, with non-trivial logic. Tests which verify every single basic CRUD operation are unlikely to add much value, and are very likely to slow your test suite down to a crawl.
+The `@testcontainers` package will get Docker containers running right inside your Vitest tests. Spin up an empty database, use your existing data access utilities to make sure things work exactly as expected. And remember, more tests is absolutely not always better. Test the meaningful parts of your application, with non-trivial logic. Tests which verify every single basic CRUD operation are unlikely to add much value, and are very likely to slow your test suite down to a crawl.
 
 Happy coding!
