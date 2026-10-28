@@ -1,8 +1,50 @@
 ---
-title: Testing database code with @testcontainers
-date: "2026-10-05T10:00:00.000Z"
-description: Introduction to @testcontainers as a way to unit test data access code
+title: Data access testing with @testcontainers
+date: "2026-10-28T10:00:00.000Z"
+description: Introduction to @testcontainers as a way to unit test database code
 ---
+
+With AI writing the overwhelming majority of our code these days, testing and verification have never been more important. We probably all know how to write unit tests with something like Jest or Vitest, or even verify that our frontend code behaves correctly using something like RTL.
+
+But writing tests against data access code has always been harder. Unit tests are supposed to be fast, and isolated; introducing an external database cuts against both of those goals.
+
+Historically a common approach would be to have a test database, and, for each test, add a `try` block and begin a transaction with an isolation level that would allow you to read data which were not yet committed, inserted data, verify, and in the `finally` block, rollback the transaction. The downsides of this approach should be obvious. The complexity is high, as is the liklihood of different, concurrent tests interfering with each other while running on the same test database.
+
+## Do you really need to unit test database code?
+
+That's actually a very reasonable question, and the answer is, as it often is, "it depends."
+
+## Docker to the rescue
+
+These days we have better options; we have Docker now. Docker allows us to spin up virtually anything within a completely isolated container, do what we wish, and then allow the container to vanish into the ether. And to help utilize Docker for this very use case, there's a nifty library called `@testcontainers`. There's a number of modules within that family, and for this post we'll be looking at `@testcontainers/postgresql`.
+
+## Requirements
+
+You'll need Docker running locally on your machine. Install (and start) Docker Desktop if it isn't already. If you're worried about CI/CD, don't. The container GitHub Actions run in includes Docker, so these tests will run just fine, there.
+
+## Setting up our database
+
+Setting up our database is as simple as this
+
+```ts
+const postgres = await new PostgreSqlContainer("postgres:18-alpine").start();
+```
+
+To get the url to that container, it's as simple as
+
+```ts
+postgres.getConnectionUri();
+```
+
+You'll probably want to access this object in both the `beforeAll` hook of your tests to set things up, as well as the `afterAll` hook, to tear it down. To declare this variable before assignment, without losing any typings, just lean on TypeScript a bit
+
+```ts
+let postgres: Awaited<ReturnType<PostgreSqlContainer["start"]>>;
+```
+
+## Scaffolding our database
+
+So you want to run some tests against some complicated application queries, insertion logic, etc.
 
 ## Leaning on our agents
 
@@ -216,7 +258,7 @@ test("Insert simple workout with one exercise", async () => {
 });
 ```
 
-There's no sleight of hand here. I'm actually inserting that object graph into my multiple normalized tables, and then reconstructing it with that large join you saw before, and verifying that everything gets put back together.
+There's no sleight of hand here. I'm actually inserting that object graph into my multiple normalized tables, and then reconstructing it with the same method my application uses, which performs that large join you saw before; and I'm verifying that everything gets put back together.
 
 To really, truly verify what I just said was true, I went ahead and changed this line in the query method (which puts the workout back together) from this
 
