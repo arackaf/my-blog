@@ -8,15 +8,19 @@ With AI writing the overwhelming majority of our code these days, testing and ve
 
 But writing tests against data access code has always been harder. Unit tests are supposed to be fast, and isolated; introducing an external database cuts against both of those goals.
 
-Historically a common approach would be to have a test database, and, for each test, add a `try` block and begin a transaction with an isolation level that would allow you to read data which were not yet committed, inserted data, verify, and in the `finally` block, rollback the transaction. The downsides of this approach should be obvious. The complexity is high, as is the liklihood of different, concurrent tests interfering with each other while running on the same test database.
+Historically a common approach would be to have a test database, and, for each test, add a `try` block and begin a transaction with an isolation level that would allow you to read data which were not yet committed, inserted data, verify, and in the `finally` block, rollback the transaction. The downsides of this approach should be obvious. The complexity is high, as is the likelihood of different, concurrent tests interfering with each other while running on the same test database.
 
-## Do you really need to unit test database code?
+## Do you really need to unit test database code at all?
 
 That's actually a very reasonable question, and the answer, as it often is, is "it depends." If your data access code is basic CRUD, inserting records and then reading them back, then no, you probably don't need to bother writing tests for code with such low complexity.
 
+But if your database logic is actually doing real work, consider some tests to verify that they behave correctly. And this post will show you how.
+
+Let's get started.
+
 ## Docker to the rescue
 
-These days we have better options; we have Docker now. Docker allows us to spin up virtually anything within a completely isolated container, do what we wish, and then allow the container to vanish into the ether. And to help utilize Docker for this very use case, there's a nifty library called `@testcontainers`. There's a number of modules within that family, and for this post we'll be looking at `@testcontainers/postgresql`.
+These days we have better options than hacking around transactions; we have Docker. Docker allows us to spin up virtually anything within a completely isolated container, do what we wish, and then let the container to vanish into the ether. And to help utilize Docker for this very use case, there's a nifty library called `@testcontainers`. There's a number of modules within that family, and for this post we'll be looking at `@testcontainers/postgresql`.
 
 ## Requirements
 
@@ -24,13 +28,13 @@ You'll need Docker running locally on your machine. Install (and start) Docker D
 
 ## Setting up our database
 
-Setting up our database is as simple as this
+You'll likely lean on your agent of choice for this, but know that setting up your database is as simple as this
 
 ```ts
 const postgres = await new PostgreSqlContainer("postgres:18-alpine").start();
 ```
 
-To get the url to that container, it's as simple as
+To get the url to the db in that container, it's as simple as
 
 ```ts
 postgres.getConnectionUri();
@@ -46,7 +50,7 @@ let postgres: Awaited<ReturnType<PostgreSqlContainer["start"]>>;
 
 We want to run some tests against some complicated application queries, insertion logic, etc. We have a connection to an empty Postgres database in a Docker container. We need to get our tables and such set up. There's any number of ways to do this, but if you're using Drizzle, this can be especially easy.
 
-`drizzle-kit` provides a seamless way to do database migrations. I wrote about `drizzle-kit` [here](https://blog.master.dev/drizzle-database-migrations/) so check that post out for a fuller introduction, but the short of it is, `drizzle-kit` push will send the database structure in my Drizzle objects over to a database. With just a little code, I can use that command to do this migration onto our Postgres database sitting in our container.
+`drizzle-kit` provides a seamless way to do database migrations. I wrote about `drizzle-kit` [here](https://blog.master.dev/drizzle-database-migrations/) so check that post out for a fuller introduction, but `drizzle-kit` push will send the database structure in my Drizzle objects over to a database. With just a little code, I can use that command to do this migration onto our Postgres database sitting in our container.
 
 ```ts
 import { execFile } from "node:child_process";
@@ -103,7 +107,7 @@ await pushSchema(postgres.getConnectionUri());
 
 ## Our use case
 
-I've been tinkering with a fitness tracking application lately. The structure for storing workouts is fully normalized. An individual workout containers 1 or more segment. Each segment contains one or more exercise. And each exercise contains one or more measurement, for how many reps you did, with how much weight, etc.
+I've been tinkering with a fitness tracking application lately. The structure for storing workouts is fully normalized. An individual workout contains 1 or more segment. Each segment contains one or more exercise. And each exercise contains one or more measurement, for how many reps you did, with how much weight, etc.
 
 The function for inserting a workout runs to almost 100 lines. Here's a small section of it
 
@@ -262,13 +266,13 @@ export const getWorkouts = async (db: DB, options: GetWorkoutsOptions): Promise<
 ```
 
 \*\*NOTE
-A less normalized structure would certainly be simpler, but this approach allowes me to much more easily query workout progress for individual exercises and such.
+A less normalized structure would certainly be simpler, but this approach allows me to much more easily query workout progress for individual exercises and such.
 
 ## Writing our tests
 
 We have our Postgres database ready, with our schema scaffolded. And we have our use case.
 
-Let's write some code to insert some workouts, and then query it right back, and confirm everything matches. Getting data ready to insert into multiple tables is certainly a pain, but in this day and age we have AI agents to lean on for tedious, rote tasks like that. Here's what my process looked like.
+Let's write some code to insert some workouts, and then query it right back, and confirm everything matches. Getting data ready to insert into multiple tables is certainly a pain, but we have AI agents to lean on for tedious, rote tasks like that. Here's what my process looked like.
 
 I started with this
 
@@ -283,13 +287,15 @@ function createWorkout(name: string, date: string): WorkoutState {
 
 and then this quick dirty prompt
 
+```
 > ❯ Jump in @src/data/workouts/workouts.test.ts and see createWorkout
-
-> Create a new type that is SegmentWithExercises but without segmentOrder or sets. Inside of it, the exercises array should be a new type that's WorkoutSegmentExerciseState but wityout exerciseOrder. Then inside that, use a new type for measurements that's WorkoutSegmentExerciseMeasurementState but without setOrder.
-
+>
+> Create a new type that is SegmentWithExercises but without segmentOrder or sets. Inside of it, the exercises array should be a new type that's WorkoutSegmentExerciseState but without exerciseOrder. Then inside that, use a new type for measurements that's WorkoutSegmentExerciseMeasurementState but without setOrder.
+>
 > When done, adjust createWorkout to also take an array of your new top-level type
-
+>
 > Start there and stop
+```
 
 And lo and behold
 
@@ -438,6 +444,36 @@ function toSegmentsWithExercises(segments: TestSegment[]): SegmentWithExercises[
 
 Again, I spent literally a few minutes generating them with the help of Claude Code.
 
+Here's my test setup
+
+```ts
+beforeAll(
+  async () => {
+    postgres = await new PostgreSqlContainer("postgres:18-alpine").start();
+
+    await pushSchema(postgres.getConnectionUri());
+
+    const pool = new Pool({
+      connectionString: postgres.getConnectionUri(),
+    });
+
+    db = getDb(pool);
+
+    const [insertedBenchPress, insertedPushup] = await db
+      .insert(exercises)
+      .values([
+        { ...benchPress, userId },
+        { ...pushUp, userId },
+      ])
+      .returning({ id: exercises.id });
+
+    benchPress.id = insertedBenchPress.id;
+    pushUp.id = insertedPushup.id;
+  },
+  60 * 1000 * 5,
+);
+```
+
 And here's my first test
 
 ```ts
@@ -565,11 +601,13 @@ At the risk of belaboring an obvious point, consider something as silly as order
 
 ![Test fails](/database-testing/img3-test-failure-3.jpg)
 
-Anything which causes our object graph to not get read back out in the same structire we put it in will fail our test.
+Anything which causes our object graph to not get read back out in the same structure we put it in will fail our test.
 
 ## These tests aren't free (or fast)
 
-As you can see, the test suite takes over a second to setup and run; that's the container getting created. For complicated logic like you saw, that's time well spent in order to verify that everything works as you'd expect. But please don't abuse this tool and clutter your app with dozens or hundreds of trivial tests verifying trivial functionality.
+As you can see, the test suite takes over a second to setup and run; that's the container getting created. For complicated logic like you saw, that's time well spent in order to verify that everything works as you'd expect. But please don't abuse this tool and clutter your app with dozens or even hundreds of trivial tests verifying trivial functionality.
+
+With AI helping us spit out tests quickly, it's never been easier to create spam like that, so be discerning!
 
 ## Wrapping up
 
