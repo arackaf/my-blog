@@ -250,12 +250,6 @@ As of current writing, the Vercel cleanup isn't quite ... effective. The sandbox
 
 Railway does not have this problem. That said, disk checkpoints are not deleted in Railway, but you're not charged for these.
 
-## Loose ends
-
-As before, TanStack AI provides outstanding primitives for you to put to good use however you'd like. The code from the prior posts is virtually identical to what we saw here, with the sole addition of a sandbox in middleware.
-
-The only slight complication I've seen is that loading a prompt you just started may not correctly resume, since the memory stream has not even started yet, since the sandbox is still creating. There's any number of ways to work around this, but I'd probably just track brand new prompts in my own table, apart from what TanStack AI persistence uses. Insert in that table _before_ the sandbox creation is triggered, and in the GET endpoint, check if that table has an entry, but not the persistence table. If so, return a value indicating that the spin-up is in progress, and then just poll accordingly. Something like that should work. Play with it, or ask your agent for help.
-
 ## Wrapping up
 
 TanStack AI's Sandbox api is a joy to use. It makes remote AI request execution a breeze. The flow, performance, and overal UX doesn't compare to Claude Code or Codex, but when you're away from your laptop, it gets the job done well.
