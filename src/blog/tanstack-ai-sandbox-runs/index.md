@@ -221,13 +221,13 @@ export const deleteVercelSession = createServerFn({ method: "POST" })
     const runs = await db.select({ runId: chatRuns.runId }).from(chatRuns).where(eq(chatRuns.threadId, threadId));
 
     try {
+      console.log("Deleting threadId " + threadId + " ...");
       for (const run of runs) {
-        console.log("Deleting ...");
         await sandboxVercel.destroy({ runId: run.runId, threadId });
-        console.log("Deleted");
       }
-      db.delete(chatRuns).where(eq(chatRuns.threadId, threadId));
-      db.delete(chatThreads).where(eq(chatThreads.threadId, threadId));
+      await db.delete(chatRuns).where(eq(chatRuns.threadId, threadId));
+      await db.delete(chatThreads).where(eq(chatThreads.threadId, threadId));
+      console.log("Deleted");
     } catch (error) {
       console.log("error deleting vercel sandbox\n\n", error);
     }
@@ -238,7 +238,15 @@ Railway is identical except, of course, we call `destroy` on `sandboxRailway`.
 
 **NOTE**
 
-As of current
+As of current writing, the Vercel cleanup isn't quite ... effective. The sandbox is only stopped, not deleted, and any disk snapshots are also not deleted. Hopefully this will be fixed soon, but whip up a cleanup script with the Vercel api if you plan to use it.
+
+Railway does not have this problem. That said, disk checkpoints are not deleted in Railway, but you're not charged for these.
+
+## Loose ends
+
+As before, TanStack AI provides outstanding primitives for you to put to good use however you'd like. The code from the prior posts is virtually identical to what we saw here, with the sole addition of a sandbox in middleware. Everything else is the same.
+
+The only slight complication I've seen is that loading a prompt you just started may not correctly resume, since the memory stream has not even started yet, since the sandbox is still creating. There's any number of ways to work around this, but I'd probably just track brand new prompts in my own table, apart from what TanStack AI persistence uses. Insert in that table _before_ the sandbox creation is triggered, and in the GET endpoint, check if that table has an entry, but not the persistence table. If so, return a value indicating that the spin-up is in progress, and then just poll accordingly. Something like that should work. Play with it, or ask your agent for help.
 
 ## Wrapping up
 
