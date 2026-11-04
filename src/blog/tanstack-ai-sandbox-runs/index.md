@@ -10,6 +10,14 @@ This post is about doing actual agentic work through TanStack AI, via their Sand
 
 I want to be clear: this is already possible with tools like T3, Codex, etc. You can pair your laptop and your phone, and drive the former from the latter. But your laptop needs to be up and running for that to work. Ideally you'd just have a PC set up and always on, with some simple Linux distro for this very purpose. But if you don't have that set up, and don't care to, what I'll show you in this post is a decent next-best alternative. It won't be nearly as fast, and you'll have to pay a small amount of money to providers like Vercel or Railway for use of the remote Sandboxes. But as an occasional fill-in, it's more than good enough in my opinion.
 
+## Our use case
+
+I have a dirt simple web app [located here](https://github.com/arackaf/tanstack-ai-sandboxes-blog-post). It's a web app that has pages for different programming languages, with brief descriptions of each. And I have some admin pages that let me add features to this app via a remote sandbox.
+
+The app has admin pages for Vercel and Railway, and each has no problem cloning our repo, branching, adding the feature and opening a PR.
+
+Let's take a look!
+
 ## Setup
 
 There's a few sets of tokens you need here. We'll be using Claude Code in our sandbox, and we'll be connecting it to our GitHub so our repo's can be cloned, and PRs created.
@@ -89,6 +97,148 @@ Then, hit the tokens link on the same left navigation list, create yourself a to
 ```
 RAILWAY_TOKEN="c0903fad-4336-4f0f-a0bf-3edc7abcfc51"
 ```
+
+## Creating our sandboxes
+
+As I said before, if you've read my prior posts on TanStack AI, almost everything is the same as before. Persistence, resumability with a memory stream, etc are all the same. The main difference is, rather than routing our request to, e.g., Vercel's AI Gateway, we'll be providing a sandbox to the `chat` function for our request to run in. That sandbox will have access to Claude Code and our GitHub (via the setup we did above), and so can clone our repo, do work, and open pull requests.
+
+We'll take a look at Vercel and Railway sandboxes, and then put it to work.
+
+### Vercel sandbox
+
+Here's my code for creating a Vercel sandbox
+
+```ts
+import { createSecrets, defineSandbox, defineWorkspace, githubRepo } from "@tanstack/ai-sandbox";
+import { vercelSandbox } from "@tanstack/ai-sandbox-vercel";
+
+export const sandboxVercel = defineSandbox({
+  id: "repo-agent",
+  provider: vercelSandbox({}),
+  workspace: defineWorkspace({
+    source: githubRepo({ repo: "arackaf/tanstack-ai-sandboxes-blog-post" }),
+    setup: [
+      "sudo npm install -g @anthropic-ai/claude-code",
+
+      "sudo dnf install -y 'dnf-command(config-manager)'",
+      "sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo",
+      "sudo dnf install -y gh",
+
+      "npm install",
+    ],
+    secrets: createSecrets({
+      ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? "",
+      GH_TOKEN: process.env.GH_TOKEN ?? "",
+    }),
+    instructions:
+      "Accomplish the user's request and create a pull request. To publish work: run `gh auth setup-git` once, then `git push -u origin <branch>` and `gh pr create`. GH_TOKEN is already in the environment.",
+  }),
+  lifecycle: { reuse: "thread" },
+});
+```
+
+Our setup contains a few extra steps than we'll see with Railway, since the default Vercel container does not come equipped with the GitHub cli or Claude Code, so we have to load that ourselves.
+
+```ts
+lifecycle: { reuse: "thread" },
+```
+
+tells TanStack to reuse the same sandbox within the same threadId.
+
+### Railway sandbox
+
+Railway is pretty similar, but with less setup
+
+```ts
+import { createSecrets, defineSandbox, defineWorkspace, githubRepo } from "@tanstack/ai-sandbox";
+import { railwaySandbox } from "@tanstack/ai-sandbox-railway";
+
+export const sandboxRailway = defineSandbox({
+  id: "repo-agent",
+  provider: railwaySandbox({}),
+  workspace: defineWorkspace({
+    source: githubRepo({
+      repo: "arackaf/tanstack-ai-sandboxes-blog-post",
+    }),
+    setup: ["npm install"],
+    secrets: createSecrets({
+      ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? "",
+      GH_TOKEN: process.env.GH_TOKEN ?? "",
+    }),
+    instructions:
+      "Accomplish the user's request and create a pull request. To publish work: run `gh auth setup-git` once, then `git push -u origin <branch>` and `gh pr create`. GH_TOKEN is already in the environment.",
+  }),
+  lifecycle: { reuse: "thread" },
+});
+```
+
+## Making requests
+
+With all that set up, everything else is the same. If you've read my prior posts on TanStack AI, you now have pretty much everything you need to run code inside of a sandbox, with access to your GitHub. Here's what my call to `chat` in my api endpoint looks like.
+
+```ts
+const stream = chat({
+  adapter: claudeCodeText("claude-opus-4-8"),
+  messages,
+  threadId,
+  runId,
+  middleware: [withPersistence(chatPersistence), withSandbox(sandboxVercel)],
+});
+```
+
+The sandbox is simply a new middleware entry.
+
+## Putting it to use
+
+Let's make a feature request on the Vercel route
+
+![Vercel prompt](/tanstack-ai-sandbox-runs/vercel-prompt.jpg)
+
+and we can see the actual sandbox if we go to our Vercel dashboard
+
+![Vercel sandbox](/tanstack-ai-sandbox-runs/vercel-sandbox-running.jpg)
+
+and eventually we can see the PR created
+
+![Vercel sandbox](/tanstack-ai-sandbox-runs/vercel-pr.jpg)
+
+## Cleaning up
+
+You'll probably want to provide some way to clean up the resources that were created. That sandbox object we created has a destroy method on it. And you'll also want to remove the relevant rows from the persistence db. Here's what the Vercel cleanup looks like
+
+```ts
+import { createServerFn } from "@tanstack/react-start";
+import { eq } from "drizzle-orm";
+
+import { db } from "../drizzle/db";
+import { chatRuns, chatThreads } from "../drizzle/schema";
+import { sandboxVercel } from "#/lib/vercel-sandbox";
+
+export const deleteVercelSession = createServerFn({ method: "POST" })
+  .validator((data: { threadId: string }) => data)
+  .handler(async ({ data }) => {
+    const { threadId } = data;
+    const runs = await db.select({ runId: chatRuns.runId }).from(chatRuns).where(eq(chatRuns.threadId, threadId));
+
+    try {
+      for (const run of runs) {
+        console.log("Deleting ...");
+        await sandboxVercel.destroy({ runId: run.runId, threadId });
+        console.log("Deleted");
+      }
+      db.delete(chatRuns).where(eq(chatRuns.threadId, threadId));
+      db.delete(chatThreads).where(eq(chatThreads.threadId, threadId));
+    } catch (error) {
+      console.log("error deleting vercel sandbox\n\n", error);
+    }
+  });
+```
+
+Railway is identical except, of course, we call `destroy` on `sandboxRailway`.
+
+**NOTE**
+
+As of current
 
 ## Wrapping up
 
