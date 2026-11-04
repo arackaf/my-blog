@@ -4,15 +4,15 @@ date: "2026-11-03T10:00:00.000Z"
 description: Exploring fun use cases with TanStack AI's Sandbox API
 ---
 
-TanStack AI is a fantastic SDK for integrating AI features into software. I've written about it [here](https://blog.master.dev/unlocking-ai-in-your-apps-with-tanstack-ai/), and [here](https://blog.master.dev/structured-output-with-tanstack-ai/). Those posts covered basic prompt-based requests; we provided context, and asked AI to generate some workouts for us. We covered streaming, persistence, and structured output.
+TanStack AI is a fantastic SDK for integrating AI features into software. I've written about it [here](https://blog.master.dev/unlocking-ai-in-your-apps-with-tanstack-ai/), and [here](https://blog.master.dev/structured-output-with-tanstack-ai/). Those posts covered basic prompt-based requests; we provided context, and asked AI to generate some workouts for us. We went through streaming, persistence, and structured output.
 
-This post is about doing actual agentic work through TanStack AI, via their Sandbox API. Specifically, we'll see how we can use TanStack AI to drive Claude Code in a remote sandbox to do work against a GitHub repo we specify, and have a pull request opened for us. Why would you want to do this? Sometimes you're away from your computer with some downtime and nothing better to do than get a few tasks done.
+This post is about doing actual agentic work through TanStack AI, via their Sandbox API. Specifically, we'll use TanStack AI to drive Claude Code in a remote sandbox, make changes to a GitHub repo, and open a pull request. Why would you want to do this? Sometimes you're away from your computer with some downtime and nothing better to do than get a few tasks done.
 
 I want to be clear: this is already possible with tools like T3, Codex, etc. You can pair your laptop and your phone, and drive the former from the latter. But your laptop needs to be up and running for that to work. Ideally you'd just have a PC set up and always on, with some simple Linux distro for this very purpose. But if you don't have that set up, and don't care to, what I'll show you here is a decent next-best alternative. It won't be nearly as fast, and you'll have to pay a small amount of money to providers like Vercel or Railway for use of the remote sandboxes. But as an occasional fill-in, it's more than good enough in my opinion.
 
 ## Our use case
 
-I have a dirt-simple web app [here](https://github.com/arackaf/tanstack-ai-sandboxes-blog-post). It has pages for different programming languages, with brief descriptions of each. And I have some admin pages that let me add features by prompting to a remote sandbox that's running Claude Code, with GitHub access enabled.
+I have a dirt-simple web app [here](https://github.com/arackaf/tanstack-ai-sandboxes-blog-post). It has pages for different programming languages, with brief descriptions of each. I also have some admin pages that let me add features by prompting Claude Code in a remote sandbox with GitHub access.
 
 The app has admin pages for Vercel and Railway, and both providers have no problem cloning our repo, branching, adding the requested feature, and opening a PR.
 
@@ -104,7 +104,7 @@ RAILWAY_TOKEN="c0903fad-4336-4f0f-a0bf-3edc7abcfc51"
 
 ## Creating our sandboxes
 
-If you've read my prior posts on TanStack AI, almost everything is the same as before. Persistence, resumability with a memory stream, etc., are all the same. The main difference is, rather than routing our request to, e.g., Vercel's AI Gateway, we'll be providing a sandbox to the `chat` function for our request to run in. That sandbox will have access to Claude Code and GitHub (via the setup we did above). This allows it to clone our repo, do work, and open pull requests.
+If you've read my prior posts on TanStack AI, almost everything is the same as before. Persistence, resumability with a memory stream, etc., are all the same. The main difference is that, rather than routing our request through something like Vercel's AI Gateway, we'll provide a sandbox where the `chat` function can execute our request. That sandbox will have access to Claude Code and GitHub (via the setup we did above). This allows it to clone our repo, do work, and open pull requests.
 
 We'll take a look at Vercel and Railway sandboxes, and then put them to work.
 
@@ -141,7 +141,7 @@ export const sandboxVercel = defineSandbox({
 });
 ```
 
-Our setup contains a few more steps than we'll see with Railway, since the default Vercel container doesn't come equipped with the GitHub CLI or Claude Code, so we have to install those ourselves.
+Vercel requires a few more setup steps than Railway because its default container doesn't include the GitHub CLI or Claude Code, so we have to install them ourselves.
 
 ```ts
 lifecycle: { reuse: "thread" },
@@ -204,13 +204,13 @@ and we can see the actual sandbox if we go to our Vercel dashboard:
 
 ![Vercel sandbox](/tanstack-ai-sandbox-runs/vercel-sandbox-running.jpg)
 
-and eventually we can see the PR created:
+and eventually our PR is created:
 
 ![Vercel sandbox](/tanstack-ai-sandbox-runs/vercel-pr.jpg)
 
 ## Cleaning up
 
-You'll probably want to provide some way to clean up the resources that were created. That sandbox object we created has a `destroy` method. And you'll also want to remove the relevant rows from the persistence DB. Here's what my Vercel cleanup looks like:
+You'll probably want to clean up the resources you've created. Our sandbox object has a `destroy` method, and we'll also want to remove the relevant rows from the persistence DB. Here's what my Vercel cleanup looks like:
 
 ```ts
 import { createServerFn } from "@tanstack/react-start";
