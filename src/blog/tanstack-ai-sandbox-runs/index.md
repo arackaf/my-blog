@@ -6,13 +6,13 @@ description: Exploring fun use cases with TanStack AI's Sandbox API
 
 TanStack AI is a fantastic SDK for integrating AI features into software applications. I've written about it [here](https://blog.master.dev/unlocking-ai-in-your-apps-with-tanstack-ai/), and [here](https://blog.master.dev/structured-output-with-tanstack-ai/). Those posts covered basic prompt-based requests; in particular, we provided some context, and asked AI to generate some workouts for us. We covered streaming, persistence, structured output.
 
-This post is about doing actual agentic work through TanStack AI, via their Sandbox AI. Specifically, we'll see how we can use TanStack AI to drive Claude Code in a remote Sandbox to do work against a GitHub repo we specify, and then open a pull request. Why would you want to do this? Sometimes you're away from your computer, and might have some downtime with nothing better to do than get some tasks done.
+This post is about doing actual agentic work through TanStack AI, via their Sandbox API. Specifically, we'll see how we can use TanStack AI to drive Claude Code in a remote Sandbox to do work against a GitHub repo we specify, and then open a pull request. Why would you want to do this? Sometimes you're away from your computer, and might have some downtime with nothing better to do than get some tasks done.
 
 I want to be clear: this is already possible with tools like T3, Codex, etc. You can pair your laptop and your phone, and drive the former from the latter. But your laptop needs to be up and running for that to work. Ideally you'd just have a PC set up and always on, with some simple Linux distro for this very purpose. But if you don't have that set up, and don't care to, what I'll show you in this post is a decent next-best alternative. It won't be nearly as fast, and you'll have to pay a small amount of money to providers like Vercel or Railway for use of the remote Sandboxes. But as an occasional fill-in, it's more than good enough in my opinion.
 
 ## Our use case
 
-I have a dirt simple web app [located here](https://github.com/arackaf/tanstack-ai-sandboxes-blog-post). It's a web app that has pages for different programming languages, with brief descriptions of each. And I have some admin pages that let me add features to this app via a remote sandbox.
+I have a dirt simple web app [here](https://github.com/arackaf/tanstack-ai-sandboxes-blog-post). It has pages for different programming languages, with brief descriptions of each. And I have some admin pages that let me add features by prompting to a remote sandbox that's running Claude Code, with GitHub access enabled.
 
 The app has admin pages for Vercel and Railway, and each has no problem cloning our repo, branching, adding the feature and opening a PR.
 
@@ -20,9 +20,9 @@ Let's take a look!
 
 ## Setup
 
-There's a few sets of tokens you need here. We'll be using Claude Code in our sandbox, and we'll be connecting it to our GitHub so our repo's can be cloned, and PRs created.
+There's a few sets of tokens you need here. We'll be using Claude Code in our sandbox, and we'll be connecting it to our GitHub so our repo can be cloned, and PRs created.
 
-Next let's get GitHub set up. Go over to https://github.com/settings/personal-access-tokens and generate a new token. Make sure you select "All Repositories" and then "Contents" and "Pull requests" with read/write access, and Metadata should auto-populate.
+Let's get GitHub set up first. Go over to [https://github.com/settings/personal-access-tokens](https://github.com/settings/personal-access-tokens) and generate a new token. Make sure you select "All Repositories" and then "Contents" and "Pull requests" with read/write access, and Metadata should auto-populate.
 
 ![Alt text](/tanstack-ai-sandbox-runs/github-token.jpg)
 
@@ -42,7 +42,7 @@ and do similarly, then copy that key into a new env var
 ANTHROPIC_API_KEY="sk-ant-xyz-abc"
 ```
 
-## Setting up for sandboxes
+## Setting up our sandboxes
 
 We'll be running code in a cloud sandbox. TanStack AI supports [a lot of different options](https://tanstack.com/ai/latest/docs/sandbox/providers#set-up-a-provider). We'll cover Vercel and Railway here, but of course check the docs if you want to use something else.
 
@@ -50,7 +50,7 @@ We'll be running code in a cloud sandbox. TanStack AI supports [a lot of differe
 
 If you want to use Vercel, we'll need three new env vars.
 
-First head over to your account settings page, which you can currently access from the bottom left
+First head over to your account settings page, which you can access from the bottom left.
 
 ![Vercel account](/tanstack-ai-sandbox-runs/vercel-account-settings.jpg)
 
@@ -72,7 +72,13 @@ VERCEL_TEAM_ID="team_xyz"
 
 Lastly, create whatever Vercel Project you want to associate with this work, hit the settings link, and then copy the project id.
 
-![Vercel project id](/tanstack-ai-sandbox-runs/vercel-account-settings.jpg)
+![Vercel project id](/tanstack-ai-sandbox-runs/vercel-project-id.jpg)
+
+and add it
+
+```
+VERCEL_PROJECT_ID="prj_kBL24CmynuMNcclr4k5s55lqg2xf"
+```
 
 ### Railway setup
 
@@ -92,7 +98,7 @@ Grab that environmentId and put it in a new env var
 RAILWAY_ENVIRONMENT_ID="abcd-efgh-ijkl"
 ```
 
-Then, hit the tokens link on the same left navigation list, create yourself a token, and, as always, add it as a new env var
+Then, hit the tokens link on the same page in the left navigation list, create yourself a token, and, as always, add it as a new env var
 
 ```
 RAILWAY_TOKEN="c0903fad-4336-4f0f-a0bf-3edc7abcfc51"
@@ -100,7 +106,7 @@ RAILWAY_TOKEN="c0903fad-4336-4f0f-a0bf-3edc7abcfc51"
 
 ## Creating our sandboxes
 
-As I said before, if you've read my prior posts on TanStack AI, almost everything is the same as before. Persistence, resumability with a memory stream, etc are all the same. The main difference is, rather than routing our request to, e.g., Vercel's AI Gateway, we'll be providing a sandbox to the `chat` function for our request to run in. That sandbox will have access to Claude Code and our GitHub (via the setup we did above), and so can clone our repo, do work, and open pull requests.
+If you've read my prior posts on TanStack AI, almost everything is the same as before. Persistence, resumability with a memory stream, etc are all the same. The main difference is, rather than routing our request to, e.g., Vercel's AI Gateway, we'll be providing a sandbox to the `chat` function for our request to run in. That sandbox will have access to Claude Code and our GitHub (via the setup we did above). This allows it to clone our repo, do work, and open pull requests.
 
 We'll take a look at Vercel and Railway sandboxes, and then put it to work.
 
@@ -143,11 +149,11 @@ Our setup contains a few extra steps than we'll see with Railway, since the defa
 lifecycle: { reuse: "thread" },
 ```
 
-tells TanStack to reuse the same sandbox within the same threadId.
+tells TanStack to reuse the same sandbox within the same threadId, so follow-up prompts and clarifications should maintain context.
 
 ### Railway sandbox
 
-Railway is pretty similar, but with less setup
+Railway is pretty similar, but with less setup, since their sandbox image comes with more batteries included.
 
 ```ts
 import { createSecrets, defineSandbox, defineWorkspace, githubRepo } from "@tanstack/ai-sandbox";
@@ -188,6 +194,8 @@ const stream = chat({
 
 The sandbox is simply a new middleware entry.
 
+If you want to see the full code, the repo [is here](https://github.com/arackaf/tanstack-ai-sandboxes-blog-post).
+
 ## Putting it to use
 
 Let's make a feature request on the Vercel route
@@ -204,7 +212,7 @@ and eventually we can see the PR created
 
 ## Cleaning up
 
-You'll probably want to provide some way to clean up the resources that were created. That sandbox object we created has a destroy method on it. And you'll also want to remove the relevant rows from the persistence db. Here's what the Vercel cleanup looks like
+You'll probably want to provide some way to clean up the resources that were created. That sandbox object we created has a destroy method on it. And you'll also want to remove the relevant rows from the persistence db. Here's what my Vercel cleanup looks like
 
 ```ts
 import { createServerFn } from "@tanstack/react-start";
@@ -244,7 +252,7 @@ Railway does not have this problem. That said, disk checkpoints are not deleted 
 
 ## Loose ends
 
-As before, TanStack AI provides outstanding primitives for you to put to good use however you'd like. The code from the prior posts is virtually identical to what we saw here, with the sole addition of a sandbox in middleware. Everything else is the same.
+As before, TanStack AI provides outstanding primitives for you to put to good use however you'd like. The code from the prior posts is virtually identical to what we saw here, with the sole addition of a sandbox in middleware.
 
 The only slight complication I've seen is that loading a prompt you just started may not correctly resume, since the memory stream has not even started yet, since the sandbox is still creating. There's any number of ways to work around this, but I'd probably just track brand new prompts in my own table, apart from what TanStack AI persistence uses. Insert in that table _before_ the sandbox creation is triggered, and in the GET endpoint, check if that table has an entry, but not the persistence table. If so, return a value indicating that the spin-up is in progress, and then just poll accordingly. Something like that should work. Play with it, or ask your agent for help.
 
