@@ -4,11 +4,11 @@ date: "2026-11-03T10:00:00.000Z"
 description: Exploring fun use cases with TanStack AI's Sandbox API
 ---
 
-TanStack AI is a fantastic SDK for integrating AI features into software applications. I've written about it [here](https://blog.master.dev/unlocking-ai-in-your-apps-with-tanstack-ai/), and [here](https://blog.master.dev/structured-output-with-tanstack-ai/). Those posts covered basic prompt-based requests; in particular, we provided some context, and asked AI to generate some workouts for us. We covered streaming, persistence, and structured output.
+TanStack AI is a fantastic SDK for integrating AI features into software. I've written about it [here](https://blog.master.dev/unlocking-ai-in-your-apps-with-tanstack-ai/), and [here](https://blog.master.dev/structured-output-with-tanstack-ai/). Those posts covered basic prompt-based requests; we provided context, and asked AI to generate some workouts for us. We covered streaming, persistence, and structured output.
 
-This post is about doing actual agentic work through TanStack AI, via their Sandbox API. Specifically, we'll see how we can use TanStack AI to drive Claude Code in a remote sandbox to do work against a GitHub repo we specify, and then open a pull request. Why would you want to do this? Sometimes you're away from your computer with some downtime and nothing better to do than get a few tasks done.
+This post is about doing actual agentic work through TanStack AI, via their Sandbox API. Specifically, we'll see how we can use TanStack AI to drive Claude Code in a remote sandbox to do work against a GitHub repo we specify, and have a pull request opened for us. Why would you want to do this? Sometimes you're away from your computer with some downtime and nothing better to do than get a few tasks done.
 
-I want to be clear: this is already possible with tools like T3, Codex, etc. You can pair your laptop and your phone, and drive the former from the latter. But your laptop needs to be up and running for that to work. Ideally you'd just have a PC set up and always on, with some simple Linux distro for this very purpose. But if you don't have that set up, and don't care to, what I'll show you in this post is a decent next-best alternative. It won't be nearly as fast, and you'll have to pay a small amount of money to providers like Vercel or Railway for use of the remote sandboxes. But as an occasional fill-in, it's more than good enough in my opinion.
+I want to be clear: this is already possible with tools like T3, Codex, etc. You can pair your laptop and your phone, and drive the former from the latter. But your laptop needs to be up and running for that to work. Ideally you'd just have a PC set up and always on, with some simple Linux distro for this very purpose. But if you don't have that set up, and don't care to, what I'll show you here is a decent next-best alternative. It won't be nearly as fast, and you'll have to pay a small amount of money to providers like Vercel or Railway for use of the remote sandboxes. But as an occasional fill-in, it's more than good enough in my opinion.
 
 ## Our use case
 
@@ -20,7 +20,7 @@ Let's take a look!
 
 ## Setup
 
-There are a few tokens you need here. We'll be using Claude Code in our sandbox, and we'll be connecting it to GitHub so our repo can be cloned and PRs can be created.
+There are a few tokens you'll need here. We'll be using Claude Code in our sandbox, and we'll be connecting it to GitHub so our repo can be cloned and PRs can be created.
 
 Let's get GitHub set up first. Go over to [https://github.com/settings/personal-access-tokens](https://github.com/settings/personal-access-tokens) and generate a new token. Make sure you select either "All Repositories" or "Only select repositories" (and select the repositories you want to provide access to). Then, for permissions, choose "Contents" and "Pull requests" with read/write access, and Metadata should auto-populate.
 
@@ -62,7 +62,7 @@ Next, go to your Vercel team on the top left, then click on settings, and grab y
 
 ![Vercel team id](/tanstack-ai-sandbox-runs/vercel-team-id.jpg)
 
-and copy it into a new env var
+and copy it into a new env var:
 
 ```
 VERCEL_TEAM_ID="team_xyz"
@@ -72,7 +72,7 @@ Lastly, create whatever Vercel project you want to associate with this work, hit
 
 ![Vercel project id](/tanstack-ai-sandbox-runs/vercel-project-id.jpg)
 
-and add it
+and add it:
 
 ```
 VERCEL_PROJECT_ID="prj_kBL24CmynuMNcclr4k5s55lqg2xf"
@@ -200,11 +200,11 @@ Let's make a feature request on the Vercel route.
 
 ![Vercel prompt](/tanstack-ai-sandbox-runs/vercel-prompt.jpg)
 
-and we can see the actual sandbox if we go to our Vercel dashboard
+and we can see the actual sandbox if we go to our Vercel dashboard:
 
 ![Vercel sandbox](/tanstack-ai-sandbox-runs/vercel-sandbox-running.jpg)
 
-and eventually we can see the PR created
+and eventually we can see the PR created:
 
 ![Vercel sandbox](/tanstack-ai-sandbox-runs/vercel-pr.jpg)
 
@@ -247,7 +247,7 @@ Railway is identical except, of course, we call `destroy` on `sandboxRailway`.
 
 As of this writing, the Vercel cleanup provided by `@tanstack/ai-sandbox-vercel` isn't quite ... effective. The sandbox is only stopped, not deleted, and any disk snapshots aren't deleted either. Hopefully this will be fixed soon, but whip up a cleanup script using the Vercel API if you plan to use it.
 
-Railway does not have this problem. That said, disk checkpoints are not deleted in Railway, but you're not charged for these.
+Railway does not have this problem. That said, disk checkpoints are not deleted in Railway, but you're not charged for those.
 
 ## Wrapping up
 
