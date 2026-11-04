@@ -252,6 +252,6 @@ Railway does not have this problem. That said, disk checkpoints are not deleted 
 
 ## Wrapping up
 
-TanStack AI's Sandbox api is a joy to use. It makes remote AI request execution a breeze. The flow, performance, and overal UX doesn't compare to Claude Code or Codex, but when you're away from your laptop, it gets the job done well.
+TanStack AI's Sandbox api is a joy to use. It makes remote AI request execution a breeze. The flow, performance, and overall UX doesn't compare to Claude Code or Codex, but when you're away from your laptop, it gets the job done well.
 
 Happy Coding!
