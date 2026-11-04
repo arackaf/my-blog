@@ -4,17 +4,17 @@ date: "2026-11-03T10:00:00.000Z"
 description: Exploring fun use cases with TanStack AI's Sandbox API
 ---
 
-TanStack AI is a fantastic SDK for integrating AI features into software applications. I've written about it [here](https://blog.master.dev/unlocking-ai-in-your-apps-with-tanstack-ai/), and [here](https://blog.master.dev/structured-output-with-tanstack-ai/). Those posts covered basic prompt-based requests; in particular, we provided some context, and asked AI to generate some workouts for us. We covered streaming, persistence, structured output.
+TanStack AI is a fantastic SDK for integrating AI features into software applications. I've written about it [here](https://blog.master.dev/unlocking-ai-in-your-apps-with-tanstack-ai/), and [here](https://blog.master.dev/structured-output-with-tanstack-ai/). Those posts covered basic prompt-based requests; in particular, we provided some context, and asked AI to generate some workouts for us. We covered streaming, persistence, and structured output.
 
 This post is about doing actual agentic work through TanStack AI, via their Sandbox API. Specifically, we'll see how we can use TanStack AI to drive Claude Code in a remote sandbox to do work against a GitHub repo we specify, and then open a pull request. Why would you want to do this? Sometimes you're away from your computer with some downtime and nothing better to do than get a few tasks done.
 
-I want to be clear: this is already possible with tools like T3, Codex, etc. You can pair your laptop and your phone, and drive the former from the latter. But your laptop needs to be up and running for that to work. Ideally you'd just have a PC set up and always on, with some simple Linux distro for this very purpose. But if you don't have that set up, and don't care to, what I'll show you in this post is a decent next-best alternative. It won't be nearly as fast, and you'll have to pay a small amount of money to providers like Vercel or Railway for use of the remote Sandboxes. But as an occasional fill-in, it's more than good enough in my opinion.
+I want to be clear: this is already possible with tools like T3, Codex, etc. You can pair your laptop and your phone, and drive the former from the latter. But your laptop needs to be up and running for that to work. Ideally you'd just have a PC set up and always on, with some simple Linux distro for this very purpose. But if you don't have that set up, and don't care to, what I'll show you in this post is a decent next-best alternative. It won't be nearly as fast, and you'll have to pay a small amount of money to providers like Vercel or Railway for use of the remote sandboxes. But as an occasional fill-in, it's more than good enough in my opinion.
 
 ## Our use case
 
 I have a dirt-simple web app [here](https://github.com/arackaf/tanstack-ai-sandboxes-blog-post). It has pages for different programming languages, with brief descriptions of each. And I have some admin pages that let me add features by prompting to a remote sandbox that's running Claude Code, with GitHub access enabled.
 
-The app has admin pages for Vercel and Railway, and each has no problem cloning our repo, branching, adding the feature and opening a PR.
+The app has admin pages for Vercel and Railway, and both providers have no problem cloning our repo, branching, adding the requested feature, and opening a PR.
 
 Let's take a look!
 
@@ -84,7 +84,7 @@ For Railway, we need two values. First, for the environment ID, go to the projec
 
 ![Railway environment id](/tanstack-ai-sandbox-runs/railway-env.jpg)
 
-It's a little wonky, but look at the URL, and you should see something like this
+It's a little wonky, but look at the URL, and you should see something like this:
 
 ```
 ?environmentId=abcd-efgh-ijkl
@@ -96,7 +96,7 @@ Grab that environmentId and put it in a new env var:
 RAILWAY_ENVIRONMENT_ID="abcd-efgh-ijkl"
 ```
 
-Then, hit the tokens link on the same page in the left navigation list, create yourself a token, and, as always, add it as a new env var
+Then, hit the tokens link on the same page in the left navigation list, create yourself a token, and, as always, add it as a new env var:
 
 ```
 RAILWAY_TOKEN="c0903fad-4336-4f0f-a0bf-3edc7abcfc51"
@@ -106,7 +106,7 @@ RAILWAY_TOKEN="c0903fad-4336-4f0f-a0bf-3edc7abcfc51"
 
 If you've read my prior posts on TanStack AI, almost everything is the same as before. Persistence, resumability with a memory stream, etc., are all the same. The main difference is, rather than routing our request to, e.g., Vercel's AI Gateway, we'll be providing a sandbox to the `chat` function for our request to run in. That sandbox will have access to Claude Code and GitHub (via the setup we did above). This allows it to clone our repo, do work, and open pull requests.
 
-We'll take a look at Vercel and Railway sandboxes, and then put it them work.
+We'll take a look at Vercel and Railway sandboxes, and then put them to work.
 
 ### Vercel sandbox
 
